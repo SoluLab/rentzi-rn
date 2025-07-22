@@ -21,8 +21,8 @@ import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { useAuthStore } from "@/stores/authStore";
 import { ShoppingCart, ChevronDown } from "lucide-react-native";
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
 const { width } = Dimensions.get("window");
 export default function MarketplaceScreen() {
   const { user } = useAuthStore();
@@ -32,24 +32,26 @@ export default function MarketplaceScreen() {
   const [showBuyTokensModal, setShowBuyTokensModal] = useState(false);
   const [selectedListing, setSelectedListing] = useState<any>(null);
   const [buyForm, setBuyForm] = useState({ quantity: "" });
-  const [activeTab, setActiveTab] = useState<'main' | 'my' | 'requests' | 'purchases'>('main');
+  const [activeTab, setActiveTab] = useState<
+    "main" | "my" | "requests" | "purchases"
+  >("main");
 
   // Make myListings and secondaryMarketListings stateful for removal
   const [myListings, setMyListings] = useState([
     {
-      id: 'my-listing-1',
-      propertyName: 'My Beach House',
-      tokenSymbol: 'MBH',
+      id: "my-listing-1",
+      propertyName: "My Beach House",
+      tokenSymbol: "MBH",
       quantityListed: 50,
       pricePerToken: 100.0,
       totalValue: 5000,
       roiPercent: 10.0,
-      sellerName: 'You',
-      listingDate: '2024-12-11',
-      location: 'Goa, India',
+      sellerName: "You",
+      listingDate: "2024-12-11",
+      location: "Goa, India",
       propertyImage:
-        'https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&h=300&fit=crop',
-      status: 'Active',
+        "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=400&h=300&fit=crop",
+      status: "Active",
     },
   ]);
   const [secondaryMarketListings, setSecondaryMarketListings] = useState([
@@ -143,7 +145,9 @@ export default function MarketplaceScreen() {
     // Remove from myListings
     setMyListings((prev) => prev.filter((l) => l.id !== listingToCancel.id));
     // Remove from secondaryMarketListings if present
-    setSecondaryMarketListings((prev) => prev.filter((l) => l.id !== listingToCancel.id));
+    setSecondaryMarketListings((prev) =>
+      prev.filter((l) => l.id !== listingToCancel.id)
+    );
     setCancelModalVisible(false);
     setListingToCancel(null);
   };
@@ -231,36 +235,36 @@ export default function MarketplaceScreen() {
   const purchasesDone = [
     // Example purchase for Purchases Done
     {
-      id: 'purchase-1',
-      propertyName: 'Luxury Villa Santorini',
-      tokenSymbol: 'LVS',
+      id: "purchase-1",
+      propertyName: "Luxury Villa Santorini",
+      tokenSymbol: "LVS",
       quantityBought: 10,
       pricePerToken: 125.5,
       totalValue: 1255,
       roiPercent: 12.5,
-      sellerName: 'John D.',
-      purchaseDate: '2024-12-10',
-      location: 'Santorini, Greece',
+      sellerName: "John D.",
+      purchaseDate: "2024-12-10",
+      location: "Santorini, Greece",
       propertyImage:
-        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop',
+        "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop",
       ownershipPercent: 0.5, // Example ownership percentage
     },
   ];
   // Dummy data for Purchase Requests (replace with real data as needed)
   const purchaseRequests = [
     {
-      id: 'request-1',
-      propertyName: 'Dubai Marina Tower',
-      tokenSymbol: 'DMT',
+      id: "request-1",
+      propertyName: "Dubai Marina Tower",
+      tokenSymbol: "DMT",
       quantityRequested: 5,
       pricePerToken: 95.75,
       totalValue: 478.75,
       roiPercent: 9.2,
-      sellerName: 'Ahmed K.',
-      requestDate: '2024-12-12',
-      location: 'Dubai, UAE',
+      sellerName: "Ahmed K.",
+      requestDate: "2024-12-12",
+      location: "Dubai, UAE",
       propertyImage:
-        'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop',
+        "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=400&h=300&fit=crop",
     },
   ];
   // Purchases Done CSV Export
@@ -268,24 +272,31 @@ export default function MarketplaceScreen() {
     if (!purchasesDone.length) return;
     // Prepare CSV header and rows
     const header = [
-      'Token Name',
-      'Property Name',
-      'Quantity Purchased',
-      'Ownership % Gained',
-      'Purchase Date',
+      "Token Name",
+      "Property Name",
+      "Quantity Purchased",
+      "Ownership % Gained",
+      "Purchase Date",
     ];
     const rows = purchasesDone.map((purchase) => [
       purchase.tokenSymbol,
       purchase.propertyName,
       purchase.quantityBought,
-      purchase.ownershipPercent ? purchase.ownershipPercent + '%' : '',
-      purchase.purchaseDate ? new Date(purchase.purchaseDate).toLocaleDateString() : '',
+      purchase.ownershipPercent ? purchase.ownershipPercent + "%" : "",
+      purchase.purchaseDate
+        ? new Date(purchase.purchaseDate).toLocaleDateString()
+        : "",
     ]);
-    const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
+    const csv = [header, ...rows].map((row) => row.join(",")).join("\n");
     // Save to a file and share
-    const fileUri = FileSystem.cacheDirectory + 'purchases.csv';
-    await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-    await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export Purchases CSV' });
+    const fileUri = FileSystem.cacheDirectory + "purchases.csv";
+    await FileSystem.writeAsStringAsync(fileUri, csv, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+    await Sharing.shareAsync(fileUri, {
+      mimeType: "text/csv",
+      dialogTitle: "Export Purchases CSV",
+    });
   };
   return (
     <View style={styles.container}>
@@ -299,56 +310,88 @@ export default function MarketplaceScreen() {
       {/* Tab Section */}
       <View style={styles.tabContainerCustom}>
         <TouchableOpacity
-          style={[styles.tabCustom, activeTab === 'main' && styles.activeTabCustom]}
-          onPress={() => setActiveTab('main')}
+          style={[
+            styles.tabCustom,
+            activeTab === "main" && styles.activeTabCustom,
+          ]}
+          onPress={() => setActiveTab("main")}
           activeOpacity={0.8}
         >
           <Typography
             variant="body"
-            style={[styles.tabTextCustom, activeTab === 'main' && styles.activeTabTextCustom] as any}
+            style={
+              [
+                styles.tabTextCustom,
+                activeTab === "main" && styles.activeTabTextCustom,
+              ] as any
+            }
           >
             Main Listings
           </Typography>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabCustom, activeTab === 'my' && styles.activeTabCustom]}
-          onPress={() => setActiveTab('my')}
+          style={[
+            styles.tabCustom,
+            activeTab === "my" && styles.activeTabCustom,
+          ]}
+          onPress={() => setActiveTab("my")}
           activeOpacity={0.8}
         >
           <Typography
             variant="body"
-            style={[styles.tabTextCustom, activeTab === 'my' && styles.activeTabTextCustom] as any}
+            style={
+              [
+                styles.tabTextCustom,
+                activeTab === "my" && styles.activeTabTextCustom,
+              ] as any
+            }
           >
             My Listings
           </Typography>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabCustom, activeTab === 'requests' && styles.activeTabCustom]}
-          onPress={() => setActiveTab('requests')}
+          style={[
+            styles.tabCustom,
+            activeTab === "requests" && styles.activeTabCustom,
+          ]}
+          onPress={() => setActiveTab("requests")}
           activeOpacity={0.8}
         >
           <Typography
             variant="body"
-            style={[styles.tabTextCustom, activeTab === 'requests' && styles.activeTabTextCustom] as any}
+            style={
+              [
+                styles.tabTextCustom,
+                activeTab === "requests" && styles.activeTabTextCustom,
+              ] as any
+            }
           >
             Purchase Requests
           </Typography>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabCustom, activeTab === 'purchases' && styles.activeTabCustom]}
-          onPress={() => setActiveTab('purchases')}
+          style={[
+            styles.tabCustom,
+            activeTab === "purchases" && styles.activeTabCustom,
+          ]}
+          onPress={() => setActiveTab("purchases")}
           activeOpacity={0.8}
         >
           <Typography
             variant="body"
-            style={[styles.tabTextCustom, activeTab === 'purchases' && styles.activeTabTextCustom] as any}
+            style={
+              [
+                styles.tabTextCustom,
+                activeTab === "purchases" && styles.activeTabTextCustom,
+              ] as any
+            }
           >
             Purchases Done
           </Typography>
         </TouchableOpacity>
       </View>
       {/* Tab Content */}
-      {activeTab === 'main' && (
+      {activeTab === "main" && (
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -482,8 +525,18 @@ export default function MarketplaceScreen() {
                         📍 {listing.location}
                       </Typography>
                     </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                      <Typography variant="caption" color="secondary" style={{ marginRight: 4 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginTop: 2,
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        color="secondary"
+                        style={{ marginRight: 4 }}
+                      >
                         Token Name:
                       </Typography>
                       <Typography variant="body" color="gold">
@@ -516,7 +569,11 @@ export default function MarketplaceScreen() {
                       >
                         Unit Price
                       </Typography>
-                      <Typography variant="h4" color="gold" style={styles.tokenPrice}>
+                      <Typography
+                        variant="h4"
+                        color="gold"
+                        style={styles.tokenPrice}
+                      >
                         ${listing.pricePerToken.toLocaleString()}
                       </Typography>
                       <Typography variant="caption" color="secondary">
@@ -525,7 +582,13 @@ export default function MarketplaceScreen() {
                     </View>
                   </View>
                   {/* ROI Estimate and Listing Expiry */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      marginTop: 8,
+                    }}
+                  >
                     {listing.roiPercent && (
                       <View style={{ flex: 1 }}>
                         <Typography variant="caption" color="secondary">
@@ -568,7 +631,7 @@ export default function MarketplaceScreen() {
           </View>
         </ScrollView>
       )}
-      {activeTab === 'my' && (
+      {activeTab === "my" && (
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -576,7 +639,11 @@ export default function MarketplaceScreen() {
         >
           <View style={styles.section}>
             {myListings.length === 0 ? (
-              <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 40 }}>
+              <Typography
+                variant="body"
+                color="secondary"
+                style={{ textAlign: "center", marginTop: 40 }}
+              >
                 You have no listings yet.
               </Typography>
             ) : (
@@ -601,7 +668,11 @@ export default function MarketplaceScreen() {
                         },
                       ]}
                     >
-                      <Typography variant="label" color="inverse" style={styles.roiBadgeText}>
+                      <Typography
+                        variant="label"
+                        color="inverse"
+                        style={styles.roiBadgeText}
+                      >
                         +{listing.roiPercent}% ROI
                       </Typography>
                     </View>
@@ -609,11 +680,25 @@ export default function MarketplaceScreen() {
                   <View style={styles.tokenListingContent}>
                     {/* Property Name and Token Name */}
                     <View style={styles.propertyTitleSection}>
-                      <Typography variant="h4" numberOfLines={2} style={styles.propertyTitle}>
+                      <Typography
+                        variant="h4"
+                        numberOfLines={2}
+                        style={styles.propertyTitle}
+                      >
                         {listing.propertyName}
                       </Typography>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                        <Typography variant="caption" color="secondary" style={{ marginRight: 4 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginTop: 2,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="secondary"
+                          style={{ marginRight: 4 }}
+                        >
                           Token Name:
                         </Typography>
                         <Typography variant="body" color="gold">
@@ -624,7 +709,11 @@ export default function MarketplaceScreen() {
                     {/* Listing Info Grid */}
                     <View style={styles.tokenInfoGrid}>
                       <View style={styles.tokenInfoItem}>
-                        <Typography variant="caption" color="secondary" style={styles.infoLabel}>
+                        <Typography
+                          variant="caption"
+                          color="secondary"
+                          style={styles.infoLabel}
+                        >
                           Quantity Listed
                         </Typography>
                         <Typography variant="h4" style={styles.tokenQuantity}>
@@ -632,39 +721,78 @@ export default function MarketplaceScreen() {
                         </Typography>
                       </View>
                       <View style={styles.tokenInfoItem}>
-                        <Typography variant="caption" color="secondary" style={styles.infoLabel}>
+                        <Typography
+                          variant="caption"
+                          color="secondary"
+                          style={styles.infoLabel}
+                        >
                           Unit Price
                         </Typography>
-                        <Typography variant="h4" color="gold" style={styles.tokenPrice}>
+                        <Typography
+                          variant="h4"
+                          color="gold"
+                          style={styles.tokenPrice}
+                        >
                           ${listing.pricePerToken.toLocaleString()}
                         </Typography>
                       </View>
                       <View style={styles.tokenInfoItem}>
-                        <Typography variant="caption" color="secondary" style={styles.infoLabel}>
+                        <Typography
+                          variant="caption"
+                          color="secondary"
+                          style={styles.infoLabel}
+                        >
                           Total Value
                         </Typography>
-                        <Typography variant="h4" color="gold" style={styles.tokenPrice}>
+                        <Typography
+                          variant="h4"
+                          color="gold"
+                          style={styles.tokenPrice}
+                        >
                           ${listing.totalValue.toLocaleString()}
                         </Typography>
                       </View>
                     </View>
                     {/* Status and Cancel Button */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginTop: 12,
+                      }}
+                    >
                       <View>
                         <Typography variant="caption" color="secondary">
                           Status:
                         </Typography>
-                        <Typography variant="body" color={listing.status === 'Active' ? 'gold' : 'secondary'}>
+                        <Typography
+                          variant="body"
+                          color={
+                            listing.status === "Active" ? "gold" : "secondary"
+                          }
+                        >
                           {listing.status}
                         </Typography>
                       </View>
-                      {listing.status === 'Active' && (
+                      {listing.status === "Active" && (
                         <TouchableOpacity
-                          style={[styles.buyTokenButton, { backgroundColor: colors.status.warning, paddingHorizontal: 20, paddingVertical: 10 }]}
+                          style={[
+                            styles.buyTokenButton,
+                            {
+                              backgroundColor: colors.status.warning,
+                              paddingHorizontal: 20,
+                              paddingVertical: 10,
+                            },
+                          ]}
                           onPress={() => handleCancelListing(listing)}
                           activeOpacity={0.8}
                         >
-                          <Typography variant="body" color="inverse" style={styles.buyTokenButtonText}>
+                          <Typography
+                            variant="body"
+                            color="inverse"
+                            style={styles.buyTokenButtonText}
+                          >
                             Cancel Listing
                           </Typography>
                         </TouchableOpacity>
@@ -678,25 +806,73 @@ export default function MarketplaceScreen() {
           {/* Cancel Listing Modal */}
           <Modal visible={cancelModalVisible} onClose={handleCloseCancelModal}>
             <View style={{ padding: 24 }}>
-              <Typography variant="h4" color="primary" style={{ marginBottom: 16 }}>
+              <Typography
+                variant="h4"
+                color="primary"
+                style={{ marginBottom: 16 }}
+              >
                 Cancel Listing
               </Typography>
-              <Typography variant="body" color="secondary" style={{ marginBottom: 24 }}>
-                Are you sure you want to cancel this listing? This action cannot be undone.
+              <Typography
+                variant="body"
+                color="secondary"
+                style={{ marginBottom: 24 }}
+              >
+                Are you sure you want to cancel this listing? This action cannot
+                be undone.
               </Typography>
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
-                <TouchableOpacity onPress={handleCloseCancelModal} style={[styles.buyTokenButton, { backgroundColor: colors.background.secondary, paddingHorizontal: 20, paddingVertical: 10, marginRight: 8 }]}> 
-                  <Typography variant="body" color="primary" style={styles.buyTokenButtonText}>No</Typography>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "flex-end",
+                  gap: 12,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={handleCloseCancelModal}
+                  style={[
+                    styles.buyTokenButton,
+                    {
+                      backgroundColor: colors.background.secondary,
+                      paddingHorizontal: 20,
+                      paddingVertical: 10,
+                      marginRight: 8,
+                    },
+                  ]}
+                >
+                  <Typography
+                    variant="body"
+                    color="primary"
+                    style={styles.buyTokenButtonText}
+                  >
+                    No
+                  </Typography>
                 </TouchableOpacity>
-                <TouchableOpacity onPress={handleConfirmCancel} style={[styles.buyTokenButton, { backgroundColor: colors.status.warning, paddingHorizontal: 20, paddingVertical: 10 }]}> 
-                  <Typography variant="body" color="inverse" style={styles.buyTokenButtonText}>Yes, Cancel</Typography>
+                <TouchableOpacity
+                  onPress={handleConfirmCancel}
+                  style={[
+                    styles.buyTokenButton,
+                    {
+                      backgroundColor: colors.status.warning,
+                      paddingHorizontal: 20,
+                      paddingVertical: 10,
+                    },
+                  ]}
+                >
+                  <Typography
+                    variant="body"
+                    color="inverse"
+                    style={styles.buyTokenButtonText}
+                  >
+                    Yes, Cancel
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
           </Modal>
         </ScrollView>
       )}
-      {activeTab === 'requests' && (
+      {activeTab === "requests" && (
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
@@ -704,45 +880,98 @@ export default function MarketplaceScreen() {
         >
           <View style={styles.section}>
             {purchaseRequests.length === 0 ? (
-              <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 40 }}>
+              <Typography
+                variant="body"
+                color="secondary"
+                style={{ textAlign: "center", marginTop: 40 }}
+              >
                 You have no purchase requests yet.
               </Typography>
             ) : (
               purchaseRequests.map((request) => {
                 // Example platform fee: 2%
                 const platformFee = 0.02;
-                const totalPrice = request.quantityRequested * request.pricePerToken;
+                const totalPrice =
+                  request.quantityRequested * request.pricePerToken;
                 const totalWithFee = totalPrice + totalPrice * platformFee;
                 // Anonymized buyer (e.g., 'Buyer 1234')
-                const anonymizedBuyer = 'Buyer ' + request.id.slice(-4);
+                const anonymizedBuyer = "Buyer " + request.id.slice(-4);
                 return (
-                  <Card key={request.id} style={[styles.tokenListingCard, { flexDirection: 'row', alignItems: 'center', padding: 12 }]}> 
+                  <Card
+                    key={request.id}
+                    style={[
+                      styles.tokenListingCard,
+                      {
+                        flexDirection: "row",
+                        alignItems: "center",
+                        padding: 12,
+                      },
+                    ]}
+                  >
                     {/* Property Image/Thumbnail */}
                     <Image
                       source={{ uri: request.propertyImage }}
-                      style={{ width: 60, height: 60, borderRadius: 8, marginRight: 16, backgroundColor: '#eee' }}
+                      style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 8,
+                        marginRight: 16,
+                        backgroundColor: "#eee",
+                      }}
                       resizeMode="cover"
                     />
                     {/* Info Section */}
                     <View style={{ flex: 1 }}>
                       {/* Token Name and Property Name */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                        <Typography variant="h4" style={{ marginRight: 8 }}>{request.tokenSymbol}</Typography>
-                        <Typography variant="body" color="secondary">{request.propertyName}</Typography>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <Typography variant="h4" style={{ marginRight: 8 }}>
+                          {request.tokenSymbol}
+                        </Typography>
+                        <Typography variant="body" color="secondary">
+                          {request.propertyName}
+                        </Typography>
                       </View>
                       {/* Buyer, Quantity, Total Price */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                          gap: 12,
+                        }}
+                      >
                         <View style={{ marginRight: 16 }}>
-                          <Typography variant="caption" color="secondary">Buyer</Typography>
-                          <Typography variant="body">{anonymizedBuyer}</Typography>
+                          <Typography variant="caption" color="secondary">
+                            Buyer
+                          </Typography>
+                          <Typography variant="body">
+                            {anonymizedBuyer}
+                          </Typography>
                         </View>
                         <View style={{ marginRight: 16 }}>
-                          <Typography variant="caption" color="secondary">Quantity</Typography>
-                          <Typography variant="body">{request.quantityRequested}</Typography>
+                          <Typography variant="caption" color="secondary">
+                            Quantity
+                          </Typography>
+                          <Typography variant="body">
+                            {request.quantityRequested}
+                          </Typography>
                         </View>
                         <View>
-                          <Typography variant="caption" color="secondary">Total Price (incl. fee)</Typography>
-                          <Typography variant="body" color="gold">${totalWithFee.toLocaleString(undefined, { maximumFractionDigits: 2 })}</Typography>
+                          <Typography variant="caption" color="secondary">
+                            Total Price (incl. fee)
+                          </Typography>
+                          <Typography variant="body" color="gold">
+                            $
+                            {totalWithFee.toLocaleString(undefined, {
+                              maximumFractionDigits: 2,
+                            })}
+                          </Typography>
                         </View>
                       </View>
                     </View>
@@ -753,16 +982,34 @@ export default function MarketplaceScreen() {
           </View>
         </ScrollView>
       )}
-      {activeTab === 'purchases' && (
+      {activeTab === "purchases" && (
         <View style={{ flex: 1 }}>
           {/* Export CSV Button */}
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', margin: 12 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "flex-end",
+              alignItems: "center",
+              margin: 12,
+            }}
+          >
             <TouchableOpacity
-              style={{ backgroundColor: colors.primary.gold, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 }}
+              style={{
+                backgroundColor: colors.primary.gold,
+                borderRadius: 8,
+                paddingVertical: 8,
+                paddingHorizontal: 16,
+              }}
               onPress={handleExportPurchasesCSV}
               activeOpacity={0.8}
             >
-              <Typography variant="body" color="inverse" style={{ fontWeight: 'bold' }}>Export CSV</Typography>
+              <Typography
+                variant="body"
+                color="inverse"
+                style={{ fontWeight: "bold" }}
+              >
+                Export CSV
+              </Typography>
             </TouchableOpacity>
           </View>
           <ScrollView
@@ -772,41 +1019,96 @@ export default function MarketplaceScreen() {
           >
             <View style={styles.section}>
               {purchasesDone.length === 0 ? (
-                <Typography variant="body" color="secondary" style={{ textAlign: 'center', marginTop: 40 }}>
+                <Typography
+                  variant="body"
+                  color="secondary"
+                  style={{ textAlign: "center", marginTop: 40 }}
+                >
                   You have not made any purchases yet.
                 </Typography>
               ) : (
                 purchasesDone.map((purchase) => {
                   // Example: Ownership % Gained = (quantityBought / 1000) * 100 (assuming 1000 total tokens per property)
-                  const ownershipPercent = purchase.ownershipPercent ?? ((purchase.quantityBought / 1000) * 100).toFixed(2);
+                  const ownershipPercent =
+                    purchase.ownershipPercent ??
+                    ((purchase.quantityBought / 1000) * 100).toFixed(2);
                   return (
-                    <Card key={purchase.id} style={[styles.tokenListingCard, { flexDirection: 'row', alignItems: 'center', padding: 12 }]}> 
+                    <Card
+                      key={purchase.id}
+                      style={[
+                        styles.tokenListingCard,
+                        {
+                          flexDirection: "row",
+                          alignItems: "center",
+                          padding: 12,
+                        },
+                      ]}
+                    >
                       {/* Property Image/Thumbnail */}
                       <Image
                         source={{ uri: purchase.propertyImage }}
-                        style={{ width: 60, height: 60, borderRadius: 8, marginRight: 16, backgroundColor: '#eee' }}
+                        style={{
+                          width: 60,
+                          height: 60,
+                          borderRadius: 8,
+                          marginRight: 16,
+                          backgroundColor: "#eee",
+                        }}
                         resizeMode="cover"
                       />
                       {/* Info Section */}
                       <View style={{ flex: 1 }}>
                         {/* Token Name and Property Name */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                          <Typography variant="h4" style={{ marginRight: 8 }}>{purchase.tokenSymbol}</Typography>
-                          <Typography variant="body" color="secondary">{purchase.propertyName}</Typography>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginBottom: 4,
+                          }}
+                        >
+                          <Typography variant="h4" style={{ marginRight: 8 }}>
+                            {purchase.tokenSymbol}
+                          </Typography>
+                          <Typography variant="body" color="secondary">
+                            {purchase.propertyName}
+                          </Typography>
                         </View>
                         {/* Quantity, Ownership %, Purchase Date */}
-                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                        <View
+                          style={{
+                            flexDirection: "row",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: 12,
+                          }}
+                        >
                           <View style={{ marginRight: 16 }}>
-                            <Typography variant="caption" color="secondary">Quantity</Typography>
-                            <Typography variant="body">{purchase.quantityBought}</Typography>
+                            <Typography variant="caption" color="secondary">
+                              Quantity
+                            </Typography>
+                            <Typography variant="body">
+                              {purchase.quantityBought}
+                            </Typography>
                           </View>
                           <View style={{ marginRight: 16 }}>
-                            <Typography variant="caption" color="secondary">Ownership % Gained</Typography>
-                            <Typography variant="body" color="gold">{ownershipPercent}%</Typography>
+                            <Typography variant="caption" color="secondary">
+                              Ownership % Gained
+                            </Typography>
+                            <Typography variant="body" color="gold">
+                              {ownershipPercent}%
+                            </Typography>
                           </View>
                           <View>
-                            <Typography variant="caption" color="secondary">Purchase Date</Typography>
-                            <Typography variant="body">{purchase.purchaseDate ? new Date(purchase.purchaseDate).toLocaleDateString() : ''}</Typography>
+                            <Typography variant="caption" color="secondary">
+                              Purchase Date
+                            </Typography>
+                            <Typography variant="body">
+                              {purchase.purchaseDate
+                                ? new Date(
+                                    purchase.purchaseDate
+                                  ).toLocaleDateString()
+                                : ""}
+                            </Typography>
                           </View>
                         </View>
                       </View>
@@ -821,7 +1123,8 @@ export default function MarketplaceScreen() {
       {/* Buy Tokens Modal */}
       <Modal visible={showBuyTokensModal} onClose={handleCloseBuyModal}>
         {selectedListing && (
-          <View style={styles.buyModalContent}>
+          <View style={[styles.buyModalContent, { height: '100%', width: '100%', position: 'relative', paddingBottom: 0, marginTop:0}]}> {/* Add margin from top */}
+            {/* Modal Header always visible */}
             <View style={styles.modalHeader}>
               <Typography variant="h3" color="primary">
                 Buy Tokens
@@ -835,7 +1138,11 @@ export default function MarketplaceScreen() {
                 </Typography>
               </TouchableOpacity>
             </View>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ paddingBottom: 90 }}
+              showsVerticalScrollIndicator={false}
+            >
               {/* Property Info */}
               <View style={styles.modalSection}>
                 <View style={styles.buyPropertyCard}>
@@ -954,24 +1261,35 @@ export default function MarketplaceScreen() {
                     </View>
                   </View>
                 )}
-                {/* Action Buttons */}
-                <View style={styles.buyModalActions}>
-                  <Button
-                    title="Confirm Purchase"
-                    onPress={handleConfirmPurchase}
-                    disabled={
-                      !buyForm.quantity || parseInt(buyForm.quantity) <= 0
-                    }
-                    style={styles.confirmPurchaseButton}
-                  />
-                  <Button
-                    title="Cancel"
-                    onPress={handleCloseBuyModal}
-                    variant="outline"
-                  />
-                </View>
               </View>
             </ScrollView>
+            {/* Sticky Action Buttons */}
+            <View style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: '#fff',
+              paddingHorizontal: 24,
+              paddingTop: 12,
+              // paddingBottom: 8,
+              borderTopWidth: 1,
+              borderTopColor: '#eee',
+              zIndex: 10,
+            }}>
+              <Button
+                title="Confirm Purchase"
+                onPress={handleConfirmPurchase}
+                disabled={!buyForm.quantity || parseInt(buyForm.quantity) <= 0}
+                style={styles.confirmPurchaseButton}
+              />
+              <Button
+                title="Cancel"
+                onPress={handleCloseBuyModal}
+                variant="outline"
+                style={{ marginTop: 12 }}
+              />
+            </View>
           </View>
         )}
       </Modal>
@@ -1873,8 +2191,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   buyModalContent: {
-    maxHeight: "90%",
+    // maxHeight: "100%",
     width: "100%",
+    // borderWidth: 1,
+    // borderColor:'red',
   },
   buyPropertyCard: {
     backgroundColor: colors.background.secondary,
@@ -1952,28 +2272,28 @@ const styles = StyleSheet.create({
   },
   // Add custom tab styles
   tabContainerCustom: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.background.secondary,
     marginHorizontal: spacing.layout.screenPadding,
     marginTop: spacing.md,
     marginBottom: spacing.md,
     borderRadius: radius.lg,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
     borderColor: colors.primary.gold,
   },
   tabCustom: {
     flex: 1,
     paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
   },
   activeTabCustom: {
     backgroundColor: colors.primary.gold,
   },
   tabTextCustom: {
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     fontSize: 16,
   },

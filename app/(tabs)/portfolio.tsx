@@ -548,7 +548,7 @@ export default function PortfolioScreen() {
   <body>
   <div class="container">
   <div class="header">
-  <div class="logo">RentziLux</div>
+  <div class="logo">Rentzy</div>
   <h1>Investment Portfolio Report</h1>
   <p>Premium Real Estate Investment Platform</p>
   </div>
@@ -600,7 +600,7 @@ export default function PortfolioScreen() {
   </table>
   </div>
   <div class="footer">
-  <p>This report provides a comprehensive overview of your investment portfolio through RentziLux platform.</p>
+  <p>This report provides a comprehensive overview of your investment portfolio through Rentzy platform.</p>
   <p>Generated on ${currentDate} • All values in USD</p>
   </div>
   </div>

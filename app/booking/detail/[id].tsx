@@ -213,7 +213,7 @@ export default function BookingDetailScreen() {
   </head>
   <body>
   <div class="header">
-  <div class="logo">RentziLux</div>
+  <div class="logo">Rentzy</div>
   <h1 class="receipt-title">Booking Receipt</h1>
   </div>
   <div class="property-section">
@@ -263,7 +263,7 @@ export default function BookingDetailScreen() {
   </div>
   </div>
   <div class="footer">
-  <p>Thank you for choosing RentziLux</p>
+  <p>Thank you for choosing Rentzy</p>
   <p>Booking ID: ${
     booking.id
   } | Generated on ${new Date().toLocaleDateString()}</p>

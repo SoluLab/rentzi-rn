@@ -216,7 +216,7 @@ export default function InvestmentSuccessScreen() {
   <body>
   <div class="container">
   <div class="header">
-  <div class="logo">RentziLux</div>
+  <div class="logo">Rentzy</div>
   <h1>Investment Certificate</h1>
   <p>Premium Real Estate Investment Platform</p>
   </div>
@@ -251,7 +251,7 @@ export default function InvestmentSuccessScreen() {
   <p>${paymentMethod === 'fiat' ? 'Fiat Currency (USD)' : 'Cryptocurrency'}</p>
   </div>
   <div class="footer">
-  <p>This certificate confirms your investment in the above property through RentziLux platform.</p>
+  <p>This certificate confirms your investment in the above property through Rentzy platform.</p>
   <p>Generated on ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
   </div>
   </div>
