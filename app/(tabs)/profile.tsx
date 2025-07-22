@@ -353,7 +353,7 @@ export default function ProfileScreen() {
         {/* App Info */}
         <View style={styles.section}>
           <Typography variant="caption" color="secondary" align="center">
-            Renzi v1.0.0
+            RentziLux v1.0.0
           </Typography>
           <Typography variant="caption" color="secondary" align="center">
             Premium Luxury Real Estate Platform

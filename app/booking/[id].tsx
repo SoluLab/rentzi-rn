@@ -296,8 +296,8 @@ export default function BookingScreen() {
             </View>
           </Card>
           <Card style={styles.noticeCard}>
-            <Typography variant="h5" style={styles.sectionTitle}>
-             Cancellation Policies
+            <Typography variant="h6" style={styles.sectionTitle}>
+             Refund & Cancellation Policy Policies
             </Typography>
             <View style={styles.noticeContent}>
               <Typography variant="body" style={styles.noticeText}>

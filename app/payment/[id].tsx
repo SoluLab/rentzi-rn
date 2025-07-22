@@ -192,7 +192,7 @@ export default function PaymentScreen() {
             <Typography variant="body">${subtotal.toLocaleString()}</Typography>
           </View>
           <View style={styles.breakdownRow}>
-            <Typography variant="body">Service Fee</Typography>
+            <Typography variant="body">Platform Fee</Typography>
             <Typography variant="body">${serviceFee}</Typography>
           </View>
           <View style={styles.breakdownRow}>
@@ -266,7 +266,7 @@ export default function PaymentScreen() {
         {/* Notice Box */}
         <Card style={styles.noticeCard}>
           <Typography variant="h6" style={styles.noticeTitle}>
-          Cancellation Policies
+          Refund & Cancellation Policy Policies
           </Typography>
           <View style={styles.noticeContent}>
             <Typography variant="body" style={styles.noticeText}>

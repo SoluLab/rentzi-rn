@@ -22,6 +22,8 @@ interface CalendarDay {
   isInRange: boolean;
   isCheckIn: boolean;
   isCheckOut: boolean;
+  festivalName?: string; // Add festival name
+  festivalPrice?: number; // Add festival price
 }
 interface MonthData {
   monthName: string;
@@ -29,6 +31,50 @@ interface MonthData {
   month: number;
   days: CalendarDay[];
 }
+// Dummy festival data
+const FESTIVALS = [
+  {
+    name: 'Spring Fest',
+    date: '2025-06-10',
+    price: 900,
+  },
+  {
+    name: 'Harvest Day',
+    date: '2025-08-20',
+    price: 1000,
+  },
+  // Additional dummy festivals for testing
+  {
+    name: 'Music Fiesta',
+    date: '2025-06-18',
+    price: 1100,
+  },
+  {
+    name: 'Food Fest',
+    date: '2025-07-05',
+    price: 950,
+  },
+  {
+    name: 'Art Parade',
+    date: '2025-08-02',
+    price: 1050,
+  },
+  {
+    name: 'Winter Gala',
+    date: '2025-09-12',
+    price: 1300,
+  },
+  {
+    name: 'Light Festival',
+    date: '2025-10-25',
+    price: 1150,
+  },
+  {
+    name: 'New Year Bash',
+    date: '2025-12-31',
+    price: 2000,
+  },
+];
 export default function CheckInOutScreen() {
   const router = useRouter();
   const { propertyId, returnTo, checkIn, checkOut } = useLocalSearchParams();
@@ -102,8 +148,9 @@ export default function CheckInOutScreen() {
         const isBooked = property.availabilityCalendar.bookedDates.includes(dateString);
         const isPast = date < today;
         const isAvailable = !isBooked && !isPast;
-        // Use dummy price data - $640 as shown in screenshots
-        const price = 640;
+        // Check if this day is a festival
+        const festival = FESTIVALS.find(f => f.date === dateString);
+        const price = festival ? festival.price : 640;
         days.push({
           date,
           day,
@@ -115,6 +162,8 @@ export default function CheckInOutScreen() {
           isInRange: false,
           isCheckIn: false,
           isCheckOut: false,
+          festivalName: festival ? festival.name : undefined,
+          festivalPrice: festival ? festival.price : undefined,
         });
       }
       months.push({
@@ -202,8 +251,24 @@ export default function CheckInOutScreen() {
     return 0;
   };
   const getTotalPrice = () => {
-    const nights = calculateNights();
-    return nights * 640; // Using dummy price $640 per night
+    if (!selectedCheckIn || !selectedCheckOut) return 0;
+    let total = 0;
+    let current = new Date(selectedCheckIn);
+    while (current < selectedCheckOut) {
+      // Find the day in calendarData
+      const dateString = current.toISOString().split('T')[0];
+      let dayPrice = 640; // default
+      for (const month of calendarData) {
+        const day = month.days.find(d => d.day !== 0 && d.date.toISOString().split('T')[0] === dateString);
+        if (day) {
+          dayPrice = day.festivalPrice || day.price;
+          break;
+        }
+      }
+      total += dayPrice;
+      current.setDate(current.getDate() + 1);
+    }
+    return total;
   };
   const dayHeaders = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
   if (!property) {
@@ -298,27 +363,62 @@ export default function CheckInOutScreen() {
                 >
                   {dayData.day !== 0 && (
                     <View style={styles.dayCellContent}>
-                      <Typography
-                        variant="body"
-                        color={
-                          dayData.isCheckIn || dayData.isCheckOut
-                            ? 'inverse'
-                            : dayData.isAvailable
-                              ? 'primary'
-                              : 'secondary'
-                        }
-                        style={styles.dayNumber}
-                      >
-                        {dayData.day}
-                      </Typography>
-                      {dayData.isAvailable && (
-                        <Typography
-                          variant="caption"
-                          color={dayData.isCheckIn || dayData.isCheckOut ? 'inverse' : 'secondary'}
-                          style={styles.dayPrice}
-                        >
-                          ${dayData.price}
-                        </Typography>
+                      {/* Festival rendering */}
+                      {dayData.festivalName ? (
+                        <>
+                          <Typography
+                            variant="caption"
+                            color="primary"
+                            style={styles.festivalName}
+                          >
+                            {dayData.festivalName}
+                          </Typography>
+                          <Typography
+                            variant="body"
+                            color={
+                              dayData.isCheckIn || dayData.isCheckOut
+                                ? 'inverse'
+                                : dayData.isAvailable
+                                  ? 'primary'
+                                  : 'secondary'
+                            }
+                            style={styles.dayNumber}
+                          >
+                            {dayData.day}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="error"
+                            style={styles.festivalPrice}
+                          >
+                            ${dayData.festivalPrice}
+                          </Typography>
+                        </>
+                      ) : (
+                        <>
+                          <Typography
+                            variant="body"
+                            color={
+                              dayData.isCheckIn || dayData.isCheckOut
+                                ? 'inverse'
+                                : dayData.isAvailable
+                                  ? 'primary'
+                                  : 'secondary'
+                            }
+                            style={styles.dayNumber}
+                          >
+                            {dayData.day}
+                          </Typography>
+                          {dayData.isAvailable && (
+                            <Typography
+                              variant="caption"
+                              color={dayData.isCheckIn || dayData.isCheckOut ? 'inverse' : 'secondary'}
+                              style={styles.dayPrice}
+                            >
+                              ${dayData.price}
+                            </Typography>
+                          )}
+                        </>
                       )}
                     </View>
                   )}
@@ -498,5 +598,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
     paddingHorizontal: spacing.layout.screenPadding,
+  },
+  festivalName: {
+    fontWeight: '700',
+    fontSize: 7,
+    marginTop: spacing.sm,
+    color: '#0073ff',
+    textAlign: 'center',
+  },
+  festivalPrice: {
+    fontWeight: '700',
+    fontSize: 9,
+    color: '#ff6600ff',
+    marginBottom: spacing.sm,
+    textAlign: 'center',
   },
 });

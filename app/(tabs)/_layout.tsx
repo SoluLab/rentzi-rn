@@ -36,6 +36,17 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
           }}
         />
+        {/*
+          {user?.role === 'investor' && (
+          <Tabs.Screen
+            name="marketplace"
+            options={{
+              title: 'Marketplace ',
+              tabBarIcon: ({ color, size }) => <BriefcaseBusiness size={size} color={color} />,
+            }}
+          />
+        )}
+        */}
         <Tabs.Screen
           name="search"
           options={{
@@ -50,13 +61,16 @@ export default function TabLayout() {
             tabBarIcon: ({ color, size }) => <Bot size={size} color={color} />,
           }}
         />
-        <Tabs.Screen
-          name="portfolio"
-          options={{
-            title: 'Portfolio',
-            tabBarIcon: ({ color, size }) => <BriefcaseBusiness size={size} color={color} />,
-          }}
-        />
+        {user?.role === 'investor' && (
+          <Tabs.Screen
+            name="portfolio"
+            options={{
+              title: 'Portfolio',
+              tabBarIcon: ({ color, size }) => <BriefcaseBusiness size={size} color={color} />,
+            }}
+          />
+        )}
+       
         <Tabs.Screen
           name="profile"
           options={{
