@@ -6,6 +6,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Linking, // <-- Add this import
 } from 'react-native';
 import { router } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
@@ -270,17 +271,23 @@ export default function RegisterScreen() {
                       )}
                     </View>
                   </TouchableOpacity>
-                  <View style={styles.termsText}>
+                  <View style={styles.termsTextRow}>
                     <Typography variant="body" color="secondary">
-                      I agree to the{' '}
-                      <Typography variant="body" color="primary">
-                        Terms & Conditions
-                      </Typography>{' '}
-                      and{' '}
-                      <Typography variant="body" color="primary">
-                        Privacy Policy
-                      </Typography>
+                      I agree to the
                     </Typography>
+                    <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL('https://www.google.com/')}>
+                      <Typography variant="body" color="primary">
+                        {' '}Terms & Conditions{' '}
+                      </Typography>
+                    </TouchableOpacity>
+                    <Typography variant="body" color="secondary">
+                      and
+                    </Typography>
+                    <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL('https://www.google.com/')}>
+                      <Typography variant="body" color="primary">
+                        {' '}Privacy Policy
+                      </Typography>
+                    </TouchableOpacity>
                   </View>
                 </View>
                 {errors.terms && (
@@ -358,6 +365,13 @@ const styles = StyleSheet.create({
   },
   termsText: {
     flex: 1,
+  },
+  termsTextRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    
+    marginTop: 2,
   },
   errorText: {
     marginTop: -spacing.md,

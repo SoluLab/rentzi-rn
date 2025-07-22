@@ -96,23 +96,29 @@ export const validateMobileNumber = (mobile: string): { isValid: boolean; error?
   }
   return { isValid: true };
 };
+ 
+
 export const validateFullName = (name: string): { isValid: boolean; error?: string } => {
-  if (!name.trim()) {
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
     return { isValid: false, error: 'Name is required' };
   }
-  if (name.trim().length < 2) {
+  if (trimmedName.length < 2) {
     return { isValid: false, error: 'Name must be at least 2 characters long' };
   }
-  if (name.trim().length > 30) {
+  if (trimmedName.length > 30) {
     return { isValid: false, error: 'Name cannot exceed 30 characters' };
   }
-  // Check for valid characters (letters only, no spaces, hyphens, or apostrophes for individual names)
-  const nameRegex = /^[a-zA-Z]+$/;
-  if (!nameRegex.test(name.trim())) {
+
+  // Allow only letters and single spaces between names
+  const nameRegex = /^[A-Za-z]+(?: [A-Za-z]+)*$/;
+  if (!nameRegex.test(trimmedName)) {
     return {
       isValid: false,
-      error: 'Name can only contain letters',
+      error: 'Name can only contain letters and spaces',
     };
   }
+
   return { isValid: true };
 };

@@ -60,11 +60,7 @@ DollarSign,
 const { width, height } = Dimensions.get('window');
 export default function PropertyDetailScreen() {
 const router = useRouter();
-const getPropertyId = () => {
-  const params = useLocalSearchParams();
-  return params.id as string;
-};
-const id = getPropertyId();
+const { id } = useLocalSearchParams();
 const { getPropertyById, claimRentalPayout, isLoading } = usePropertyStore();
 const { user } = useAuthStore();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -521,7 +517,7 @@ const { user } = useAuthStore();
             {property.location.address}, {property.location.city}
           </Typography>
         </Card>
-         */}
+        
                     {/* Smart Home Entry Section - Only show if property has smart home entry */}
                     {property.smartHomeEntry && (
                         <Card style={styles.smartHomeCard}>
