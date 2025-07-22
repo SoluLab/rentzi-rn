@@ -32,6 +32,7 @@ interface AuthActions {
   setUser: (user: User) => void;
   setEmailVerified: (verified: boolean) => void;
   setMobileVerified: (verified: boolean) => void;
+  updateUserRole: (role: User['role']) => void;
 }
 type AuthStore = AuthState & AuthActions;
 export const useAuthStore = create<AuthStore>((set, get) => ({
@@ -341,6 +342,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
   setMobileVerified: (verified: boolean) => {
     set({ mobileVerified: verified });
+  },
+  updateUserRole: (role) => {
+    const { user } = get();
+    if (user) {
+      set({
+        user: {
+          ...user,
+          role,
+          investmentStatus: role === 'investor',
+        },
+      });
+    }
   },
   sendForgotPasswordOTP: async (email: string) => {
     set({ isLoading: true });

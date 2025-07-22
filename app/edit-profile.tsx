@@ -20,12 +20,14 @@ import { toast } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
-import { validatePassword, validateFullName } from '@/utils/validation';
+import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
-  const [name, setName] = useState(user?.name || '');
+  const [name, setName] = useState(user?.name || ' ');
+  const [email, setEmail] = useState(user?.email || '');
+  const [originalEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -38,6 +40,11 @@ export default function EditProfileScreen() {
     const nameValidation = validateFullName(name);
     if (!nameValidation.isValid) {
       newErrors.name = nameValidation.error!;
+    }
+    // Email validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      newErrors.email = emailValidation.error!;
     }
     // Password validation (only if user wants to change password)
     if (currentPassword || newPassword || confirmPassword) {
@@ -66,6 +73,20 @@ export default function EditProfileScreen() {
       toast.error('Please fix the errors below');
       return;
     }
+    // If email is changed, trigger OTP verification
+    if (email !== originalEmail) {
+      // Navigate to email verification screen, pass new email and a callback
+      router.push({
+        pathname: '/(auth)/email-verification',
+        params: {
+          email: email,
+          type: 'change',
+          // Optionally pass other params if needed
+        },
+      });
+      // Do not proceed with saving until OTP is verified
+      return;
+    }
     setIsLoading(true);
     try {
       // Simulate API call
@@ -75,6 +96,7 @@ export default function EditProfileScreen() {
         const updatedUser = {
           ...user,
           name,
+          email,
           profileDetails: {
             ...user.profileDetails,
             avatar: profileImage,
@@ -131,6 +153,7 @@ export default function EditProfileScreen() {
   };
   const updateField = (field: string, value: string) => {
     if (field === 'name') setName(value);
+    if (field === 'email') setEmail(value);
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
     if (field === 'confirmPassword') setConfirmPassword(value);
@@ -184,6 +207,20 @@ export default function EditProfileScreen() {
               placeholder="Enter your full name"
               error={errors.name}
             />
+            <Input
+              label="Email Address"
+              value={email}
+              onChangeText={(value) => updateField('email', value)}
+              placeholder="Enter your email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              error={errors.email}
+            />
+            {email !== originalEmail && (
+              <Typography variant="caption" color="primary" style={{ marginTop: 4 }}>
+                You will need to verify your new email address.
+              </Typography>
+            )}
           </View>
           {/* Change Password */}
           <View style={styles.section}>
