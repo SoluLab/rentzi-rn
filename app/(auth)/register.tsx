@@ -140,7 +140,7 @@ export default function RegisterScreen() {
         role: 'homeowner', // Set role as homeowner during registration
       });
       toast.success('Registration successful! Please verify your account');
-      // Navigate to mobile verification first
+      // Navigate directly to mobile verification
       router.push({
         pathname: '/(auth)/mobile-verification',
         params: {

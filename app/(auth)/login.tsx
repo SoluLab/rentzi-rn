@@ -95,12 +95,12 @@ export default function LoginScreen() {
     try {
       await login(emailOrMobile, password);
       toast.success('Credentials verified! Sending OTP...');
-      // Navigate to email verification first for 2FA
+      // Navigate directly to mobile verification for both email and mobile login
       router.push({
-        pathname: '/(auth)/email-verification',
+        pathname: '/(auth)/mobile-verification',
         params: {
           email: emailOrMobile.includes('@') ? emailOrMobile : 'user@example.com',
-          phone: '+1 (555) 123-4567',
+          phone: emailOrMobile.includes('@') ? '+1 (555) 123-4567' : emailOrMobile,
           type: 'login',
         },
       });
@@ -126,9 +126,9 @@ export default function LoginScreen() {
     try {
       await login(demoUser.email, demoUser.password);
       toast.success(`Welcome ${demoUser.name}! Sending OTP...`);
-      // Navigate to email verification first for 2FA
+      // Navigate directly to mobile verification
       router.push({
-        pathname: '/(auth)/email-verification',
+        pathname: '/(auth)/mobile-verification',
         params: {
           email: demoUser.email,
           phone: '+1 (555) 123-4567',
