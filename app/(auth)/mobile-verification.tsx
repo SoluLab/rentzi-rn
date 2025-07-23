@@ -7,7 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  View
+  View,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -151,14 +153,14 @@ export default function MobileVerificationScreen() {
               {/* Header */}
               <View style={styles.header}>
                 <View style={styles.iconContainer}>
-                  <Ionicons name={getIcon()} size={48} color={colors.primary} />
+                  <Ionicons name={getIcon()} size={48} color={colors.primary.gold} />
                 </View>
                 <Typography variant="h1" style={styles.title}>
                   Verify {getVerificationType()}
                 </Typography>
                 <Typography variant="body" style={styles.subtitle}>
                   We've sent a 6-digit verification code to{'\n'}
-                  <Typography variant="bodyBold" style={styles.contactInfo}>
+                  <Typography variant="body" style={styles.contactInfo}>
                     {getContactInfo()}
                   </Typography>
                 </Typography>
@@ -168,9 +170,8 @@ export default function MobileVerificationScreen() {
               <View style={styles.otpSection}>
                 <OTPInput
                   value={otp}
-                  onChange={setOtp}
+                  onOTPChange={setOtp}
                   length={6}
-                  autoFocus
                 />
               </View>
 
@@ -182,27 +183,23 @@ export default function MobileVerificationScreen() {
                   </Typography>
                 ) : (
                   <Button
+                    title="Resend Code"
                     variant="ghost"
                     onPress={handleResendOTP}
                     disabled={isLoading}
                     style={styles.resendButton}
-                  >
-                    <Typography variant="bodyBold" style={styles.resendText}>
-                      Resend Code
-                    </Typography>
-                  </Button>
+                  />
                 )}
               </View>
 
               {/* Verify Button */}
               <Button
+                title={`Verify ${getVerificationType()}`}
                 onPress={handleVerifyOTP}
                 disabled={otp.length !== 6 || isLoading}
                 loading={isLoading}
                 style={styles.verifyButton}
-              >
-                Verify {getVerificationType()}
-              </Button>
+              />
 
               {/* Help Text */}
               <View style={styles.helpSection}>
@@ -224,7 +221,7 @@ export default function MobileVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.background.primary,
   },
   keyboardView: {
     flex: 1,
@@ -245,7 +242,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primary + '15',
+    backgroundColor: colors.primary.gold + '15',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.lg,
@@ -253,15 +250,16 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     marginBottom: spacing.md,
-    color: colors.text,
+    color: colors.text.primary,
   },
   subtitle: {
     textAlign: 'center',
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     lineHeight: 24,
   },
   contactInfo: {
-    color: colors.primary,
+    textAlign: 'center',
+    color: colors.primary.gold,
   },
   otpSection: {
     marginBottom: spacing.xl,
@@ -274,14 +272,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timerText: {
-    color: colors.textSecondary,
+    color: colors.text.secondary,
   },
   resendButton: {
-    paddingHorizontal: 0,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-  },
-  resendText: {
-    color: colors.primary,
+    borderWidth: 1,
+    borderColor: colors.primary.gold,
+    borderRadius: radius.button,
   },
   verifyButton: {
     marginBottom: spacing.lg,
@@ -292,7 +290,7 @@ const styles = StyleSheet.create({
   },
   helpText: {
     textAlign: 'center',
-    color: colors.textSecondary,
+    color: colors.text.secondary,
     lineHeight: 20,
   },
 });
