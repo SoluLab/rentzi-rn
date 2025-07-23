@@ -77,16 +77,40 @@ const FESTIVALS = [
 ];
 export default function CheckInOutScreen() {
   const router = useRouter();
-  const { propertyId, returnTo } = useLocalSearchParams();
+  const { propertyId, returnTo, checkIn, checkOut } = useLocalSearchParams();
   const { getPropertyById } = usePropertyStore();
   const [selectedCheckIn, setSelectedCheckIn] = useState<Date | null>(null);
   const [selectedCheckOut, setSelectedCheckOut] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [calendarData, setCalendarData] = useState<MonthData[]>([]);
   const property = getPropertyById(propertyId as string);
+
+  // Generate calendar data when property or currentMonth changes
   useEffect(() => {
     generateCalendarData();
   }, [property, currentMonth]);
+
+  // When calendarData is generated and checkIn/checkOut params exist, set selected dates and update selection
+  useEffect(() => {
+    if (checkIn && typeof checkIn === 'string') {
+      const checkInDate = new Date(checkIn);
+      if (!isNaN(checkInDate.getTime())) {
+        setSelectedCheckIn(checkInDate);
+        setCurrentMonth(new Date(checkInDate.getFullYear(), checkInDate.getMonth(), 1));
+      }
+    }
+    if (checkOut && typeof checkOut === 'string') {
+      const checkOutDate = new Date(checkOut);
+      if (!isNaN(checkOutDate.getTime())) {
+        setSelectedCheckOut(checkOutDate);
+      }
+    }
+  }, [calendarData, checkIn, checkOut]);
+
+  // Update calendar selection when selectedCheckIn or selectedCheckOut changes
+  useEffect(() => {
+    updateCalendarSelection(selectedCheckIn, selectedCheckOut);
+  }, [selectedCheckIn, selectedCheckOut]);
   const generateCalendarData = () => {
     if (!property) return;
     const months: MonthData[] = [];

@@ -264,7 +264,7 @@ export default function InvestmentScreen() {
               </View>
               <View style={styles.tokenItem}>
                 <Typography variant="caption" color="secondary">
-                  Token Price
+                Per Token
                 </Typography>
                 <Typography variant="body" color="gold">
                   ${tokenMetadata.tokenPrice.toLocaleString()}
@@ -333,15 +333,7 @@ export default function InvestmentScreen() {
               <Typography variant="h4">Ownership Terms</Typography>
             </View>
             <View style={styles.termsList}>
-              <View style={styles.termItem}>
-                <CheckCircle2 size={16} color={colors.status.success} />
-                <View style={styles.termContent}>
-                  <Typography variant="body">Voting Rights</Typography>
-                  <Typography variant="caption" color="secondary">
-                    Participate in major property decisions
-                  </Typography>
-                </View>
-              </View>
+              
               <View style={styles.termItem}>
                 <CheckCircle2 size={16} color={colors.status.success} />
                 <View style={styles.termContent}>
@@ -426,6 +418,13 @@ export default function InvestmentScreen() {
                     Minimum investment: $
                     {property.investmentDetails.minimumInvestment.toLocaleString()}
                   </Typography>
+
+                  <View style={styles.warningNote}>
+                  <Typography variant="caption" color="secondary">
+                    ⚠️ Tokens listed will be locked for 3 months minimum
+                  </Typography>
+                </View>
+
                 </View>
                 <View style={styles.paymentSection}>
                   <Typography variant="body" style={styles.paymentLabel}>
@@ -832,5 +831,13 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     width: '100%',
+  },
+
+  warningNote: {
+    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+    borderRadius: radius.md,
+    padding: spacing.sm, 
+    borderWidth: 1,
+    borderColor: colors.status.warning,
   },
 });
