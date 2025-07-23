@@ -255,7 +255,7 @@ export default function ExploreScreen() {
                         setShowFilters(false);
                       }}
                     >
-                      <Typography variant="caption" color="#ffffff">
+                      <Typography variant="caption" color="gold">
                         {new Date(date).toLocaleDateString()}
                       </Typography>
                     </TouchableOpacity>

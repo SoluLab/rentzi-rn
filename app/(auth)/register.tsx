@@ -138,9 +138,10 @@ export default function RegisterScreen() {
         country: selectedCountryCode?.name || 'United States',
         dateOfBirth: new Date(2000, 0, 1).toISOString(),
         password: formData.password,
+        role: 'homeowner', // Set role as homeowner during registration
       });
       toast.success('Registration successful! Please verify your account');
-      // Navigate to mobile verification first
+      // Navigate directly to mobile verification
       router.push({
         pathname: '/(auth)/mobile-verification',
         params: {
@@ -185,7 +186,6 @@ export default function RegisterScreen() {
           >
             <View style={styles.content}>
               <View style={styles.form}>
-
                 <Input
                   label="First Name"
                   value={formData.firstName}
@@ -206,7 +206,6 @@ export default function RegisterScreen() {
                   textContentType="familyName"
                   containerStyle={styles.inputBox}
                 />
-
                 <Input
                   label="Email Address"
                   value={formData.email}
@@ -323,7 +322,6 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-
   },
   content: {
     padding: spacing.lg,

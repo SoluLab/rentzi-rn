@@ -116,8 +116,8 @@ export default function MyStaysScreen() {
                     <Typography variant="h4" numberOfLines={1}>
                       {property?.title || 'Property'}
                     </Typography>
-                    {/* Location display */}
-                    {property?.location && (
+                     {/* Location display */}
+                     {property?.location && (
                       <Typography variant="caption" color="secondary">
                         {property.location.city}, {property.location.country}
                       </Typography>
@@ -243,8 +243,12 @@ export default function MyStaysScreen() {
     <View style={styles.container}>
       <Header title="My Stays" showBackButton={false} rightComponent={headerRightComponent} />
       <ScrollView style={styles.scrollContainer}>
-         
-
+        <View style={styles.welcomeSection}>
+          <Typography variant="h4">Welcome back,</Typography>
+          <Typography variant="h5" color={colors.primary.gold}>
+            Mr. Rikin
+          </Typography>
+        </View>
         {/* Quick Actions  
         <View style={styles.section}>
           <Typography variant="h3" style={styles.sectionTitle}>
@@ -279,8 +283,6 @@ export default function MyStaysScreen() {
         {user?.role === 'renter' && renderRenterDashboard()}
         {user?.investmentStatus && renderInvestorDashboard()}
         {user?.role === 'homeowner' && renderHomeownerDashboard()}
-
-        
         {/* Mixed Listings Feed */}
         <View style={styles.section}>
           <View style={styles.feedHeader}>

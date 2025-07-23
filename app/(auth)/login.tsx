@@ -73,7 +73,60 @@ export default function LoginScreen() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+ 
 
+ 
+  const handleLogin = async () => {
+    if (!validateForm()) return;
+    try {
+      await login(emailOrMobile, password);
+      toast.success('Credentials verified! Sending OTP...');
+      // Navigate directly to mobile verification for both email and mobile login
+      router.push({
+        pathname: '/(auth)/mobile-verification',
+        params: {
+          email: emailOrMobile.includes('@') ? emailOrMobile : 'user@example.com',
+          phone: emailOrMobile.includes('@') ? '+1 (555) 123-4567' : emailOrMobile,
+          type: 'login',
+        },
+      });
+    } catch (error: any) {
+      // Handle specific error messages from authStore with proper error display
+      let errorMessage = 'Login failed. Please try again.';
+      if (error.message) {
+        if (error.message.includes('No account found')) {
+          errorMessage = 'No account found with this email. Please sign up first';
+        } else if (error.message.includes('Incorrect password')) {
+          errorMessage = 'Incorrect password';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      toast.error(errorMessage);
+    }
+  };
+  const handleDemoLogin = async (demoUser: DemoUser) => {
+    setEmailOrMobile(demoUser.email);
+    setPassword(demoUser.password);
+    setErrors({});
+    try {
+      await login(demoUser.email, demoUser.password);
+      toast.success(`Welcome ${demoUser.name}! Sending OTP...`);
+      // Navigate directly to mobile verification
+      router.push({
+        pathname: '/(auth)/mobile-verification',
+        params: {
+          email: demoUser.email,
+          phone: '+1 (555) 123-4567',
+          type: 'login',
+        },
+      });
+    } catch (error: any) {
+      const errorMessage = error.message || 'Demo login failed. Please try again.';
+      toast.error(errorMessage);
+    }
+  };
+ 
   const handleRegister = () => {
     router.push("/(auth)/register");
   };

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Renzi",
-    "slug": "renzi",
+    "name": "Rentzi",
+    "slug": "rentzi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -15,14 +15,14 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.flexapp.renzi"
+      "bundleIdentifier": "app.flexapp.rentzi"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000000"
       },
-      "package": "app.flexapp.renzi"
+      "package": "app.flexapp.rentzi"
     },
     "web": {
       "bundler": "metro",

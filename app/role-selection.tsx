@@ -39,7 +39,12 @@ export default function RoleSelectionScreen() {
   const handleContinue = () => {
     if (selectedRole) {
       updateUserRole(selectedRole);
-      router.replace("/(tabs)");
+      // If homeowner is selected, navigate to KYC screen
+      if (selectedRole === 'homeowner') {
+        router.push('/(auth)/mobile-verification?showKYC=true');
+      } else {
+        router.replace('/(tabs)');
+      }
     }
   };
   return (

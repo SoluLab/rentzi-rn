@@ -1,13 +1,11 @@
-# Dependencies
+# dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Expo
 .expo/
 dist/
 web-build/
+expo-env.d.ts
 
 # Native
 *.orig.*
@@ -20,10 +18,11 @@ web-build/
 # Metro
 .metro-health-check*
 
-# Debug
+# debug
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+yarn.lock
 
 # macOS
 .DS_Store
@@ -32,7 +31,6 @@ yarn-error.*
 # local env files
 .env*.local
 .env
-
 # typescript
 *.tsbuildinfo
 

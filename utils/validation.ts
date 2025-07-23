@@ -122,3 +122,60 @@ export const validateFullName = (name: string): { isValid: boolean; error?: stri
 
   return { isValid: true };
 };
+
+export const validatePropertyTitle = (title: string): { isValid: boolean; error?: string } => {
+  if (!title.trim()) {
+    return { isValid: false, error: 'Property title is required' };
+  }
+  if (title.length < 2) {
+    return { isValid: false, error: 'Property title must be at least 2 characters long' };
+  }
+  if (title.length > 100) {
+    return { isValid: false, error: 'Property title cannot exceed 100 characters' };
+  }
+  // Allow only letters, numbers, spaces, hyphens, and slashes
+  const titleRegex = /^[a-zA-Z0-9\s\-/]+$/;
+  if (!titleRegex.test(title)) {
+    return { isValid: false, error: 'Property title can only contain letters, numbers, spaces, hyphens, and slashes' };
+  }
+  return { isValid: true };
+};
+
+export const validatePincode = (pincode: string): { isValid: boolean; error?: string } => {
+  if (!pincode) {
+    return { isValid: false, error: 'Pincode is required' };
+  }
+  const cleanPincode = pincode.replace(/\D/g, '');
+  if (cleanPincode.length < 5 || cleanPincode.length > 6) {
+    return { isValid: false, error: 'Pincode must be 5-6 digits' };
+  }
+  if (!/^\d+$/.test(cleanPincode)) {
+    return { isValid: false, error: 'Pincode must contain only digits' };
+  }
+  return { isValid: true };
+};
+
+export const validateSquareFootage = (sqft: string): { isValid: boolean; error?: string } => {
+  if (!sqft) {
+    return { isValid: false, error: 'Square footage is required' };
+  }
+  const cleanSqft = sqft.replace(/\D/g, '');
+  const sqftNumber = parseInt(cleanSqft);
+  if (isNaN(sqftNumber) || sqftNumber < 3000) {
+    return { isValid: false, error: 'Square footage must be at least 3,000 sqft' };
+  }
+  return { isValid: true };
+};
+
+export const validateYearBuilt = (year: string): { isValid: boolean; error?: string } => {
+  if (!year) {
+    return { isValid: false, error: 'Year built is required' };
+  }
+  const cleanYear = year.replace(/\D/g, '');
+  const yearNumber = parseInt(cleanYear);
+  const currentYear = new Date().getFullYear();
+  if (isNaN(yearNumber) || yearNumber < 1900 || yearNumber > currentYear) {
+    return { isValid: false, error: `Year must be between 1900 and ${currentYear}` };
+  }
+  return { isValid: true };
+};
