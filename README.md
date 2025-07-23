@@ -1,4 +1,4 @@
-# Rentzi - Real Estate Investment Platform
+ # Rentzi - Real Estate Investment Platform
 
 A React Native mobile application for real estate investment and property management.
 

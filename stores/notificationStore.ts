@@ -17,7 +17,7 @@ const mockNotifications: Notification[] = [
     title: "Booking Confirmed",
     message: "Your booking for Luxury Oceanfront Villa has been confirmed for March 15-20, 2024.",
     readStatus: false,
-    timestamp: "2024-02-10T10:30:00Z",
+    timestamp: "2025-07-18T10:30:00Z",
   },
   {
     id: "2",
@@ -26,7 +26,7 @@ const mockNotifications: Notification[] = [
     title: "Investment Update",
     message: "Your investment in Manhattan Penthouse Suite has increased by 15.2% this quarter.",
     readStatus: false,
-    timestamp: "2024-02-09T14:15:00Z",
+    timestamp: "2025-07-15T14:15:00Z",
   },
   {
     id: "3",
@@ -35,7 +35,7 @@ const mockNotifications: Notification[] = [
     title: "New Property Available",
     message: "A new luxury property matching your preferences is now available for investment.",
     readStatus: true,
-    timestamp: "2024-02-08T09:00:00Z",
+    timestamp: "2025-06-08T09:00:00Z",
   },
 ];
 

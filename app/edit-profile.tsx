@@ -22,6 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
+
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
@@ -34,6 +35,7 @@ export default function EditProfileScreen() {
   const [profileImage, setProfileImage] = useState(user?.profileDetails.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     // Name validation

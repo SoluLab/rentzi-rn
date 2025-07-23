@@ -105,6 +105,12 @@ export default function ProfileScreen() {
       subtitle: 'Password and two-factor authentication',
       onPress: () => toast.info('Opening security settings...'),
     },
+    {
+      icon: CreditCard,
+      title: 'Payment Methods',
+      subtitle: 'Manage cards and crypto wallets',
+      onPress: () => toast.info('Opening payment methods...'),
+    },
   ];
   const notificationItems = [
     {

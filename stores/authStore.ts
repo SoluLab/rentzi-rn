@@ -19,6 +19,7 @@ interface AuthActions {
     country: string;
     dateOfBirth: string;
     password: string;
+    role?: 'renter' | 'investor' | 'homeowner';
   }) => Promise<void>;
   logout: () => void;
   sendOTP: (email: string, phone: string) => Promise<void>;
@@ -150,7 +151,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         id: Date.now().toString(),
         email: userData.email,
         name: userData.fullName,
-        role: 'renter',
+        role: userData.role || 'renter',
         profileDetails: {
           phone: userData.phone,
           bio: '',
