@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import {
 Alert,
 Dimensions,
@@ -57,6 +56,7 @@ FileText,
 RefreshCw,
 DollarSign,
 } from 'lucide-react-native';
+import { useState } from "react";
 const { width, height } = Dimensions.get('window');
 export default function PropertyDetailScreen() {
 const router = useRouter();
@@ -377,7 +377,7 @@ const { user } = useAuthStore();
                     {/* Bedrooms Section */}
                     <Card style={styles.bedroomsCard}>
                         <Typography variant="h4" style={styles.sectionTitle}>
-                            Rooms
+                            Bedrooms
                         </Typography>
                         <View style={styles.bedroomDetails}>
                             <View style={styles.bedroomDetailItem}>
@@ -546,7 +546,7 @@ const { user } = useAuthStore();
                             </Typography>
                         </Card>
                     )}
-                    {/* Host Information 
+                    {/* Host Information */}
                     <Card style={styles.hostCard}>
                         <Typography variant="h5" style={styles.sectionTitle}>
                             Your Host
@@ -575,7 +575,6 @@ const { user } = useAuthStore();
                             </View>
                         </View>
                     </Card>
-                    */}
                     {/* Property Rules Section */}
                     <Card style={styles.propertyRulesCard}>
                     <Typography variant="h5" style={styles.sectionTitle}>

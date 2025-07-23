@@ -1,25 +1,19 @@
-import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-} from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { StatusBar } from "expo-status-bar";
-import { Typography } from "@/components/ui/Typography";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Modal } from "@/components/ui/Modal";
-import { toast } from "@/components/ui/Toast";
-import { colors } from "@/constants/colors";
-import { spacing } from "@/constants/spacing";
-import { radius } from "@/constants/radius";
-import { usePropertyStore } from "@/stores/propertyStore";
-import { useBookingStore } from "@/stores/bookingStore";
-import { useAuthStore } from "@/stores/authStore";
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { Typography } from '@/components/ui/Typography';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Modal } from '@/components/ui/Modal';
+import { toast } from '@/components/ui/Toast';
+import { colors } from '@/constants/colors';
+import { spacing } from '@/constants/spacing';
+import { radius } from '@/constants/radius';
+import { usePropertyStore } from '@/stores/propertyStore';
+import { useBookingStore } from '@/stores/bookingStore';
+import { useAuthStore } from '@/stores/authStore';
 import {
   ArrowLeft,
   Calendar,
@@ -32,9 +26,9 @@ import {
   Download,
   XCircle,
   Edit3,
-} from "lucide-react-native";
-import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
+} from 'lucide-react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 export default function BookingDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -47,13 +41,13 @@ export default function BookingDetailScreen() {
   const property = booking ? getPropertyById(booking.propertyId) : null;
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "upcoming":
+      case 'upcoming':
         return colors.status.info;
-      case "active":
+      case 'active':
         return colors.status.success;
-      case "completed":
+      case 'completed':
         return colors.text.secondary;
-      case "cancelled":
+      case 'cancelled':
         return colors.status.error;
       default:
         return colors.text.secondary;
@@ -61,13 +55,13 @@ export default function BookingDetailScreen() {
   };
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "upcoming":
+      case 'upcoming':
         return Calendar;
-      case "active":
+      case 'active':
         return CheckCircle2;
-      case "completed":
+      case 'completed':
         return CheckCircle2;
-      case "cancelled":
+      case 'cancelled':
         return XCircle;
       default:
         return Calendar;
@@ -78,32 +72,32 @@ export default function BookingDetailScreen() {
     setIsProcessing(true);
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
-    updateBookingStatus(booking.id, "cancelled");
+    updateBookingStatus(booking.id, 'cancelled');
     setShowCancelModal(false);
     setIsProcessing(false);
-    toast.success("Booking cancelled successfully");
+    toast.success('Booking cancelled successfully');
     router.back();
   };
   const handleEditBooking = () => {
     if (!booking) return;
     // Navigate to calendar screen with current booking data
     router.push({
-      pathname: "/calendar/check-in-out",
+      pathname: '/calendar/check-in-out',
       params: {
         propertyId: booking.propertyId,
         bookingId: booking.id,
         currentStartDate: booking.startDate,
         currentEndDate: booking.endDate,
-        isEdit: "true",
+        isEdit: 'true',
       },
     });
   };
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'short',
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
     });
   };
   const calculateNights = () => {
@@ -218,12 +212,8 @@ export default function BookingDetailScreen() {
   </div>
   <div class="property-section">
   <div class="property-name">${property.title}</div>
-  <div class="property-location">${property.location.city}, ${
-      property.location.country
-    }</div>
-  <div class="property-location">${property.bedrooms} bed • ${
-      property.bathrooms
-    } bath</div>
+  <div class="property-location">${property.location.city}, ${property.location.country}</div>
+  <div class="property-location">${property.bedrooms} bed • ${property.bathrooms} bath</div>
   </div>
   <div class="booking-details">
   <div class="detail-item">
@@ -250,7 +240,7 @@ export default function BookingDetailScreen() {
   <span>$${booking.totalAmount.toLocaleString()}</span>
   </div>
   <div class="summary-row">
-  <span>Platform Fee</span>
+  <span>Convenience Fee</span>
   <span>$${convenienceFee}</span>
   </div>
   <div class="summary-row">
@@ -277,14 +267,14 @@ export default function BookingDetailScreen() {
         base64: false,
       });
       await Sharing.shareAsync(uri, {
-        mimeType: "application/pdf",
-        dialogTitle: "Download Booking Receipt",
-        UTI: "com.adobe.pdf",
+        mimeType: 'application/pdf',
+        dialogTitle: 'Download Booking Receipt',
+        UTI: 'com.adobe.pdf',
       });
-      toast.success("Receipt downloaded successfully");
+      toast.success('Receipt downloaded successfully');
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate receipt");
+      console.error('Error generating PDF:', error);
+      toast.error('Failed to generate receipt');
     }
   };
   if (!booking || !property) {
@@ -294,11 +284,7 @@ export default function BookingDetailScreen() {
           <Typography variant="h4" color="secondary" align="center">
             Booking not found
           </Typography>
-          <Button
-            title="Go Back"
-            onPress={() => router.back()}
-            variant="outline"
-          />
+          <Button title="Go Back" onPress={() => router.back()} variant="outline" />
         </View>
       </SafeAreaView>
     );
@@ -309,26 +295,17 @@ export default function BookingDetailScreen() {
       <StatusBar style="light" />
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft size={24} color={colors.text.primary} />
         </TouchableOpacity>
         <Typography variant="h5" style={styles.headerTitle}>
           Booking Details
         </Typography>
       </View>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Property Info */}
         <Card style={styles.propertyCard}>
-          <Image
-            source={{ uri: property.mediaGallery.images[0] }}
-            style={styles.propertyImage}
-          />
+          <Image source={{ uri: property.mediaGallery.images[0] }} style={styles.propertyImage} />
           <View style={styles.propertyInfo}>
             <Typography variant="h4">{property.title}</Typography>
             <View style={styles.locationContainer}>
@@ -346,13 +323,9 @@ export default function BookingDetailScreen() {
         <Card style={styles.statusCard}>
           <View style={styles.statusHeader}>
             <View style={styles.statusInfo}>
-              <StatusIcon
-                size={24}
-                color={getStatusColor(booking.bookingStatus)}
-              />
+              <StatusIcon size={24} color={getStatusColor(booking.bookingStatus)} />
               <Typography variant="h5">
-                {booking.bookingStatus.charAt(0).toUpperCase() +
-                  booking.bookingStatus.slice(1)}
+                {booking.bookingStatus.charAt(0).toUpperCase() + booking.bookingStatus.slice(1)}
               </Typography>
             </View>
             <View
@@ -378,9 +351,7 @@ export default function BookingDetailScreen() {
             </View>
             <View style={styles.detailContent}>
               <Typography variant="body">Check-in</Typography>
-              <Typography variant="h6">
-                {formatDate(booking.startDate)}
-              </Typography>
+              <Typography variant="h6">{formatDate(booking.startDate)}</Typography>
             </View>
           </View>
           <View style={styles.detailRow}>
@@ -389,9 +360,7 @@ export default function BookingDetailScreen() {
             </View>
             <View style={styles.detailContent}>
               <Typography variant="body">Check-out</Typography>
-              <Typography variant="h6">
-                {formatDate(booking.endDate)}
-              </Typography>
+              <Typography variant="h6">{formatDate(booking.endDate)}</Typography>
             </View>
           </View>
           <View style={styles.detailRow}>
@@ -420,15 +389,13 @@ export default function BookingDetailScreen() {
           </Typography>
           <View style={styles.summaryRow}>
             <Typography variant="body">
-              ${(booking.totalAmount / calculateNights()).toLocaleString()}
-              /night × {calculateNights()} nights
+              ${(booking.totalAmount / calculateNights()).toLocaleString()}/night ×{' '}
+              {calculateNights()} nights
             </Typography>
-            <Typography variant="body">
-              ${booking.totalAmount.toLocaleString()}
-            </Typography>
+            <Typography variant="body">${booking.totalAmount.toLocaleString()}</Typography>
           </View>
           <View style={styles.summaryRow}>
-            <Typography variant="body">Platform Fee</Typography>
+            <Typography variant="body">Convenience Fee</Typography>
             <Typography variant="body">$150</Typography>
           </View>
           <View style={styles.summaryRow}>
@@ -453,7 +420,7 @@ export default function BookingDetailScreen() {
             icon={<Download size={20} color={colors.neutral.white} />}
           />
           {/* Edit and Cancel Booking Buttons for upcoming bookings */}
-          {booking.bookingStatus === "upcoming" && (
+          {booking.bookingStatus === 'upcoming' && (
             <View style={styles.upcomingActions}>
               <Button
                 title="Edit Booking"
@@ -507,7 +474,7 @@ export default function BookingDetailScreen() {
               style={styles.modalButton}
             />
             <Button
-              title={isProcessing ? "Cancelling..." : "Cancel Booking"}
+              title={isProcessing ? 'Cancelling...' : 'Cancel Booking'}
               onPress={handleCancelBooking}
               loading={isProcessing}
               style={styles.modalButton}
@@ -524,8 +491,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.md,
     backgroundColor: colors.background.card,
@@ -556,7 +523,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   propertyImage: {
-    width: "100%",
+    width: '100%',
     height: 200,
     borderRadius: radius.md,
     marginBottom: spacing.md,
@@ -565,8 +532,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   statusCard: {
@@ -581,13 +548,13 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statusHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   statusInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   statusBadge: {
@@ -610,13 +577,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   detailRow: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing.lg,
   },
   detailIcon: {
     width: 40,
-    alignItems: "center",
+    alignItems: 'center',
   },
   detailContent: {
     flex: 1,
@@ -634,9 +601,9 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   summaryRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: spacing.md,
   },
   totalRow: {
@@ -650,7 +617,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   upcomingActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.md,
   },
   actionButton: {
@@ -668,8 +635,8 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     gap: spacing.lg,
     paddingHorizontal: spacing.layout.screenPadding,
   },
@@ -677,7 +644,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   warningHeader: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.md,
   },
   refundPolicy: {
@@ -687,7 +654,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   modalActions: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.md,
   },
   modalButton: {

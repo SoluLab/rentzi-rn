@@ -177,7 +177,7 @@ export const CalendarModal: React.FC<CalendarModalProps> = ({
   };
 
   const formatPrice = (price: number) => {
-    return `$${price.toLocaleString()}`;
+    return `₹${price.toLocaleString()}`;
   };
 
   const days = getDaysInMonth(currentMonth);

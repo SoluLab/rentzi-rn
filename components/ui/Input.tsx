@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
     eyeIcon: {
         position: 'absolute',
         right: spacing.md,
-        top: '50%',
-        transform: [{ translateY: -12 }], // half of height (24px)
+        top: 0,
+        bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
         width: 24,
-        height: 24,
+        height: 48,
     },
     errorText: {
         fontSize: 14,
