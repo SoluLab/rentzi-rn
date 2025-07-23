@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/Toast';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-get-random-values';
+import { QueryProvider } from '@/providers/QueryProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -29,6 +30,7 @@ export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Toaster />
+            <QueryProvider>
             <SafeAreaProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                     <Stack.Screen
@@ -37,6 +39,7 @@ export default function RootLayout() {
                     />
                 </Stack >
             </SafeAreaProvider>
+            </QueryProvider>
         </GestureHandlerRootView>
     );
 }

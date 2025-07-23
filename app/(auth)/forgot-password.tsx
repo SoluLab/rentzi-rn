@@ -1,35 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
-  Image,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { BackButton } from '@/components/ui/BackButton';
-import { toast } from '@/components/ui/Toast';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { useAuthStore } from '@/stores/authStore';
-import { validateEmail } from '@/utils/validation';
-import { Header } from '@/components/ui/Header';
+  StatusBar,
+} from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import {} from "react-native";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { toast } from "@/components/ui/Toast";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { useAuthStore } from "@/stores/authStore";
+import { validateEmail } from "@/utils/validation";
+import { Header } from "@/components/ui/Header";
 
 export default function ForgotPasswordScreen() {
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle("light-content");
+      if (Platform.OS === "android") {
+        StatusBar.setBackgroundColor("#fff");
+      }
+      return () => {
+        StatusBar.setBarStyle("light-content");
+        if (Platform.OS === "android") {
+          StatusBar.setBackgroundColor("#fff");
+        }
+      };
+    }, [])
+  );
+
   const router = useRouter();
   const { sendForgotPasswordOTP, isLoading } = useAuthStore();
 
-  const [email, setEmail] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
 
   const validateForm = () => {
     const emailValidation = validateEmail(email);
@@ -37,7 +48,7 @@ export default function ForgotPasswordScreen() {
       setError(emailValidation.error!);
       return false;
     }
-    setError('');
+    setError("");
     return true;
   };
 
@@ -46,15 +57,16 @@ export default function ForgotPasswordScreen() {
 
     try {
       await sendForgotPasswordOTP(email);
-      toast.success('OTP sent to your email successfully!');
+      toast.success("OTP sent to your email successfully!");
 
       // Navigate to OTP verification screen
       router.push({
-        pathname: '/(auth)/forgot-password-otp',
+        pathname: "/(auth)/forgot-password-otp",
         params: { email: email },
       });
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to send OTP. Please try again.';
+      const errorMessage =
+        error.message || "Failed to send OTP. Please try again.";
       toast.error(errorMessage);
       setError(errorMessage);
     }
@@ -63,14 +75,14 @@ export default function ForgotPasswordScreen() {
   const updateEmail = (value: string) => {
     setEmail(value);
     if (error) {
-      setError('');
+      setError("");
     }
   };
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(auth)/login');
+      router.replace("/(auth)/login");
     }
   };
 
@@ -79,21 +91,31 @@ export default function ForgotPasswordScreen() {
       <Header title="Forgot Password" onBackPress={handleBack} />
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
           {/* Form */}
           <View style={styles.form}>
-            <Typography variant="h3" color="primary" align="center" style={styles.formTitle}>
-              Reset Password
+            <Typography
+              variant="h3"
+              color="primary"
+              align="center"
+              style={styles.formTitle}
+            >
+              Reset Passwords
             </Typography>
 
-            <Typography variant="body" color="secondary" align="center" style={styles.description}>
-              Enter your email address and we'll send you a verification code to reset your password.
+            <Typography
+              variant="body"
+              color="secondary"
+              align="center"
+              style={styles.description}
+            >
+              Enter your email address and we'll send you a verification code to
+              reset your password.
             </Typography>
 
             <Input
@@ -117,7 +139,7 @@ export default function ForgotPasswordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View >
+    </View>
   );
 }
 
@@ -138,13 +160,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: spacing.xl,
     paddingHorizontal: spacing.lg,
   },
   logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.sm,
     marginTop: spacing.xl,
   },
@@ -154,7 +176,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 1,
     marginBottom: spacing.sm,
   },
@@ -162,15 +184,13 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontSize: 16,
   },
-  formCard: {
-
-  },
+  formCard: {},
   form: {
     gap: spacing.lg,
   },
   formTitle: {
     marginBottom: spacing.md,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   description: {
     marginBottom: spacing.lg,
