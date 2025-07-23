@@ -116,6 +116,12 @@ export default function MyStaysScreen() {
                     <Typography variant="h4" numberOfLines={1}>
                       {property?.title || 'Property'}
                     </Typography>
+                     {/* Location display */}
+                     {property?.location && (
+                      <Typography variant="caption" color="secondary">
+                        {property.location.city}, {property.location.country}
+                      </Typography>
+                    )}
                     <Typography variant="caption" color="secondary">
                       {booking.startDate} - {booking.endDate}
                     </Typography>
