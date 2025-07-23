@@ -65,8 +65,17 @@ export default function ForgotPasswordScreen() {
         params: { email: email },
       });
     } catch (error: any) {
-      const errorMessage =
+      console.log("ForgotPassword error:", error); // Debug: log error response
+      let errorMessage =
         error.message || "Failed to send OTP. Please try again.";
+      // Show specific message if email is not found
+      if (
+        errorMessage.toLowerCase().includes("email not found") ||
+        errorMessage.toLowerCase().includes("no account")
+      ) {
+        errorMessage =
+          "This email is not registered. Please check your email or sign up.";
+      }
       toast.error(errorMessage);
       setError(errorMessage);
     }
@@ -87,15 +96,20 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+   
       <Header title="Forgot Password" onBackPress={handleBack} />
+      
       <KeyboardAvoidingView
-        style={styles.keyboardView}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.container}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          style={styles.container}
+          contentContainerStyle={styles.container}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           {/* Form */}
           <View style={styles.form}>
@@ -139,7 +153,8 @@ export default function ForgotPasswordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    
+    </SafeAreaView>
   );
 }
 
@@ -186,7 +201,8 @@ const styles = StyleSheet.create({
   },
   formCard: {},
   form: {
-    gap: spacing.lg,
+    gap: spacing.xs,
+    marginHorizontal: spacing.md,
   },
   formTitle: {
     marginBottom: spacing.md,

@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
   },
   forgotPassword: {
     alignSelf: "flex-end",
+    marginBottom: spacing.sm,
   },
   loginButton: {
     marginTop: spacing.sm,
@@ -322,6 +323,6 @@ const styles = StyleSheet.create({
   },
 
   buttonSection: {
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.md,
   },
 });
