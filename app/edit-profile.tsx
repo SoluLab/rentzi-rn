@@ -33,6 +33,7 @@ export default function EditProfileScreen() {
   const [profileImage, setProfileImage] = useState(user?.profileDetails.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     // Name validation
