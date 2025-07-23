@@ -11,11 +11,9 @@ import { radius } from '@/constants/radius';
 import {
   Plus,
   Building2,
-  CheckCircle2,
   CheckCircle,
   Clock,
   XCircle,
-  AArrowDown,
   AArrowUp,
   Eye,
   ALargeSmall,
