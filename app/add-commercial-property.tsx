@@ -19,6 +19,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -68,17 +69,9 @@ interface ValidationErrors {
 
 export default function AddCommercialPropertyScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    propertyTitle: '',
-    market: '',
-    otherMarket: '',
-    pincode: '',
-    fullAddress: '',
-    zoningType: '',
-    squareFootage: '',
-    yearBuilt: '',
-  });
-
+  const { data, updatePropertyDetails } = useCommercialPropertyStore();
+  
+  const [formData, setFormData] = useState<FormData>(data.propertyDetails);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showMarketModal, setShowMarketModal] = useState(false);
   const [showZoningModal, setShowZoningModal] = useState(false);
@@ -189,7 +182,9 @@ export default function AddCommercialPropertyScreen() {
   };
 
   const updateFormData = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updatePropertyDetails(newFormData);
     
     // Clear error when user starts typing
     if (errors[field]) {

@@ -15,6 +15,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Check, AlertTriangle } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 interface ConsentData {
   investmentRisks: boolean;
@@ -83,16 +84,9 @@ const CONSENT_ITEMS = [
 
 export default function CommercialPropertyLegalConsentsScreen() {
   const router = useRouter();
-  const [consents, setConsents] = useState<ConsentData>({
-    investmentRisks: false,
-    platformTerms: false,
-    variableIncome: false,
-    tokenizationConsent: false,
-    usageRights: false,
-    liquidityLimitations: false,
-    governanceRights: false,
-  });
-
+  const { data, updateLegalConsents } = useCommercialPropertyStore();
+  
+  const [consents, setConsents] = useState<ConsentData>(data.legalConsents);
   const [errors, setErrors] = useState<ConsentValidationErrors>({});
   const [expandedItem, setExpandedItem] = useState<keyof ConsentData | null>(null);
 
@@ -120,7 +114,9 @@ export default function CommercialPropertyLegalConsentsScreen() {
   };
 
   const updateConsent = (field: keyof ConsentData, value: boolean) => {
-    setConsents(prev => ({ ...prev, [field]: value }));
+    const newConsents = { ...consents, [field]: value };
+    setConsents(newConsents);
+    updateLegalConsents(newConsents);
     
     // Clear error when user checks the consent
     if (errors[field]) {
@@ -134,9 +130,8 @@ export default function CommercialPropertyLegalConsentsScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to next step or save data
-      Alert.alert('Success', 'Legal consents completed! Proceeding to next step...');
-      // router.push('/next-step');
+      // Navigate to listing type selection step
+      router.push('/commercial-property-listing-type');
     }
   };
 

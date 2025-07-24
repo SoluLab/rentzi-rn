@@ -19,6 +19,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { FileText, Upload, X, Check } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 interface DocumentFile {
   uri: string;
@@ -75,29 +76,9 @@ const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image
 
 export default function CommercialPropertyDocumentsUploadScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<DocumentsFormData>({
-    propertyDeed: null,
-    zoningCertificate: null,
-    titleReport: null,
-    governmentId: null,
-    certificateOfOccupancy: null,
-    rentRoll: null,
-    incomeExpenseStatements: null,
-    camAgreement: null,
-    environmentalReport: null,
-    propertyConditionAssessment: null,
-    proofOfInsurance: null,
-    utilityBill: null,
-    propertyAppraisal: null,
-    authorizationToTokenize: null,
-    mortgageStatement: null,
-    hoaDocuments: null,
-    franchiseAgreement: null,
-    businessLicenses: null,
-    adaComplianceReport: null,
-    fireSafetyInspection: null,
-  });
-
+  const { data, updateDocuments } = useCommercialPropertyStore();
+  
+  const [formData, setFormData] = useState<DocumentsFormData>(data.documents);
   const [errors, setErrors] = useState<DocumentsValidationErrors>({});
   const [isUploading, setIsUploading] = useState<string | null>(null);
 
@@ -142,7 +123,9 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   };
 
   const updateFormData = (field: keyof DocumentsFormData, value: DocumentFile | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updateDocuments(newFormData);
     
     // Clear error when user uploads a document
     if (errors[field as keyof DocumentsValidationErrors]) {

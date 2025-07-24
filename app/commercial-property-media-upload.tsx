@@ -22,6 +22,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Camera, Image as ImageIcon, Video, X, Upload } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 interface MediaFile {
   uri: string;
@@ -49,11 +50,9 @@ const MAX_PHOTOS = 20;
 
 export default function CommercialPropertyMediaUploadScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<MediaFormData>({
-    photos: [],
-    virtualTour: '',
-  });
-
+  const { data, updateMediaUploads } = useCommercialPropertyStore();
+  
+  const [formData, setFormData] = useState<MediaFormData>(data.mediaUploads);
   const [errors, setErrors] = useState<MediaValidationErrors>({});
   const [isUploading, setIsUploading] = useState(false);
 
@@ -121,7 +120,9 @@ export default function CommercialPropertyMediaUploadScreen() {
   };
 
   const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updateMediaUploads(newFormData);
     
     // Clear error when user starts uploading/typing
     if (errors[field]) {

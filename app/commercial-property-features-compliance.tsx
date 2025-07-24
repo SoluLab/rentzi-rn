@@ -18,6 +18,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, Check } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 // Building amenities options
 const BUILDING_AMENITIES = [
@@ -52,14 +53,9 @@ interface FeaturesValidationErrors {
 
 export default function CommercialPropertyFeaturesComplianceScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FeaturesFormData>({
-    buildingAmenities: [],
-    smartBuildingSystems: '',
-    businessServicesProvided: '',
-    accessType: '',
-    propertyHighlights: '',
-  });
-
+  const { data, updateFeaturesCompliance } = useCommercialPropertyStore();
+  
+  const [formData, setFormData] = useState<FeaturesFormData>(data.featuresCompliance);
   const [errors, setErrors] = useState<FeaturesValidationErrors>({});
   const [showAccessTypeModal, setShowAccessTypeModal] = useState(false);
 
@@ -103,7 +99,9 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   };
 
   const updateFormData = (field: keyof FeaturesFormData, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updateFeaturesCompliance(newFormData);
     
     // Clear error when user starts typing/selecting
     if (errors[field as keyof FeaturesValidationErrors]) {

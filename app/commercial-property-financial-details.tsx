@@ -18,6 +18,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 // Booking duration options
 const BOOKING_DURATION_OPTIONS = [
@@ -44,14 +45,9 @@ interface FinancialValidationErrors {
 
 export default function CommercialPropertyFinancialDetailsScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FinancialFormData>({
-    estimatedPropertyValue: '',
-    baseRentalRate: '',
-    cleaningMaintenanceFee: '',
-    weeksAvailablePerYear: '',
-    minimumBookingDuration: '',
-  });
-
+  const { data, updateFinancialDetails } = useCommercialPropertyStore();
+  
+  const [formData, setFormData] = useState<FinancialFormData>(data.financialDetails);
   const [errors, setErrors] = useState<FinancialValidationErrors>({});
   const [showBookingDurationModal, setShowBookingDurationModal] = useState(false);
 
@@ -136,7 +132,9 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   };
 
   const updateFormData = (field: keyof FinancialFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updateFinancialDetails(newFormData);
     
     // Clear error when user starts typing
     if (errors[field]) {
