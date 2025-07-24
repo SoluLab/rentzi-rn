@@ -11,6 +11,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 import {
   Bell,
   Plus,
@@ -87,6 +88,7 @@ export default function HomeownerDashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
+  const { resetStore } = useCommercialPropertyStore();
   const [showPropertyModal, setShowPropertyModal] = useState(false);
 
   const handleNotifications = () => {
@@ -109,6 +111,8 @@ export default function HomeownerDashboardScreen() {
 
   const handleAddCommercialProperty = () => {
     setShowPropertyModal(false);
+    // Reset the commercial property store to start fresh
+    resetStore();
     // Navigate to add commercial property screen
     router.push('/add-commercial-property');
   };

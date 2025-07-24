@@ -69,7 +69,14 @@ interface ValidationErrors {
 
 export default function AddCommercialPropertyScreen() {
   const router = useRouter();
-  const { data, updatePropertyDetails } = useCommercialPropertyStore();
+  const { data, updatePropertyDetails, resetStore } = useCommercialPropertyStore();
+  
+  // Reset store if property was already submitted
+  React.useEffect(() => {
+    if (data.isSubmitted) {
+      resetStore();
+    }
+  }, []);
   
   const [formData, setFormData] = useState<FormData>(data.propertyDetails);
   const [errors, setErrors] = useState<ValidationErrors>({});
