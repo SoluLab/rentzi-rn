@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   StatusBar,
 } from "react-native";
-import { ERROR_MESSAGES } from "@/utils/api";
+import { ERROR_MESSAGES, AUTH } from "@/constants/strings";
 
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,7 +28,12 @@ import { useLogin } from "@/services/apiClient";
 import { useAuthStore } from "@/stores/authStore";
 import { useFocusEffect } from "@react-navigation/native";
 
-export default function LoginScreen() { 
+export default function LoginScreen() {
+  const router = useRouter();
+  const [emailOrMobile, setEmailOrMobile] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { login } = useAuthStore();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -45,10 +50,14 @@ export default function LoginScreen() {
     }, [])
   );
 
-  const router = useRouter();
-  const [emailOrMobile, setEmailOrMobile] = useState("");
-  const [password, setPassword] = useState("");
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const handleRegister = () => {
+    router.push("/(auth)/register");
+  };
+
+  const handleForgotPassword = () => {
+    router.push("/(auth)/forgot-password");
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     const isEmail = emailOrMobile.includes("@");
@@ -64,22 +73,15 @@ export default function LoginScreen() {
         newErrors.emailOrMobile = mobileValidation.error!;
       }
     } else {
-      newErrors.emailOrMobile =
-        "Please enter a valid email address or mobile number";
+      newErrors.emailOrMobile = ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL;
     }
     if (!password) {
-      newErrors.password = "Password is required";
+      newErrors.password = ERROR_MESSAGES.AUTH.PASSWORDS_REQUIRED;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleRegister = () => {
-    router.push("/(auth)/register");
-  };
-  const handleForgotPassword = () => {
-    router.push("/(auth)/forgot-password");
-  };
   const updateField = (field: string, value: string) => {
     if (field === "emailOrMobile") setEmailOrMobile(value);
     if (field === "password") setPassword(value);
@@ -88,22 +90,20 @@ export default function LoginScreen() {
     }
   };
 
-  const { login } = useAuthStore();
-
   const loginMutation = useLogin({
     onSuccess: async (response) => {
       if (response.success && response.data) {
         await AsyncStorage.setItem("token", response.data.accessToken);
         await AsyncStorage.setItem("refreshToken", response.data.refreshToken);
-        toast.success("Login successful!");
+        toast.success(AUTH.LOGIN.SUCCESS);
         router.replace("/(tabs)");
       } else {
-        toast.error(response.message || ERROR_MESSAGES.DEFAULT);
+        toast.error(response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED);
       }
     },
     onError: (error: any) => {
       console.error("Login Error:", error);
-      const errorMessage = error?.message || ERROR_MESSAGES.DEFAULT;
+      const errorMessage = error?.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
       toast.error(errorMessage);
     },
   });
@@ -119,6 +119,7 @@ export default function LoginScreen() {
       payload.mobile = emailOrMobile.replace(/\s/g, "");
     } else {
       toast.error("Please enter a valid email address or mobile number");
+      toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
       return;
     }
     loginMutation.mutate(payload);
@@ -132,14 +133,14 @@ export default function LoginScreen() {
         <KeyboardAvoidingView
           style={styles.container}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0} >
+          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
           <ScrollView
             style={styles.container}
             contentContainerStyle={styles.container}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
-
             <View style={styles.container}>
               {/* Header Section */}
               <View style={styles.headerSection}>

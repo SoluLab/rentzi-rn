@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -7,25 +7,25 @@ import {
   KeyboardAvoidingView,
   Platform,
   Linking, // <-- Add this import
-} from 'react-native';
-import { router } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { PhoneInput } from '@/components/ui/PhoneInput';
-import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
-import { toast } from '@/components/ui/Toast';
-import { useAuthStore } from '@/stores/authStore';
+} from "react-native";
+import { router } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
+import { toast } from "@/components/ui/Toast";
+import { useAuthStore } from "@/stores/authStore";
 import {
   validateEmail,
   validatePassword,
   validateMobileNumber,
   validateFullName,
-} from '@/utils/validation';
-import { spacing, colors, radius, shadow } from '@/constants';
-import { staticText } from '@/constants/staticText';
+} from "@/utils/validation";
+import { spacing, colors, radius, shadow } from "@/constants";
+import { staticText } from "@/constants/staticText";
 interface FormData {
   firstName: string;
   lastName: string;
@@ -42,22 +42,23 @@ interface CountryCode {
 }
 // Mock database for checking uniqueness
 const existingUsers = [
-  { email: 'renter@rentzi.com', phone: '+15551234567' },
-  { email: 'investor@rentzi.com', phone: '+15551234568' },
-  { email: 'homeowner@rentzi.com', phone: '+15551234569' },
-  { email: 'test@test.com', phone: '+15551234570' },
+  { email: "renter@rentzi.com", phone: "+15551234567" },
+  { email: "investor@rentzi.com", phone: "+15551234568" },
+  { email: "homeowner@rentzi.com", phone: "+15551234569" },
+  { email: "test@test.com", phone: "+15551234570" },
 ];
 export default function RegisterScreen() {
   const { register, isLoading } = useAuthStore();
   const [formData, setFormData] = useState<FormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    mobileNumber: '',
-    password: '',
-    confirmPassword: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobileNumber: "",
+    password: "",
+    confirmPassword: "",
   });
-  const [selectedCountryCode, setSelectedCountryCode] = useState<CountryCode | null>(null);
+  const [selectedCountryCode, setSelectedCountryCode] =
+    useState<CountryCode | null>(null);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasSpaceInPassword, setHasSpaceInPassword] = useState(false);
@@ -83,7 +84,7 @@ export default function RegisterScreen() {
         (user) => user.email.toLowerCase() === formData.email.toLowerCase()
       );
       if (emailExists) {
-        newErrors.email = 'An account with this email already exists';
+        newErrors.email = "An account with this email already exists";
       }
     }
     // Mobile number validation
@@ -92,15 +93,20 @@ export default function RegisterScreen() {
       newErrors.mobileNumber = mobileValidation.error!;
     } else {
       // Check if mobile is exactly 10 digits
-      const cleanMobile = formData.mobileNumber.replace(/\D/g, '');
+      const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
       if (cleanMobile.length !== 10) {
-        newErrors.mobileNumber = 'Mobile number must be exactly 10 digits';
+        newErrors.mobileNumber = "Mobile number must be exactly 10 digits";
       } else {
         // Check mobile uniqueness
-        const fullMobile = `${selectedCountryCode?.phoneCode || '+1'}${cleanMobile}`;
-        const mobileExists = existingUsers.some((user) => user.phone === fullMobile);
+        const fullMobile = `${
+          selectedCountryCode?.phoneCode || "+1"
+        }${cleanMobile}`;
+        const mobileExists = existingUsers.some(
+          (user) => user.phone === fullMobile
+        );
         if (mobileExists) {
-          newErrors.mobileNumber = 'An account with this mobile number already exists';
+          newErrors.mobileNumber =
+            "An account with this mobile number already exists";
         }
       }
     }
@@ -111,64 +117,69 @@ export default function RegisterScreen() {
     }
     // Confirm password validation
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = "Please confirm your password";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
     // Terms acceptance validation
     if (!acceptedTerms) {
-      newErrors.terms = 'You must accept the Terms & Conditions';
+      newErrors.terms = "You must accept the Terms & Conditions";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   const handleRegister = async () => {
     if (!validateForm()) {
-      toast.error('Please fix the errors below');
+      toast.error("Please fix the errors below");
       return;
     }
     try {
       const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`;
-      const cleanMobile = formData.mobileNumber.replace(/\D/g, '');
-      const fullMobile = `${selectedCountryCode?.phoneCode || '+1'}${cleanMobile}`;
+      const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
+      const fullMobile = `${
+        selectedCountryCode?.phoneCode || "+1"
+      }${cleanMobile}`;
       await register({
         fullName: fullName,
         email: formData.email.toLowerCase().trim(),
         phone: fullMobile,
-        country: selectedCountryCode?.name || 'United States',
+        country: selectedCountryCode?.name || "United States",
         dateOfBirth: new Date(2000, 0, 1).toISOString(),
         password: formData.password,
-        role: 'homeowner', // Set role as homeowner during registration
+        role: "homeowner", // Set role as homeowner during registration
       });
-      toast.success('Registration successful! Please verify your account');
+      toast.success("Registration successful! Please verify your account");
       // Navigate directly to mobile verification
       router.push({
-        pathname: '/(auth)/mobile-verification',
+        pathname: "/(auth)/mobile-verification",
         params: {
           email: formData.email.toLowerCase().trim(),
           phone: fullMobile,
-          type: 'register',
+          type: "register",
         },
       });
     } catch (error: any) {
-      toast.error(error.message || 'Registration failed. Please try again.');
+      toast.error(error.message || "Registration failed. Please try again.");
     }
   };
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Real-time space detection for password
-    if (field === 'password') {
+    if (field === "password") {
       const hasSpaces = /\s/.test(value);
       setHasSpaceInPassword(hasSpaces);
       if (hasSpaces) {
-        setErrors((prev) => ({ ...prev, password: 'Password must not contain spaces' }));
-      } else if (errors.password === 'Password must not contain spaces') {
-        setErrors((prev) => ({ ...prev, password: '' }));
+        setErrors((prev) => ({
+          ...prev,
+          password: "Password must not contain spaces",
+        }));
+      } else if (errors.password === "Password must not contain spaces") {
+        setErrors((prev) => ({ ...prev, password: "" }));
       }
     } else {
       // Clear error when user starts typing for other fields
       if (errors[field]) {
-        setErrors((prev) => ({ ...prev, [field]: '' }));
+        setErrors((prev) => ({ ...prev, [field]: "" }));
       }
     }
   };
@@ -178,7 +189,7 @@ export default function RegisterScreen() {
         <Header title="Create Account" />
         <KeyboardAvoidingView
           style={styles.keyboardView}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <ScrollView
             contentContainerStyle={styles.scrollContent}
@@ -189,7 +200,7 @@ export default function RegisterScreen() {
                 <Input
                   label="First Name"
                   value={formData.firstName}
-                  onChangeText={(value) => updateFormData('firstName', value)}
+                  onChangeText={(value) => updateFormData("firstName", value)}
                   placeholder="Enter first name"
                   error={errors.firstName}
                   autoCapitalize="words"
@@ -199,7 +210,7 @@ export default function RegisterScreen() {
                 <Input
                   label="Last Name"
                   value={formData.lastName}
-                  onChangeText={(value) => updateFormData('lastName', value)}
+                  onChangeText={(value) => updateFormData("lastName", value)}
                   placeholder="Enter last name"
                   error={errors.lastName}
                   autoCapitalize="words"
@@ -209,7 +220,7 @@ export default function RegisterScreen() {
                 <Input
                   label="Email Address"
                   value={formData.email}
-                  onChangeText={(value) => updateFormData('email', value)}
+                  onChangeText={(value) => updateFormData("email", value)}
                   placeholder="Enter your email"
                   error={errors.email}
                   keyboardType="email-address"
@@ -220,7 +231,9 @@ export default function RegisterScreen() {
                 <PhoneInput
                   label="Mobile Number"
                   value={formData.mobileNumber}
-                  onChangeText={(value) => updateFormData('mobileNumber', value)}
+                  onChangeText={(value) =>
+                    updateFormData("mobileNumber", value)
+                  }
                   placeholder="Enter your mobile number"
                   error={errors.mobileNumber}
                   selectedCountry={selectedCountryCode}
@@ -231,7 +244,7 @@ export default function RegisterScreen() {
                   <Input
                     label="Password"
                     value={formData.password}
-                    onChangeText={(value) => updateFormData('password', value)}
+                    onChangeText={(value) => updateFormData("password", value)}
                     placeholder="Create a password"
                     error={errors.password}
                     secureTextEntry
@@ -239,12 +252,17 @@ export default function RegisterScreen() {
                     textContentType="newPassword"
                     containerStyle={styles.inputBox}
                   />
-                  <PasswordStrengthMeter password={formData.password} hideWhenSpaces={true} />
+                  <PasswordStrengthMeter
+                    password={formData.password}
+                    hideWhenSpaces={true}
+                  />
                 </View>
                 <Input
                   label="Confirm Password"
                   value={formData.confirmPassword}
-                  onChangeText={(value) => updateFormData('confirmPassword', value)}
+                  onChangeText={(value) =>
+                    updateFormData("confirmPassword", value)
+                  }
                   placeholder="Confirm your password"
                   error={errors.confirmPassword}
                   secureTextEntry
@@ -258,11 +276,16 @@ export default function RegisterScreen() {
                     onPress={() => {
                       setAcceptedTerms(!acceptedTerms);
                       if (errors.terms) {
-                        setErrors((prev) => ({ ...prev, terms: '' }));
+                        setErrors((prev) => ({ ...prev, terms: "" }));
                       }
                     }}
                   >
-                    <View style={[styles.checkboxInner, acceptedTerms && styles.checkboxChecked]}>
+                    <View
+                      style={[
+                        styles.checkboxInner,
+                        acceptedTerms && styles.checkboxChecked,
+                      ]}
+                    >
                       {acceptedTerms && (
                         <Typography variant="caption" color="white">
                           ✓
@@ -274,23 +297,35 @@ export default function RegisterScreen() {
                     <Typography variant="body" color="secondary">
                       I agree to the
                     </Typography>
-                    <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL('https://www.google.com/')}>
+                    <TouchableOpacity
+                      accessibilityRole="link"
+                      onPress={() => Linking.openURL("https://www.google.com/")}
+                    >
                       <Typography variant="body" color="primary">
-                        {' '}Terms & Conditions{' '}
+                        {" "}
+                        Terms & Conditions{" "}
                       </Typography>
                     </TouchableOpacity>
                     <Typography variant="body" color="secondary">
                       and
                     </Typography>
-                    <TouchableOpacity accessibilityRole="link" onPress={() => Linking.openURL('https://www.google.com/')}>
+                    <TouchableOpacity
+                      accessibilityRole="link"
+                      onPress={() => Linking.openURL("https://www.google.com/")}
+                    >
                       <Typography variant="body" color="primary">
-                        {' '}Privacy Policy
+                        {" "}
+                        Privacy Policy
                       </Typography>
                     </TouchableOpacity>
                   </View>
                 </View>
                 {errors.terms && (
-                  <Typography variant="caption" color="error" style={styles.errorText}>
+                  <Typography
+                    variant="caption"
+                    color="error"
+                    style={styles.errorText}
+                  >
                     {errors.terms}
                   </Typography>
                 )}
@@ -303,9 +338,11 @@ export default function RegisterScreen() {
                 />
                 <View style={styles.loginPrompt}>
                   <Typography variant="body" color="secondary">
-                    {staticText.auth.alreadyHaveAccount}{' '}
+                    {staticText.auth.alreadyHaveAccount}{" "}
                   </Typography>
-                  <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/(auth)/login")}
+                  >
                     <Typography variant="body" color="primary">
                       {staticText.auth.signIn}
                     </Typography>
@@ -331,7 +368,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   nameRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.xs,
   },
   nameField: {
@@ -339,8 +376,8 @@ const styles = StyleSheet.create({
   },
   inputBox: {},
   termsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     gap: spacing.sm,
   },
   checkbox: {
@@ -352,8 +389,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.border.light,
     borderRadius: radius.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.background,
     ...shadow.sm,
   },
@@ -365,10 +402,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   termsTextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+
     marginTop: 2,
   },
   errorText: {
@@ -378,9 +415,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   loginPrompt: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: spacing.xs,
     marginBottom: spacing.xxl,
   },

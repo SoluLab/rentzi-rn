@@ -87,7 +87,7 @@ export default function ForgotPasswordOTPScreen() {
     }
   };
   return (
-    <ScreenContainer>
+    <View style={styles.container}>
       <Header title="Enter OTP" onBackPress={handleBack} />
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -98,17 +98,17 @@ export default function ForgotPasswordOTPScreen() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
-            <Typography variant="h2" color="primary" style={styles.title}>
+            <Typography variant="h4" color="primary" style={styles.title}>
               Enter Verification Code
             </Typography>
-            <Typography variant="body1" color="primary" style={styles.subtitle}>
+            <Typography variant="body" color="primary" style={styles.subtitle}>
               We've sent a 6-digit code to {email}
             </Typography>
             <View style={styles.otpContainer}>
               <OTPInput value={otp} onOTPChange={setOtp} length={6} error={error} />
             </View>
             {error ? (
-              <Typography variant="body2" color="primary" style={styles.errorText}>
+              <Typography variant="body" color="primary" style={styles.errorText}>
                 {error}
               </Typography>
             ) : null}
@@ -130,16 +130,27 @@ export default function ForgotPasswordOTPScreen() {
               variant="outline"
               disabled={timeLeft > 0}
               style={styles.resendButton}
+              
             />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ScreenContainer>
+    </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    marginBottom: spacing.xl,
+  },
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   scrollContent: {
     flexGrow: 1,
@@ -176,5 +187,7 @@ const styles = StyleSheet.create({
   },
   resendButton: {
     marginBottom: spacing.lg,
+       alignSelf: "center",
+    paddingHorizontal: spacing.xl,
   },
 });

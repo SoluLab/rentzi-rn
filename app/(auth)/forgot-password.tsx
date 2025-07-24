@@ -19,8 +19,16 @@ import { spacing } from "@/constants/spacing";
 import { useAuthStore } from "@/stores/authStore";
 import { validateEmail } from "@/utils/validation";
 import { Header } from "@/components/ui/Header";
+import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 
 export default function ForgotPasswordScreen() {
+
+  const router = useRouter();
+  const { sendForgotPasswordOTP, isLoading } = useAuthStore();
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+
+
   useFocusEffect(
     React.useCallback(() => {
       StatusBar.setBarStyle("light-content");
@@ -36,11 +44,13 @@ export default function ForgotPasswordScreen() {
     }, [])
   );
 
-  const router = useRouter();
-  const { sendForgotPasswordOTP, isLoading } = useAuthStore();
-
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/(auth)/login");
+    }
+  };
 
   const validateForm = () => {
     const emailValidation = validateEmail(email);
@@ -54,27 +64,22 @@ export default function ForgotPasswordScreen() {
 
   const handleSendOTP = async () => {
     if (!validateForm()) return;
-
     try {
       await sendForgotPasswordOTP(email);
-      toast.success("OTP sent to your email successfully!");
-
-      // Navigate to OTP verification screen
+      toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP); 
       router.push({
         pathname: "/(auth)/forgot-password-otp",
         params: { email: email },
       });
     } catch (error: any) {
-      console.log("ForgotPassword error:", error); // Debug: log error response
+      console.log("ForgotPassword error:", error); 
       let errorMessage =
-        error.message || "Failed to send OTP. Please try again.";
-      // Show specific message if email is not found
+        error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
       if (
         errorMessage.toLowerCase().includes("email not found") ||
         errorMessage.toLowerCase().includes("no account")
       ) {
-        errorMessage =
-          "This email is not registered. Please check your email or sign up.";
+        errorMessage = ERROR_MESSAGES.AUTH.EMAIL_NOT_FOUND;
       }
       toast.error(errorMessage);
       setError(errorMessage);
@@ -87,19 +92,11 @@ export default function ForgotPasswordScreen() {
       setError("");
     }
   };
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(auth)/login");
-    }
-  };
+ 
 
   return (
-    <SafeAreaView style={styles.container}>
-   
+    <View style={styles.container}>
       <Header title="Forgot Password" onBackPress={handleBack} />
-      
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -114,7 +111,7 @@ export default function ForgotPasswordScreen() {
           {/* Form */}
           <View style={styles.form}>
             <Typography
-              variant="h3"
+              variant="h4"
               color="primary"
               align="center"
               style={styles.formTitle}
@@ -153,8 +150,7 @@ export default function ForgotPasswordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -199,10 +195,11 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     fontSize: 16,
   },
-  formCard: {},
+ 
   form: {
     gap: spacing.xs,
     marginHorizontal: spacing.md,
+    marginTop: spacing.xl,
   },
   formTitle: {
     marginBottom: spacing.md,
