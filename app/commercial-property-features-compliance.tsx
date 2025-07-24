@@ -132,11 +132,19 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   };
 
   const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: FeaturesValidationErrors = {};
+
+    newErrors.buildingAmenities = validateBuildingAmenities(formData.buildingAmenities);
+    newErrors.accessType = validateAccessType(formData.accessType);
+    newErrors.propertyHighlights = validatePropertyHighlights(formData.propertyHighlights);
+
+    // Check if all required fields are filled and no validation errors
     return (
       formData.buildingAmenities.length > 0 &&
       formData.accessType &&
       formData.propertyHighlights.trim() &&
-      Object.keys(errors).length === 0
+      Object.values(newErrors).every(error => !error)
     );
   };
 

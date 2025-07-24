@@ -152,13 +152,23 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   };
 
   const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: FinancialValidationErrors = {};
+
+    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(formData.estimatedPropertyValue);
+    newErrors.baseRentalRate = validateBaseRentalRate(formData.baseRentalRate);
+    newErrors.cleaningMaintenanceFee = validateCleaningMaintenanceFee(formData.cleaningMaintenanceFee);
+    newErrors.weeksAvailablePerYear = validateWeeksAvailablePerYear(formData.weeksAvailablePerYear);
+    newErrors.minimumBookingDuration = validateMinimumBookingDuration(formData.minimumBookingDuration);
+
+    // Check if all required fields are filled and no validation errors
     return (
       formData.estimatedPropertyValue.trim() &&
       formData.baseRentalRate.trim() &&
       formData.cleaningMaintenanceFee.trim() &&
       formData.weeksAvailablePerYear.trim() &&
       formData.minimumBookingDuration &&
-      Object.keys(errors).length === 0
+      Object.values(newErrors).every(error => !error)
     );
   };
 

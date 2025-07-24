@@ -203,6 +203,21 @@ export default function AddCommercialPropertyScreen() {
   );
 
   const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: ValidationErrors = {};
+
+    newErrors.propertyTitle = validatePropertyTitle(formData.propertyTitle);
+    newErrors.market = validateMarket(formData.market);
+    if (formData.market === 'Other') {
+      newErrors.otherMarket = validatePropertyTitle(formData.otherMarket);
+    }
+    newErrors.pincode = validatePincode(formData.pincode);
+    newErrors.fullAddress = validateFullAddress(formData.fullAddress);
+    newErrors.zoningType = validateZoningType(formData.zoningType);
+    newErrors.squareFootage = validateSquareFootage(formData.squareFootage);
+    newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+
+    // Check if all required fields are filled and no validation errors
     return (
       formData.propertyTitle.trim() &&
       formData.market &&
@@ -212,7 +227,7 @@ export default function AddCommercialPropertyScreen() {
       formData.zoningType &&
       formData.squareFootage.trim() &&
       formData.yearBuilt.trim() &&
-      Object.keys(errors).length === 0
+      Object.values(newErrors).every(error => !error)
     );
   };
 

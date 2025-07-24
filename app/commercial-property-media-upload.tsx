@@ -276,9 +276,16 @@ export default function CommercialPropertyMediaUploadScreen() {
   };
 
   const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: MediaValidationErrors = {};
+
+    newErrors.photos = validatePhotos(formData.photos);
+    newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
+
+    // Check if all required fields are filled and no validation errors
     return (
       formData.photos.length >= 5 &&
-      Object.keys(errors).length === 0
+      Object.values(newErrors).every(error => !error)
     );
   };
 
