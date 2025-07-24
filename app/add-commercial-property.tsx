@@ -197,13 +197,6 @@ export default function AddCommercialPropertyScreen() {
     }
   };
 
-  const handleNext = () => {
-    if (validateForm()) {
-      // Navigate to next step or save data
-      Alert.alert('Success', 'Form validation passed! Proceeding to next step...');
-      // router.push('/next-step');
-    }
-  };
 
   const filteredLocations = APPROVED_LOCATIONS.filter(location =>
     location.toLowerCase().includes(searchQuery.toLowerCase())
@@ -247,6 +240,13 @@ export default function AddCommercialPropertyScreen() {
       <Typography variant="body">{item}</Typography>
     </TouchableOpacity>
   );
+
+  const handleNext = () => {
+    if (validateForm()) {
+      // Navigate to financial details step
+      router.push('/commercial-property-financial-details');
+    }
+  };
 
   return (
     <ScreenContainer>
