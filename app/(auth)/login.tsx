@@ -27,13 +27,13 @@ import { useTheme } from "@react-navigation/native";
 import { useLogin } from "@/services/apiClient";
 import { useAuthStore } from "@/stores/authStore";
 import { useFocusEffect } from "@react-navigation/native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [emailOrMobile, setEmailOrMobile] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { login } = useAuthStore();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -50,8 +50,8 @@ export default function LoginScreen() {
     }, [])
   );
 
-  const handleRegister = () => {
-    router.push("/(auth)/register");
+  const handleRegister = (roleType: string) => {
+    router.push({ pathname: "/(auth)/register", params: { roleType } });
   };
 
   const handleForgotPassword = () => {
@@ -128,143 +128,136 @@ export default function LoginScreen() {
   const isLoading = loginMutation.isPending;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LinearGradient colors={["#0E2538", "#28679E"]} style={styles.container}>
-        <KeyboardAvoidingView
-          style={styles.container}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
-          keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        <KeyboardAwareScrollView
+           contentContainerStyle={styles.scrollContent}
+           enableOnAndroid={true}
+           extraScrollHeight={20}
+           keyboardShouldPersistTaps="handled"
+           showsVerticalScrollIndicator={false}
         >
-          <ScrollView
-            style={styles.container}
-            contentContainerStyle={styles.container}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            <View style={styles.container}>
-              {/* Header Section */}
-              <View style={styles.headerSection}>
-                <View style={styles.logoContainer}>
-                  <Image
-                    source={{
-                      uri: "https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png",
-                    }}
-                    style={styles.logo}
-                    resizeMode="cover"
-                  />
-                </View>
-                <Typography
-                  variant="h4"
-                  color="white"
-                  align="center"
-                  weight="bold"
-                >
-                  Rentzi
-                </Typography>
-
-                <Typography variant="body" color="gold" align="center">
-                  Welcome to Luxury Livings
-                </Typography>
+          <View style={styles.container}>
+            {/* Header Section */}
+            <View style={styles.headerSection}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={{
+                    uri: "https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png",
+                  }}
+                  style={styles.logo}
+                  resizeMode="cover"
+                />
               </View>
-              {/* Form Section */}
-              <View style={styles.formSection}>
-                <View style={styles.form}>
-                  <Typography
-                    variant="h3"
-                    color="primary"
-                    align="center"
-                    style={styles.formTitle}
-                  >
-                    Sign In
+              <Typography
+                variant="h4"
+                color="white"
+                align="center"
+                weight="bold"
+              >
+                Rentzi
+              </Typography>
+
+              <Typography variant="body" color="gold" align="center">
+                Welcome to Luxury Livings
+              </Typography>
+            </View>
+            {/* Form Section */}
+            <View style={styles.formSection}>
+              <View style={styles.form}>
+                <Typography
+                  variant="h3"
+                  color="primary"
+                  align="center"
+                  style={styles.formTitle}
+                >
+                  Sign In
+                </Typography>
+                <Input
+                  label="Email/Mobile Number"
+                  value={emailOrMobile}
+                  onChangeText={(value) => updateField("emailOrMobile", value)}
+                  placeholder="Enter your email or mobile number"
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  error={errors.emailOrMobile}
+                />
+                <Input
+                  label="Password"
+                  value={password}
+                  onChangeText={(value) => updateField("password", value)}
+                  placeholder="Enter your password"
+                  showPasswordToggle={true}
+                  error={errors.password}
+                />
+                <TouchableOpacity
+                  style={styles.forgotPassword}
+                  onPress={handleForgotPassword}
+                >
+                  <Typography variant="caption" color="secondary" align="right">
+                    Forgot Password?
                   </Typography>
-                  <Input
-                    label="Email/Mobile Number"
-                    value={emailOrMobile}
-                    onChangeText={(value) =>
-                      updateField("emailOrMobile", value)
-                    }
-                    placeholder="Enter your email or mobile number"
-                    keyboardType="default"
-                    autoCapitalize="none"
-                    error={errors.emailOrMobile}
-                  />
-                  <Input
-                    label="Password"
-                    value={password}
-                    onChangeText={(value) => updateField("password", value)}
-                    placeholder="Enter your password"
-                    showPasswordToggle={true}
-                    error={errors.password}
-                  />
-                  <TouchableOpacity
-                    style={styles.forgotPassword}
-                    onPress={handleForgotPassword}
+                </TouchableOpacity>
+                <Button
+                  title="Sign In"
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  style={styles.loginButton}
+                  variant="primary"
+                />
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Typography
+                    variant="caption"
+                    color="secondary"
+                    style={styles.dividerText}
                   >
-                    <Typography
-                      variant="caption"
-                      color="secondary"
-                      align="right"
-                    >
-                      Forgot Password?
-                    </Typography>
-                  </TouchableOpacity>
+                    Don't have an account?
+                  </Typography>
+                  <View style={styles.dividerLine} />
+                </View>
+                <View style={styles.buttonSection}>
                   <Button
-                    title="Sign In"
-                    onPress={handleLogin}
-                    loading={isLoading}
-                    style={styles.loginButton}
-                    variant="primary"
+                    title="Sign up as Renter/Investor"
+                    onPress={() => handleRegister("renter_investor")}
+                    variant="outline"
+                    leftIcon={
+                      <Ionicons
+                        name="person-outline"
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                    }
                   />
-                  <View style={styles.divider}>
-                    <View style={styles.dividerLine} />
-                    <Typography
-                      variant="caption"
-                      color="secondary"
-                      style={styles.dividerText}
-                    >
-                      Don't have an account?
-                    </Typography>
-                    <View style={styles.dividerLine} />
-                  </View>
-                  <View style={styles.buttonSection}>
-                    <Button
-                      title="Sign up as Renter/Investor"
-                      onPress={handleRegister}
-                      variant="outline"
-                      leftIcon={
-                        <Ionicons
-                          name="person-outline"
-                          size={20}
-                          color={colors.primary.gold}
-                        />
-                      }
-                    />
-                    <View style={{ height: 12 }} />
-                    <Button
-                      title="Sign up as Homeowner"
-                      onPress={handleRegister}
-                      variant="outline"
-                      leftIcon={
-                        <Ionicons
-                          name="home-outline"
-                          size={20}
-                          color={colors.primary.gold}
-                        />
-                      }
-                    />
-                  </View>
+                  <View style={{ height: 12 }} />
+                  <Button
+                    title="Sign up as Homeowner"
+                    onPress={() => handleRegister("homeowner")}
+                    variant="outline"
+                    leftIcon={
+                      <Ionicons
+                        name="home-outline"
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                    }
+                  />
                 </View>
               </View>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
+          </View>
+        </KeyboardAwareScrollView>
       </LinearGradient>
-    </SafeAreaView>
+    </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
   },
   headerSection: {
     flex: 0.25,
@@ -295,7 +288,7 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacing.xs,
-    marginHorizontal: spacing.md,
+    paddingHorizontal: spacing.layout.screenPadding,
   },
   formTitle: {
     marginBottom: spacing.md,

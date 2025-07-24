@@ -42,7 +42,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
     }
   };
   const getStrengthWidth = (score: number) => {
-    return `${(score / 5) * 100}%`;
+    return (score / 5) * 100; // Return as a number for percentage width
   };
   const { score, strength } = calculateStrength(password);
   const strengthColor = getStrengthColor(strength);
@@ -59,7 +59,7 @@ export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({
               styles.meterFill,
               {
                 backgroundColor: strengthColor,
-                width: strengthWidth,
+                width: `${strengthWidth}%` as any,
               },
             ]}
           />
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
   meterFill: {
     height: '100%',
     borderRadius: radius.xs,
-    transition: 'width 0.3s ease',
   },
   helpText: {
     fontSize: 12,

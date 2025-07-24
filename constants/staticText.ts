@@ -23,6 +23,7 @@ export const staticText = {
     quickDemoAccess: 'Quick Demo Access',
     loginSuccessful: 'Login successful! Welcome to Rentzi',
     registrationSuccessful: 'Registration successful! Please verify your account',
+    alreadyHaveAccount: 'Already have an account?',
   },
   // User roles
   roles: {

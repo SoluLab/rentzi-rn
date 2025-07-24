@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { View, Platform } from 'react-native';
+import { View, Platform, StatusBar } from 'react-native';
 import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
 import { Toaster } from '@/components/ui/Toast';
@@ -30,6 +30,7 @@ export default function RootLayout() {
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
             <Toaster />
+            <StatusBar barStyle="dark-content" backgroundColor="#fff" />
             <QueryProvider>
             <SafeAreaProvider>
                 <Stack screenOptions={{ headerShown: false }}>

@@ -1,15 +1,6 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  StatusBar,
-} from "react-native";
+import { View, StyleSheet, Platform, StatusBar } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import {} from "react-native";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -20,14 +11,13 @@ import { useAuthStore } from "@/stores/authStore";
 import { validateEmail } from "@/utils/validation";
 import { Header } from "@/components/ui/Header";
 import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function ForgotPasswordScreen() {
-
   const router = useRouter();
   const { sendForgotPasswordOTP, isLoading } = useAuthStore();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
-
 
   useFocusEffect(
     React.useCallback(() => {
@@ -44,14 +34,6 @@ export default function ForgotPasswordScreen() {
     }, [])
   );
 
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/(auth)/login");
-    }
-  };
-
   const validateForm = () => {
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
@@ -66,15 +48,14 @@ export default function ForgotPasswordScreen() {
     if (!validateForm()) return;
     try {
       await sendForgotPasswordOTP(email);
-      toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP); 
+      toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP);
       router.push({
         pathname: "/(auth)/forgot-password-otp",
         params: { email: email },
       });
     } catch (error: any) {
-      console.log("ForgotPassword error:", error); 
-      let errorMessage =
-        error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
+      console.log("ForgotPassword error:", error);
+      let errorMessage = error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
       if (
         errorMessage.toLowerCase().includes("email not found") ||
         errorMessage.toLowerCase().includes("no account")
@@ -92,64 +73,58 @@ export default function ForgotPasswordScreen() {
       setError("");
     }
   };
- 
 
   return (
     <View style={styles.container}>
-      <Header title="Forgot Password" onBackPress={handleBack} />
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+      <Header title="Forgot Password" />
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          style={styles.container}
-          contentContainerStyle={styles.container}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Form */}
-          <View style={styles.form}>
-            <Typography
-              variant="h4"
-              color="primary"
-              align="center"
-              style={styles.formTitle}
-            >
-              Reset Passwords
-            </Typography>
+        {/* Form */}
+        <View style={styles.form}>
+          <Typography
+            variant="h4"
+            color="primary"
+            align="center"
+            style={styles.formTitle}
+          >
+            Reset Passwords
+          </Typography>
 
-            <Typography
-              variant="body"
-              color="secondary"
-              align="center"
-              style={styles.description}
-            >
-              Enter your email address and we'll send you a verification code to
-              reset your password.
-            </Typography>
+          <Typography
+            variant="body2"
+            color="secondary"
+            align="center"
+            style={styles.description}
+          >
+            Enter your email address and we'll send you a verification code to
+            reset your password.
+          </Typography>
 
-            <Input
-              label="Email Address"
-              value={email}
-              onChangeText={updateEmail}
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={error}
-            />
+          <Input
+            label="Email Address"
+            value={email}
+            onChangeText={updateEmail}
+            placeholder="Enter your email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={error}
+          />
 
-            <Button
-              title="Send Verification Code"
-              onPress={handleSendOTP}
-              loading={isLoading}
-              disabled={!email || isLoading}
-              style={styles.sendButton}
-              variant="primary"
-            />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <Button
+            title="Send Verification Code"
+            onPress={handleSendOTP}
+            loading={isLoading}
+            disabled={!email || isLoading}
+            style={styles.sendButton}
+            variant="primary"
+          />
+        </View>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -159,55 +134,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background.primary,
   },
-  gradient: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
-    marginHorizontal: spacing.lg,
-    paddingVertical: spacing.xl,
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  logoContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacing.sm,
-    marginTop: spacing.xl,
-  },
-  logo: {
-    width: 60,
-    height: 60,
+    justifyContent: "flex-start",
   },
   title: {
-    fontSize: 32,
-    fontWeight: "700",
-    letterSpacing: 1,
     marginBottom: spacing.sm,
   },
-  subtitle: {
-    opacity: 0.8,
-    fontSize: 16,
-  },
- 
   form: {
     gap: spacing.xs,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.xl,
+    paddingHorizontal: spacing.layout.screenPadding,
+    paddingVertical: spacing.xl,
   },
   formTitle: {
     marginBottom: spacing.md,
-    fontWeight: "600",
   },
   description: {
     marginBottom: spacing.lg,
-    lineHeight: 22,
+    lineHeight: 20,
   },
   sendButton: {
     marginTop: spacing.md,
