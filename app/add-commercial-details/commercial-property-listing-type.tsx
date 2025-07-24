@@ -103,7 +103,7 @@ export default function CommercialPropertyListingTypeScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to review screen
-      router.push('/commercial-property-review');
+      router.push('/add-commercial-details/commercial-property-review');
     }
   };
 

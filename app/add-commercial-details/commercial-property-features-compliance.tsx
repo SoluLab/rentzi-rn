@@ -125,7 +125,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to media upload step
-      router.push('/commercial-property-media-upload');
+      router.push('/add-commercial-details/commercial-property-media-upload');
     }
   };
 

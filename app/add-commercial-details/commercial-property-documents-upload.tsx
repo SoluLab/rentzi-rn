@@ -174,7 +174,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to legal consents step
-      router.push('/commercial-property-legal-consents');
+      router.push('/add-commercial-details/commercial-property-legal-consents');
     }
   };
 

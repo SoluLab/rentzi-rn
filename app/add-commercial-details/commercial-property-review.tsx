@@ -57,49 +57,49 @@ const REVIEW_SECTIONS: ReviewSection[] = [
     title: 'Property Details',
     icon: Building,
     isComplete: false,
-    route: '/add-commercial-property',
+    route: 'add-commercial-property',
   },
   {
     id: 'financialDetails',
     title: 'Financial & Rental Details',
     icon: DollarSign,
     isComplete: false,
-    route: '/commercial-property-financial-details',
+    route: 'commercial-property-financial-details',
   },
   {
     id: 'featuresCompliance',
     title: 'Features & Compliance',
     icon: Settings,
     isComplete: false,
-    route: '/commercial-property-features-compliance',
+    route: 'commercial-property-features-compliance',
   },
   {
     id: 'mediaUploads',
     title: 'Media Uploads',
     icon: Upload,
     isComplete: false,
-    route: '/commercial-property-media-upload',
+    route: 'commercial-property-media-upload',
   },
   {
     id: 'documents',
     title: 'Required Documents',
     icon: FileText,
     isComplete: false,
-    route: '/commercial-property-documents-upload',
+    route: 'commercial-property-documents-upload',
   },
   {
     id: 'legalConsents',
     title: 'Legal Consents & Terms',
     icon: Shield,
     isComplete: false,
-    route: '/commercial-property-legal-consents',
+    route: 'commercial-property-legal-consents',
   },
   {
     id: 'listingType',
     title: 'Listing Type',
     icon: Users,
     isComplete: false,
-    route: '/commercial-property-listing-type',
+    route: 'commercial-property-listing-type',
   },
 ];
 
@@ -136,7 +136,7 @@ export default function CommercialPropertyReviewScreen() {
   };
 
   const navigateToSection = (route: string) => {
-    router.push(route as any);
+    router.push(`/add-commercial-details/${route}` as any);
   };
 
   const formatCurrency = (value: string) => {

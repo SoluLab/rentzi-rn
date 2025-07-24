@@ -271,7 +271,7 @@ export default function CommercialPropertyMediaUploadScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to documents upload step
-      router.push('/commercial-property-documents-upload');
+      router.push('/add-commercial-details/commercial-property-documents-upload');
     }
   };
 

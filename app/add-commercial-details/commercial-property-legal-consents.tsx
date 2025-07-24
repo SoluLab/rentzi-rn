@@ -131,7 +131,7 @@ export default function CommercialPropertyLegalConsentsScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to listing type selection step
-      router.push('/commercial-property-listing-type');
+      router.push('/add-commercial-details/commercial-property-listing-type');
     }
   };
 

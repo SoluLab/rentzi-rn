@@ -145,7 +145,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to features and compliance details step
-      router.push('/commercial-property-features-compliance');
+      router.push('/add-commercial-details/commercial-property-features-compliance');
     }
   };
 

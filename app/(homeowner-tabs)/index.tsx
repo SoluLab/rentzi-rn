@@ -114,7 +114,7 @@ export default function HomeownerDashboardScreen() {
     // Reset the commercial property store to start fresh
     resetStore();
     // Navigate to add commercial property screen
-    router.push('/add-commercial-property');
+    router.push('/add-commercial-details/add-commercial-property');
   };
 
   const handlePropertyPress = (propertyId: string) => {

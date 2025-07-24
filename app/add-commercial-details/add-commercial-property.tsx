@@ -261,7 +261,7 @@ export default function AddCommercialPropertyScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to financial details step
-      router.push('/commercial-property-financial-details');
+      router.push('/add-commercial-details/commercial-property-financial-details');
     }
   };
 
