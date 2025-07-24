@@ -294,8 +294,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to next step (to be implemented)
-      Alert.alert('Success', 'Form validated successfully! Next step to be implemented.');
+      router.push('/residential-property-media-upload');
     }
   };
 

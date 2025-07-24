@@ -38,10 +38,57 @@ export interface PricingValuationData {
   localHighlights: string;
 }
 
+// Media upload interface
+export interface MediaUploadData {
+  photos: Array<{
+    uri: string;
+    name: string;
+    size: number;
+    width: number;
+    height: number;
+    type: string;
+  }>;
+  virtualTour: {
+    type: 'link' | 'file';
+    value: string;
+    name?: string;
+    size?: number;
+  };
+}
+
+// Documents upload interface
+export interface DocumentData {
+  uri: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
+export interface DocumentsUploadData {
+  // Mandatory documents
+  propertyDeed: DocumentData | null;
+  governmentId: DocumentData | null;
+  propertyTaxBill: DocumentData | null;
+  proofOfInsurance: DocumentData | null;
+  utilityBill: DocumentData | null;
+  appraisalReport: DocumentData | null;
+  authorizationToSell: DocumentData | null;
+  
+  // Conditional documents
+  mortgageStatement: DocumentData | null;
+  hoaDocuments: DocumentData | null;
+  
+  // Conditional flags
+  hasMortgage: boolean;
+  hasHOA: boolean;
+}
+
 // Complete residential property data interface
 export interface ResidentialPropertyData {
   propertyDetails: PropertyDetails;
   pricingValuation: PricingValuationData;
+  mediaUpload: MediaUploadData;
+  documentsUpload: DocumentsUploadData;
   isSubmitted: boolean;
   submittedAt?: Date;
 }
@@ -51,14 +98,20 @@ interface ResidentialPropertyStore {
   data: ResidentialPropertyData;
   updatePropertyDetails: (details: Partial<PropertyDetails>) => void;
   updatePricingValuation: (pricingValuation: Partial<PricingValuationData>) => void;
+  updateMediaUpload: (mediaUpload: Partial<MediaUploadData>) => void;
+  updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => void;
   submitProperty: () => void;
   resetStore: () => void;
   isPropertyDetailsComplete: () => boolean;
   isPricingValuationComplete: () => boolean;
+  isMediaUploadComplete: () => boolean;
+  isDocumentsUploadComplete: () => boolean;
   isAllSectionsComplete: () => boolean;
   getCompletionStatus: () => {
     propertyDetails: boolean;
     pricingValuation: boolean;
+    mediaUpload: boolean;
+    documentsUpload: boolean;
   };
 }
 
@@ -96,6 +149,26 @@ const initialData: ResidentialPropertyData = {
     houseRules: [],
     localHighlights: '',
   },
+  mediaUpload: {
+    photos: [],
+    virtualTour: {
+      type: 'link',
+      value: '',
+    },
+  },
+  documentsUpload: {
+    propertyDeed: null,
+    governmentId: null,
+    propertyTaxBill: null,
+    proofOfInsurance: null,
+    utilityBill: null,
+    appraisalReport: null,
+    authorizationToSell: null,
+    mortgageStatement: null,
+    hoaDocuments: null,
+    hasMortgage: false,
+    hasHOA: false,
+  },
   isSubmitted: false,
 };
 
@@ -123,6 +196,30 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             pricingValuation: {
               ...state.data.pricingValuation,
               ...pricingValuation,
+            },
+          },
+        }));
+      },
+
+      updateMediaUpload: (mediaUpload: Partial<MediaUploadData>) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            mediaUpload: {
+              ...state.data.mediaUpload,
+              ...mediaUpload,
+            },
+          },
+        }));
+      },
+
+      updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            documentsUpload: {
+              ...state.data.documentsUpload,
+              ...documentsUpload,
             },
           },
         }));
@@ -169,14 +266,44 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
         );
       },
 
+      isMediaUploadComplete: () => {
+        const { mediaUpload } = get().data;
+        return mediaUpload.photos.length >= 3;
+      },
+
+      isDocumentsUploadComplete: () => {
+        const { documentsUpload } = get().data;
+        const mandatoryDocuments = [
+          documentsUpload.propertyDeed,
+          documentsUpload.governmentId,
+          documentsUpload.propertyTaxBill,
+          documentsUpload.proofOfInsurance,
+          documentsUpload.utilityBill,
+          documentsUpload.appraisalReport,
+          documentsUpload.authorizationToSell,
+        ];
+        
+        const mandatoryComplete = mandatoryDocuments.every(doc => doc !== null);
+        const conditionalComplete = 
+          (!documentsUpload.hasMortgage || documentsUpload.mortgageStatement !== null) &&
+          (!documentsUpload.hasHOA || documentsUpload.hoaDocuments !== null);
+        
+        return mandatoryComplete && conditionalComplete;
+      },
+
       isAllSectionsComplete: () => {
-        return get().isPropertyDetailsComplete() && get().isPricingValuationComplete();
+        return get().isPropertyDetailsComplete() && 
+               get().isPricingValuationComplete() && 
+               get().isMediaUploadComplete() &&
+               get().isDocumentsUploadComplete();
       },
 
       getCompletionStatus: () => {
         return {
           propertyDetails: get().isPropertyDetailsComplete(),
           pricingValuation: get().isPricingValuationComplete(),
+          mediaUpload: get().isMediaUploadComplete(),
+          documentsUpload: get().isDocumentsUploadComplete(),
         };
       },
     }),
