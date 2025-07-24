@@ -269,9 +269,8 @@ export default function CommercialPropertyMediaUploadScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to next step or save data
-      Alert.alert('Success', 'Media upload completed! Proceeding to next step...');
-      // router.push('/next-step');
+      // Navigate to documents upload step
+      router.push('/commercial-property-documents-upload');
     }
   };
 
