@@ -17,7 +17,7 @@ import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import { toast } from "@/components/ui/Toast";
-import { useAuthStore } from "@/stores/authStore";
+import { useSignup } from "@/services/apiClient";
 import {
   validateEmail,
   validatePassword,
@@ -48,7 +48,8 @@ const existingUsers = [
   { email: "test@test.com", phone: "+15551234570" },
 ];
 export default function RegisterScreen() {
-  const { register, isLoading } = useAuthStore();
+  // Remove useAuthStore
+  // const { register, isLoading } = useAuthStore();
   const [formData, setFormData] = useState<FormData>({
     firstName: "",
     lastName: "",
@@ -58,10 +59,15 @@ export default function RegisterScreen() {
     confirmPassword: "",
   });
   const [selectedCountryCode, setSelectedCountryCode] =
-    useState<CountryCode | null>(null);
+    useState<CountryCode | undefined>(undefined); // fix linter: use undefined
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasSpaceInPassword, setHasSpaceInPassword] = useState(false);
+
+  // Use TanStack Query mutation
+  const signupMutation = useSignup();
+  const isLoading = signupMutation.status === "pending" || signupMutation.isPending;
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     // First name validation
@@ -135,18 +141,12 @@ export default function RegisterScreen() {
     }
     try {
       const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`;
-      const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
-      const fullMobile = `${
-        selectedCountryCode?.phoneCode || "+1"
-      }${cleanMobile}`;
-      await register({
-        fullName: fullName,
+      // const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
+      // const fullMobile = `${selectedCountryCode?.phoneCode || "+1"}${cleanMobile}`;
+      await signupMutation.mutateAsync({
+        name: fullName,
         email: formData.email.toLowerCase().trim(),
-        phone: fullMobile,
-        country: selectedCountryCode?.name || "United States",
-        dateOfBirth: new Date(2000, 0, 1).toISOString(),
         password: formData.password,
-        role: "homeowner", // Set role as homeowner during registration
       });
       toast.success("Registration successful! Please verify your account");
       // Navigate directly to mobile verification
@@ -154,7 +154,7 @@ export default function RegisterScreen() {
         pathname: "/(auth)/mobile-verification",
         params: {
           email: formData.email.toLowerCase().trim(),
-          phone: fullMobile,
+          // phone: fullMobile, // Not sent to API, so skip
           type: "register",
         },
       });
@@ -231,14 +231,11 @@ export default function RegisterScreen() {
                 <PhoneInput
                   label="Mobile Number"
                   value={formData.mobileNumber}
-                  onChangeText={(value) =>
-                    updateFormData("mobileNumber", value)
-                  }
+                  onChangeText={(value) => updateFormData("mobileNumber", value)}
                   placeholder="Enter your mobile number"
                   error={errors.mobileNumber}
-                  selectedCountry={selectedCountryCode}
+                  selectedCountry={selectedCountryCode} // now undefined or CountryCode
                   onCountryChange={setSelectedCountryCode}
-                  containerStyle={styles.inputBox}
                 />
                 <View>
                   <Input
