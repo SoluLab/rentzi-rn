@@ -1,4 +1,4 @@
-package app.flexapp.rentzi
+package com.solulab.rentzi
 
 import android.app.Application
 import android.content.res.Configuration

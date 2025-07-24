@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>myapp</string>
-          <string>app.flexapp.rentzi</string>
+          	<string>com.solulab.rentzi</string>
         </array>
       </dict>
     </array>

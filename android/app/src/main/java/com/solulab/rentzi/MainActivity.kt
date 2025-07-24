@@ -1,4 +1,4 @@
-package app.flexapp.rentzi
+package com.solulab.rentzi
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
