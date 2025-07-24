@@ -105,13 +105,6 @@ export default function HomeownerDashboardScreen() {
     setShowPropertyModal(false);
   };
 
-  const handleAddResidentialProperty = () => {
-    setShowPropertyModal(false);
-    // Reset the residential property store to start fresh
-    resetResidentialStore();
-    // Navigate to add residential property screen
-    router.push('/add-residential-property');
-  };
 
   const handleAddCommercialProperty = () => {
     setShowPropertyModal(false);
@@ -119,6 +112,14 @@ export default function HomeownerDashboardScreen() {
     resetCommercialStore();
     // Navigate to add commercial property screen
     router.push('/add-commercial-details/add-commercial-property');
+  };
+
+  const handleAddResidentialProperty = () => {
+    setShowPropertyModal(false);
+    // Reset the residential property store to start fresh
+    resetResidentialStore();
+    // Navigate to add residential property screen
+    router.push('/add-residential-property');
   };
 
   const handlePropertyPress = (propertyId: string) => {
@@ -337,7 +338,6 @@ export default function HomeownerDashboardScreen() {
             title="Add New Property"
             onPress={handleAddProperty}
             style={styles.addPropertyButton}
-            leftIcon={<Plus size={20} color={colors.neutral.white} />}
           />
         </View>
         {/* Listed Properties */}
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
     padding: spacing.md,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -422,11 +422,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: colors.primary.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    shadowColor: colors.text.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   propertyImage: {
     width: '100%',
@@ -512,7 +514,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.border.light,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.text.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
