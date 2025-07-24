@@ -11,7 +11,7 @@ interface CountryCode {
   phoneCode: string;
 }
 
-const countryCodes: CountryCode[] = [
+export const countryCodes: CountryCode[] = [
   { code: "US", name: "United States", flag: "🇺🇸", phoneCode: "+1" },
   { code: "GB", name: "United Kingdom", flag: "🇬🇧", phoneCode: "+44" },
   { code: "CA", name: "Canada", flag: "🇨🇦", phoneCode: "+1" },
@@ -58,6 +58,13 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const [currentCountry, setCurrentCountry] = useState<CountryCode>(
     selectedCountry || countryCodes.find(c => c.code === "US") || countryCodes[0]
   );
+
+  // Sync currentCountry with selectedCountry prop
+  useEffect(() => {
+    if (selectedCountry && selectedCountry.code !== currentCountry.code) {
+      setCurrentCountry(selectedCountry);
+    }
+  }, [selectedCountry]);
 
   // Auto-detect user country (defaulting to US for now, can be enhanced with location detection)
   useEffect(() => {

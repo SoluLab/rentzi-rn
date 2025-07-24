@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, spacing } from "@/constants";
 import { Header } from "@/components/ui/Header";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useVerifyOtp } from '@/services/apiClient';
 
 export default function MobileVerificationScreen() {
   const router = useRouter();
@@ -28,7 +29,6 @@ export default function MobileVerificationScreen() {
     user,
     isLoading,
     otpExpiry,
-    verifyMobileOTP,
     verifyEmailOTP,
     resendOTP,
   } = useAuthStore();
@@ -36,6 +36,8 @@ export default function MobileVerificationScreen() {
   const [otp, setOtp] = useState("");
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
   const [canResend, setCanResend] = useState(false);
+
+  const verifyOtpMutation = useVerifyOtp();
 
   // Timer for OTP expiry
   useEffect(() => {
@@ -72,26 +74,19 @@ export default function MobileVerificationScreen() {
     }
 
     try {
-      // For login flow, verify email OTP first, then mobile
+      // For login and registration flow, verify OTP using TanStack mutation
+      await verifyOtpMutation.mutateAsync({ email: email || user?.email || '', otp });
+      toast.success("Mobile number verified successfully!");
+
+      // Navigation logic based on user type and role
       if (type === "login") {
-        await verifyEmailOTP(otp, email || "");
-        toast.success("Email verified successfully!");
-
-        // After email verification for login, complete the login process
         toast.success("Login successful! Welcome back.");
-
-        // Navigate based on user role
         if (user?.role === "homeowner") {
           router.replace("/(homeowner-tabs)");
         } else {
           router.replace("/(tabs)");
         }
       } else {
-        // For registration flow, verify mobile OTP
-        await verifyMobileOTP(otp, phone || "");
-        toast.success("Mobile number verified successfully!");
-
-        // Navigation logic based on user type and role
         if (user?.role === "homeowner") {
           router.push("/kyc-verification");
         } else {
@@ -117,17 +112,9 @@ export default function MobileVerificationScreen() {
     }
   };
 
-  const getVerificationType = () => {
-    return type === "login" ? "Email" : "Mobile Number";
-  };
-
-  const getContactInfo = () => {
-    return type === "login" ? email : phone;
-  };
-
-  const getIcon = () => {
-    return type === "login" ? "mail-outline" : "phone-portrait";
-  };
+  const getVerificationType = () => "Mobile Number";
+  const getContactInfo = () => phone;
+  const getIcon = () => "call-outline";
 
   return (
     <View style={styles.container}>
@@ -144,32 +131,17 @@ export default function MobileVerificationScreen() {
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Ionicons
-                name={getIcon()}
+                name={getIcon() as any}
                 size={48}
                 color={colors.primary.gold}
               />
             </View>
-            <Typography
-              variant="h4"
-              color="primary"
-              align="center"
-              style={styles.title}
-            >
+            <Typography variant="h4" color="primary" align="center">
               Verify {getVerificationType()}
             </Typography>
-            <Typography
-              variant="body2"
-              color="secondary"
-              align="center"
-              style={styles.subtitle}
-            >
+            <Typography variant="body2" color="secondary" align="center">
               We've sent a 6-digit verification code to{"\n"}
-              <Typography
-                variant="body2"
-                color="secondary"
-                align="center"
-                style={styles.contactInfo}
-              >
+              <Typography variant="body2" color="secondary" align="center">
                 {getContactInfo()}
               </Typography>
             </Typography>
@@ -200,8 +172,8 @@ export default function MobileVerificationScreen() {
           {/* Verify Button */}
           <Button
             onPress={handleVerifyOTP}
-            disabled={otp.length !== 6 || isLoading}
-            loading={isLoading}
+            disabled={otp.length !== 6 || verifyOtpMutation.status === 'pending'}
+            loading={verifyOtpMutation.status === 'pending'}
             style={styles.verifyButton}
             title={`Verify ${getVerificationType()}`}
           />
@@ -215,7 +187,7 @@ export default function MobileVerificationScreen() {
               style={styles.helpText}
             >
               {type === "login"
-                ? "Didn't receive the code? Check your email or try resending."
+                ? "Didn't receive the code? Check your SMS or try resending."
                 : "Didn't receive the code? Check your SMS or try resending."}
             </Typography>
           </View>

@@ -8,29 +8,20 @@ import { OTPInput } from '@/components/ui/OTPInput';
 import { Button } from '@/components/ui/Button';
 import { Toast } from '@/components/ui/Toast';
 import { validateOTP } from '@/utils/validation';
-import { useAuthStore } from '@/stores/authStore';
+import { useVerifyOtp } from '@/services/apiClient';
+import { toast } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
   const { email, phone } = useLocalSearchParams();
-  const { verifyOTP } = useAuthStore();
+  const verifyOtpMutation = useVerifyOtp();
+  const isLoading = verifyOtpMutation.status === 'pending' || verifyOtpMutation.isPending;
   
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Toast functions
-  const toast = {
-    success: (message: string) => {
-      Alert.alert('Success', message);
-    },
-    error: (message: string) => {
-      Alert.alert('Error', message);
-    }
-  };
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -66,14 +57,13 @@ export default function OTPVerificationScreen() {
     }
 
     try {
-      setIsLoading(true);
-      await verifyOTP(otp, email as string);
+      await verifyOtpMutation.mutateAsync({ email: email as string, otp });
       toast.success('Verification successful! Welcome to Renzi');
       // Always navigate to home screen after successful verification
       router.replace('/(tabs)');
     } catch (error: any) {
       let errorMessage = 'Verification failed. Please check your OTP code.';
-      if (error.message) {
+      if (error?.message) {
         if (error.message.includes('expired')) {
           errorMessage = 'OTP expired. Request a new one';
         } else if (error.message.includes('Incorrect OTP')) {
@@ -84,8 +74,6 @@ export default function OTPVerificationScreen() {
       }
       toast.error(errorMessage);
       setError(errorMessage);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -108,16 +96,16 @@ export default function OTPVerificationScreen() {
           Enter Verification Code
         </Typography>
         
-        <Typography variant="body1" style={styles.subtitle}>
+        <Typography variant="body" style={styles.subtitle}>
           We've sent a 6-digit code to {email || phone}
         </Typography>
 
         <View style={styles.otpContainer}>
           <OTPInput
             value={otp}
-            onChange={setOtp}
+            onOTPChange={setOtp}
             length={6}
-            error={!!error}
+            error={error}
           />
         </View>
 
@@ -173,7 +161,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   errorText: {
-    color: colors.error,
+    color: colors.status.error,
     textAlign: 'center',
     marginBottom: spacing.md,
   },

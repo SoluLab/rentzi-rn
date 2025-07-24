@@ -24,10 +24,11 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword } from '@/utils/validation';
+import { useResetPassword } from '@/services/apiClient';
 export default function NewPasswordScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams();
-  const { resetPassword, isLoading } = useAuthStore();
+  const { email, code, verificationId } = useLocalSearchParams(); // Assume these are passed
+  const resetPasswordMutation = useResetPassword();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,9 +55,14 @@ export default function NewPasswordScreen() {
       return;
     }
     try {
-      await resetPassword(email as string, password);
+      // TODO: Ensure code and verificationId are passed via params or context
+      await resetPasswordMutation.mutateAsync({
+        email: email as string,
+        code: code as string, // Should be passed from previous step
+        newPassword: password,
+        verificationId: Number(verificationId), // Should be passed from previous step
+      });
       toast.success('Password reset successfully! Please login with your new password.');
-      // Navigate back to login screen
       router.replace('/(auth)/login');
     } catch (error: any) {
       const errorMessage = error.message || 'Failed to reset password. Please try again.';
@@ -151,11 +157,11 @@ export default function NewPasswordScreen() {
             <Button
               title="Reset Password"
               onPress={handleResetPassword}
-              loading={isLoading}
+              loading={resetPasswordMutation.status === 'pending'}
               disabled={
                 !password ||
                 !confirmPassword ||
-                isLoading ||
+                resetPasswordMutation.status === 'pending' ||
                 hasSpaceInPassword ||
                 Object.values(errors).some((error) => error)
               }

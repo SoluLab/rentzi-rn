@@ -12,10 +12,11 @@ import { validateEmail } from "@/utils/validation";
 import { Header } from "@/components/ui/Header";
 import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useForgotPassword } from '@/services/apiClient';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { sendForgotPasswordOTP, isLoading } = useAuthStore();
+  const forgotPasswordMutation = useForgotPassword();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
@@ -47,7 +48,7 @@ export default function ForgotPasswordScreen() {
   const handleSendOTP = async () => {
     if (!validateForm()) return;
     try {
-      await sendForgotPasswordOTP(email);
+      await forgotPasswordMutation.mutateAsync({ email });
       toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP);
       router.push({
         pathname: "/(auth)/forgot-password-otp",
@@ -118,8 +119,8 @@ export default function ForgotPasswordScreen() {
           <Button
             title="Send Verification Code"
             onPress={handleSendOTP}
-            loading={isLoading}
-            disabled={!email || isLoading}
+            loading={forgotPasswordMutation.status === 'pending'}
+            disabled={!email || forgotPasswordMutation.status === 'pending'}
             style={styles.sendButton}
             variant="primary"
           />

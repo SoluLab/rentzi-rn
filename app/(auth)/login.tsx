@@ -92,17 +92,35 @@ export default function LoginScreen() {
 
   const loginMutation = useLogin({
     onSuccess: async (response) => {
+      console.log('Login API success:', response);
       if (response.success && response.data) {
-        await AsyncStorage.setItem("token", response.data.accessToken);
-        await AsyncStorage.setItem("refreshToken", response.data.refreshToken);
+        const { token, user } = response.data;
+        // Check verification status
+        if (!user.isEmailVerified || !user.isPhoneVerified) {
+          toast.info('Please verify your account');
+          // Pass token and email/phone to OTP screen
+          router.push({
+            pathname: '/(auth)/mobile-verification',
+            params: {
+              email: user.email,
+              phone: user.phoneNumber,
+              token,
+              type: 'login',
+            },
+          });
+          return;
+        }
+        // Store token and proceed
+        await AsyncStorage.setItem('token', token);
         toast.success(AUTH.LOGIN.SUCCESS);
-        router.replace("/(tabs)");
+        router.replace('/(tabs)');
       } else {
         toast.error(response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED);
+        console.error('Login API error:', response);
       }
     },
-    onError: (error: any) => {
-      console.error("Login Error:", error);
+    onError: (error) => {
+      console.error('Login API error:', error);
       const errorMessage = error?.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
       toast.error(errorMessage);
     },
@@ -110,18 +128,19 @@ export default function LoginScreen() {
 
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
-    const isEmail = emailOrMobile.includes("@");
-    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
+    const isEmail = emailOrMobile.includes('@');
+    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ''));
     let payload: any = { password };
     if (isEmail) {
       payload.email = emailOrMobile;
     } else if (isMobile) {
-      payload.mobile = emailOrMobile.replace(/\s/g, "");
+      payload.email = emailOrMobile; // API expects email field for both
     } else {
-      toast.error("Please enter a valid email address or mobile number");
+      toast.error('Please enter a valid email address or mobile number');
       toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
       return;
     }
+    console.log('Login payload:', payload);
     loginMutation.mutate(payload);
   }, [emailOrMobile, password, loginMutation]);
 
@@ -142,9 +161,7 @@ export default function LoginScreen() {
             <View style={styles.headerSection}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={{
-                    uri: "https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png",
-                  }}
+                  source={require('../../assets/images/logo.png')}
                   style={styles.logo}
                   resizeMode="cover"
                 />

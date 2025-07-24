@@ -58,6 +58,7 @@ export const queryKeys = {
   balance: () => [...queryKeys.all, 'balance'] as const,
   tokens: () => [...queryKeys.all, 'tokens'] as const,
   mailerOptions: () => [...queryKeys.all, 'mailerOptions'] as const,
+  profile: () => [...queryKeys.all, 'profile'] as const,
 };
 
 // Main API call function
@@ -502,10 +503,10 @@ export const useLogin = (
 };
 
 export const useSignup = (
-  options?: Omit<UseMutationOptions<any, ApiError, { name: string; email: string; password: string }>, 'mutationFn'>
+  options?: Omit<UseMutationOptions<any, ApiError, { firstName: string; lastName: string; email: string; password: string; phoneNumber: string }>, 'mutationFn'>
 ) => {
-  return useMutation<any, ApiError, { name: string; email: string; password: string }>({
-    mutationFn: async ({ name, email, password }) => {
+  return useMutation<any, ApiError, { firstName: string; lastName: string; email: string; password: string; phoneNumber: string }>({
+    mutationFn: async ({ firstName, lastName, email, password, phoneNumber }) => {
       // Get device token with retry mechanism
       let deviceToken = await deviceTokenUtils.getDeviceToken();
       
@@ -522,9 +523,11 @@ export const useSignup = (
       }
       
       const payload = { 
-        name, 
+        firstName,
+        lastName,
         email, 
         password,
+        phoneNumber,
         deviceToken: deviceToken || undefined
       };
       
@@ -551,6 +554,23 @@ export const useCheckEmail = (
       data: { email },
       auth: false,
     }),
+    ...options,
+  });
+};
+
+export const useVerifyOtp = (
+  options?: Omit<UseMutationOptions<any, ApiError, { email: string; otp: string }>, 'mutationFn'>
+) => {
+  return useMutation<any, ApiError, { email: string; otp: string }>({
+    mutationFn: async ({ email, otp }) => {
+      const response = await apiPost({
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API,
+        endpoint: ENDPOINTS.AUTH.VERIFY_EMAIL,
+        data: { email, otp },
+        auth: false,
+      });
+      return response;
+    },
     ...options,
   });
 };
@@ -1157,6 +1177,165 @@ export const useUploadDocumentToBot = (
   });
 };
 
+export const useResetPassword = (
+  options?: Omit<UseMutationOptions<any, ApiError, { email: string; code: string; newPassword: string; verificationId: number }>, 'mutationFn'>
+) => {
+  return useMutation<any, ApiError, { email: string; code: string; newPassword: string; verificationId: number }>({
+    mutationFn: async ({ email, code, newPassword, verificationId }) => {
+      const response = await apiPost({
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API,
+        endpoint: ENDPOINTS.AUTH.RESET_PASSWORD,
+        data: { email, code, newPassword, verificationId },
+        auth: false,
+      });
+      return response;
+    },
+    ...options,
+  });
+};
+
+export const useForgotPassword = (
+  options?: Omit<UseMutationOptions<any, ApiError, { email: string }>, 'mutationFn'>
+) => {
+  return useMutation<any, ApiError, { email: string }>({
+    mutationFn: async ({ email }) => {
+      const response = await apiPost({
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API,
+        endpoint: ENDPOINTS.AUTH.FORGOT_PASSWORD,
+        data: { email },
+        auth: false,
+      });
+      return response;
+    },
+    ...options,
+  });
+};
+
+export const useGetProfile = (
+  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+) => {
+  return useApiQuery(
+    [...queryKeys.all, 'profile'],
+    {
+      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API,
+      endpoint: '/api/profile',
+      auth: true,
+    },
+    options
+  );
+};
+
+export const useUpdateProfile = (
+  options?: Omit<UseMutationOptions<any, ApiError, any>, 'mutationFn'>
+) => {
+  return useMutation<any, ApiError, any>({
+    mutationFn: async (data) => {
+      return apiPut({
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API,
+        endpoint: '/api/profile',
+        data,
+        auth: true,
+      });
+    },
+    ...options,
+  });
+};
+
+// Marketplace API TanStack Query & Mutation Hooks
+
+// 1. Get all properties (with filters/pagination)
+export const useMarketplaceGetProperties = (
+  params?: Record<string, any>,
+  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+) => {
+  return useApiQuery(
+    ['marketplace', 'properties', params],
+    {
+      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      endpoint: '/api/marketplace/properties',
+      params,
+      auth: true,
+    },
+    options
+  );
+};
+
+// 2. Get property by ID
+export const useMarketplaceGetProperty = (
+  id: string | number,
+  options?: Omit<UseQueryOptions<any, ApiError>, 'queryKey' | 'queryFn'>
+) => {
+  return useApiQuery(
+    ['marketplace', 'property', id],
+    {
+      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      endpoint: `/api/marketplace/properties/${id}`,
+      auth: true,
+    },
+    options
+  );
+};
+
+// 3. Create property
+export const useMarketplaceCreateProperty = (
+  options?: Omit<UseMutationOptions<any, ApiError, Record<string, any>>, 'mutationFn'>
+) => {
+  const queryClient = useQueryClient();
+  return useApiMutation(
+    {
+      method: 'post',
+      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      endpoint: '/api/marketplace/properties',
+      auth: true,
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['marketplace', 'properties'] });
+      },
+      ...options,
+    }
+  );
+};
+
+// 4. Update property
+export const useMarketplaceUpdateProperty = (
+  options?: Omit<UseMutationOptions<any, ApiError, { id: string | number; data: Record<string, any> }>, 'mutationFn'>
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<any, ApiError, { id: string | number; data: Record<string, any> }>(
+    {
+      mutationFn: ({ id, data }) => apiPut({
+        baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+        endpoint: `/api/marketplace/properties/${id}`,
+        data,
+        auth: true,
+      }),
+      onSuccess: (_, { id }) => {
+        queryClient.invalidateQueries({ queryKey: ['marketplace', 'properties'] });
+        queryClient.invalidateQueries({ queryKey: ['marketplace', 'property', id] });
+      },
+      ...options,
+    }
+  );
+};
+
+// 5. Delete property
+export const useMarketplaceDeleteProperty = (
+  options?: Omit<UseMutationOptions<any, ApiError, string | number>, 'mutationFn'>
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<any, ApiError, string | number>({
+    mutationFn: (id) => apiDelete({
+      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      endpoint: `/api/marketplace/properties/${id}`,
+      auth: true,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['marketplace', 'properties'] });
+    },
+    ...options,
+  });
+};
 
 
 export default apiCall;

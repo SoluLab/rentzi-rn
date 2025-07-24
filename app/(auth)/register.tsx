@@ -3,31 +3,24 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  Linking, // <-- Add this import
+  Linking,
 } from "react-native";
 import { router } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Header } from "@/components/ui/Header";
-import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import { toast } from "@/components/ui/Toast";
 import { useSignup } from "@/services/apiClient";
-import {
-  validateEmail,
-  validatePassword,
-  validateMobileNumber,
-  validateFullName,
-} from "@/utils/validation";
+import { validateRegistrationForm } from "@/utils/validation";
 import { spacing, colors, radius, shadow } from "@/constants";
 import { staticText } from "@/constants/staticText";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useLocalSearchParams } from "expo-router";
+import * as Localization from "expo-localization";
+import { countryCodes } from "@/components/ui/PhoneInput";
 interface FormData {
   firstName: string;
   lastName: string;
@@ -42,13 +35,6 @@ interface CountryCode {
   flag: string;
   phoneCode: string;
 }
-// Mock database for checking uniqueness
-const existingUsers = [
-  { email: "renter@rentzi.com", phone: "+15551234567" },
-  { email: "investor@rentzi.com", phone: "+15551234568" },
-  { email: "homeowner@rentzi.com", phone: "+15551234569" },
-  { email: "test@test.com", phone: "+15551234570" },
-];
 export default function RegisterScreen() {
   const params = useLocalSearchParams();
   const roleType = params.roleType as string | undefined;
@@ -68,6 +54,7 @@ export default function RegisterScreen() {
     password: "",
     confirmPassword: "",
   });
+
   const [selectedCountryCode, setSelectedCountryCode] = useState<
     CountryCode | undefined
   >(undefined); // fix linter: use undefined
@@ -77,106 +64,63 @@ export default function RegisterScreen() {
 
   // Use TanStack Query mutation
   const signupMutation = useSignup();
+
   const isLoading =
     signupMutation.status === "pending" || signupMutation.isPending;
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    // First name validation
-    const firstNameValidation = validateFullName(formData.firstName);
-    if (!firstNameValidation.isValid) {
-      newErrors.firstName = firstNameValidation.error!;
-    }
-    // Last name validation
-    const lastNameValidation = validateFullName(formData.lastName);
-    if (!lastNameValidation.isValid) {
-      newErrors.lastName = lastNameValidation.error!;
-    }
-    // Email validation
-    const emailValidation = validateEmail(formData.email);
-    if (!emailValidation.isValid) {
-      newErrors.email = emailValidation.error!;
-    } else {
-      // Check email uniqueness
-      const emailExists = existingUsers.some(
-        (user) => user.email.toLowerCase() === formData.email.toLowerCase()
-      );
-      if (emailExists) {
-        newErrors.email = "An account with this email already exists";
-      }
-    }
-    // Mobile number validation
-    const mobileValidation = validateMobileNumber(formData.mobileNumber);
-    if (!mobileValidation.isValid) {
-      newErrors.mobileNumber = mobileValidation.error!;
-    } else {
-      // Check if mobile is exactly 10 digits
-      const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
-      if (cleanMobile.length !== 10) {
-        newErrors.mobileNumber = "Mobile number must be exactly 10 digits";
-      } else {
-        // Check mobile uniqueness
-        const fullMobile = `${
-          selectedCountryCode?.phoneCode || "+1"
-        }${cleanMobile}`;
-        const mobileExists = existingUsers.some(
-          (user) => user.phone === fullMobile
-        );
-        if (mobileExists) {
-          newErrors.mobileNumber =
-            "An account with this mobile number already exists";
-        }
-      }
-    }
-    // Password validation with complexity rules
-    const passwordValidation = validatePassword(formData.password);
-    if (!passwordValidation.isValid) {
-      newErrors.password = passwordValidation.error!;
-    }
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
-    }
-    // Terms acceptance validation
-    if (!acceptedTerms) {
-      newErrors.terms = "You must accept the Terms & Conditions";
-    }
+    const { errors: newErrors, isValid } = validateRegistrationForm({
+      ...formData,
+      acceptedTerms,
+      selectedCountryCode,
+    });
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return isValid;
   };
+
   const handleRegister = async () => {
     if (!validateForm()) {
       toast.error("Please fix the errors below");
       return;
     }
     try {
-      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`;
-      // const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
-      // const fullMobile = `${selectedCountryCode?.phoneCode || "+1"}${cleanMobile}`;
-      await signupMutation.mutateAsync({
-        name: fullName,
+      const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
+      const fullMobile = `${
+        selectedCountryCode?.phoneCode || "+1"
+      }${cleanMobile}`;
+      const response = await signupMutation.mutateAsync({
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
+        phoneNumber: fullMobile,
       });
-      toast.success("Registration successful! Please verify your account");
-      // Navigate directly to mobile verification
-      router.push({
-        pathname: "/(auth)/mobile-verification",
-        params: {
-          email: formData.email.toLowerCase().trim(),
-          // phone: fullMobile, // Not sent to API, so skip
-          type: "register",
-        },
-      });
+      if (response?.success) {
+        toast.success("Registration successful! Please verify your account");
+        // Navigate directly to mobile verification
+        router.push({
+          pathname: "/(auth)/mobile-verification",
+          params: {
+            email: formData.email.toLowerCase().trim(),
+            // phone: fullMobile, // Not sent to API, so skip
+            type: "register",
+          },
+        });
+      } else {
+        const errorMsg =
+          response?.message || "Registration failed. Please try again.";
+        toast.error(errorMsg);
+        console.error("Registration error:", response);
+      }
     } catch (error: any) {
-      toast.error(error.message || "Registration failed. Please try again.");
+      const errorMsg =
+        error?.message || "Registration failed. Please try again.";
+      toast.error(errorMsg);
+      console.error("Registration error:", error);
     }
   };
   const updateFormData = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Real-time space detection for password
     if (field === "password") {
       const hasSpaces = /\s/.test(value);
       setHasSpaceInPassword(hasSpaces);
@@ -195,12 +139,21 @@ export default function RegisterScreen() {
       }
     }
   };
-  // Define inputBox as a ViewStyle object to avoid linter errors
   const inputBox: import("react-native").ViewStyle = {};
+
+  React.useEffect(() => {
+    if (!selectedCountryCode) {
+      const locales = Localization.getLocales();
+      let countryCode = (locales && locales.length > 0 && locales[0].regionCode) ? locales[0].regionCode : "US";
+      let found = countryCodes.find((c) => c.code === countryCode);
+      if (!found) found = countryCodes.find((c) => c.code === "US");
+      if (found) setSelectedCountryCode(found);
+    }
+  }, [selectedCountryCode]);
 
   return (
     <View style={styles.container}>
-      <Header title={headerTitle}  />
+      <Header title={headerTitle} />
       <KeyboardAwareScrollView
         contentContainerStyle={styles.scrollContent}
         enableOnAndroid={true}
