@@ -247,7 +247,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to legal consents step
-      router.push('/residential-property-legal-consents');
+      router.push('/add-residential-details/residential-property-legal-consents');
     }
   };
 

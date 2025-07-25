@@ -130,7 +130,7 @@ export default function ResidentialPropertyReviewScreen() {
   };
 
   const navigateToSection = (route: string) => {
-    router.push(`/${route}` as any);
+    router.push(`/add-residential-details/${route}` as any);
   };
 
   const formatCurrency = (value: string) => {

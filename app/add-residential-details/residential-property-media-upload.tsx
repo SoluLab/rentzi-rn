@@ -369,7 +369,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      router.push('/residential-property-documents-upload');
+      router.push('/add-residential-details/residential-property-documents-upload');
     }
   };
 

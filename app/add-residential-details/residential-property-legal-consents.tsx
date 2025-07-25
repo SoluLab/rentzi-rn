@@ -131,7 +131,7 @@ export default function ResidentialPropertyLegalConsentsScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to listing purpose step
-      router.push('/residential-property-listing-purpose');
+      router.push('/add-residential-details/residential-property-listing-purpose');
     }
   };
 

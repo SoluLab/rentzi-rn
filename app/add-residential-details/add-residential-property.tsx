@@ -307,7 +307,7 @@ export default function AddResidentialPropertyScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to pricing and valuation step
-      router.push('/residential-property-pricing-valuation');
+      router.push('/add-residential-details/residential-property-pricing-valuation');
     }
   };
 

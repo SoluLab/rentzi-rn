@@ -117,7 +117,7 @@ export default function ResidentialPropertyListingPurposeScreen() {
   const handleNext = () => {
     if (validateForm()) {
       // Navigate to review details step
-      router.push('/residential-property-review');
+      router.push('/add-residential-details/residential-property-review');
     }
   };
 

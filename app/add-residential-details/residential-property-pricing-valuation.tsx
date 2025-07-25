@@ -294,7 +294,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      router.push('/residential-property-media-upload');
+      router.push('/add-residential-details/residential-property-media-upload');
     }
   };
 

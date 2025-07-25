@@ -119,7 +119,7 @@ export default function HomeownerDashboardScreen() {
     // Reset the residential property store to start fresh
     resetResidentialStore();
     // Navigate to add residential property screen
-    router.push('/add-residential-property');
+    router.push('/add-residential-details/add-residential-property');
   };
 
   const handlePropertyPress = (propertyId: string) => {
