@@ -208,52 +208,54 @@ export default function ResidentialPropertyLegalConsentsScreen() {
   };
 
   return (
-    <ScreenContainer>
-      <Header title="Legal Consents & Terms" />
-      <ScrollView 
-        style={styles.container}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-      >
-        <Typography variant="h4" style={styles.sectionTitle}>
-          Legal Consents & Platform Terms
-        </Typography>
-
-        <View style={styles.warningBanner}>
-          <AlertTriangle size={20} color={colors.status.warning} />
-          <Typography variant="body" color="secondary" style={styles.warningText}>
-            Please read and understand all terms before proceeding. All consents are mandatory for property listing.
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <ScreenContainer>
+        <Header title="Legal Consents & Terms" />
+        <ScrollView 
+          style={styles.container}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <Typography variant="h4" style={styles.sectionTitle}>
+            Legal Consents & Platform Terms
           </Typography>
-        </View>
 
-        <Typography variant="body" color="secondary" style={styles.sectionDescription}>
-          By checking each box below, you acknowledge that you have read, understood, and agree to the terms and conditions associated with listing your residential property.
-        </Typography>
+          <View style={styles.warningBanner}>
+            <AlertTriangle size={20} color={colors.status.warning} />
+            <Typography variant="body" color="secondary" style={styles.warningText}>
+              Please read and understand all terms before proceeding. All consents are mandatory for property listing.
+            </Typography>
+          </View>
 
-        {/* Consent Items */}
-        <View style={styles.consentsContainer}>
-          {CONSENT_ITEMS.map(renderConsentItem)}
-        </View>
-
-        {/* Summary */}
-        <View style={styles.summaryContainer}>
-          <Typography variant="h6" style={styles.summaryTitle}>
-            Summary
+          <Typography variant="body" color="secondary" style={styles.sectionDescription}>
+            By checking each box below, you acknowledge that you have read, understood, and agree to the terms and conditions associated with listing your residential property.
           </Typography>
-          <Typography variant="body" color="secondary" style={styles.summaryText}>
-            You have agreed to {Object.values(consents).filter(Boolean).length} of {CONSENT_ITEMS.length} required consents.
-          </Typography>
-        </View>
 
-        {/* Next Button */}
-        <Button
-          title="Next"
-          onPress={handleNext}
-          disabled={!isFormValid()}
-          style={styles.nextButton}
-        />
-      </ScrollView>
-    </ScreenContainer>
+          {/* Consent Items */}
+          <View style={styles.consentsContainer}>
+            {CONSENT_ITEMS.map(renderConsentItem)}
+          </View>
+
+          {/* Summary */}
+          <View style={styles.summaryContainer}>
+            <Typography variant="h6" style={styles.summaryTitle}>
+              Summary
+            </Typography>
+            <Typography variant="body" color="secondary" style={styles.summaryText}>
+              You have agreed to {Object.values(consents).filter(Boolean).length} of {CONSENT_ITEMS.length} required consents.
+            </Typography>
+          </View>
+
+          {/* Next Button */}
+          <Button
+            title="Next"
+            onPress={handleNext}
+            disabled={!isFormValid()}
+            style={styles.nextButton}
+          />
+        </ScrollView>
+      </ScreenContainer>
+    </View>
   );
 }
 

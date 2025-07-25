@@ -312,7 +312,7 @@ export default function AddResidentialPropertyScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Add Residential Property" />
       <ScrollView 
         style={styles.container}
@@ -551,7 +551,7 @@ export default function AddResidentialPropertyScreen() {
           />
         </View>
       </Modal>
-    </ScreenContainer>
+    </View>
   );
 }
 

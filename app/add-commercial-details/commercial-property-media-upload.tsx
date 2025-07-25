@@ -395,7 +395,7 @@ export default function CommercialPropertyMediaUploadScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Media Upload" />
       <ScrollView 
         style={styles.container}
@@ -519,7 +519,7 @@ export default function CommercialPropertyMediaUploadScreen() {
           style={styles.nextButton}
         />
       </ScrollView>
-    </ScreenContainer>
+    </View>
   );
 }
 

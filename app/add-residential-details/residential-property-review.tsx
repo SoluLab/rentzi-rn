@@ -44,6 +44,7 @@ import {
   Users as UsersIcon,
 } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 
 interface ReviewSection {
   id: string;
@@ -100,19 +101,13 @@ const REVIEW_SECTIONS: ReviewSection[] = [
 
 export default function ResidentialPropertyReviewScreen() {
   const router = useRouter();
-  const {
-    data,
-    isPropertyDetailsComplete,
-    isPricingValuationComplete,
-    isMediaUploadComplete,
-    isDocumentsUploadComplete,
-    isLegalConsentsComplete,
-    isListingPurposeComplete,
+  const { 
+    data, 
+    submitProperty, 
     isAllSectionsComplete,
-    getCompletionStatus,
-    submitProperty,
+    getCompletionStatus 
   } = useResidentialPropertyStore();
-
+  const { syncFromResidentialStore } = useHomeownerPropertyStore();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -159,6 +154,10 @@ export default function ResidentialPropertyReviewScreen() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       submitProperty();
+      
+      // Sync with homeowner property store
+      await syncFromResidentialStore();
+      
       setShowSuccessPopup(true);
     } catch (error) {
       Alert.alert('Submission Failed', 'Please try again later.');

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
@@ -14,7 +14,7 @@ import {
 
 export default function HomeownerTabLayout() {
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'light'} />
       <Tabs
         screenOptions={{
@@ -69,6 +69,6 @@ export default function HomeownerTabLayout() {
           }}
         />
       </Tabs>
-    </>
+    </View>
   );
 }

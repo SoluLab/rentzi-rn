@@ -412,145 +412,147 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   };
 
   return (
-    <ScreenContainer>
-      <Header title="Required Documents" />
-      
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        <Typography variant="h3" style={styles.sectionTitle}>
-          Upload Required Documents
-        </Typography>
-
-        <Typography variant="body" style={styles.sectionDescription}>
-          Please upload all mandatory documents and any applicable conditional documents. All documents must be in PDF format and under 10MB.
-        </Typography>
-
-        {/* Mandatory Documents Section */}
-        <View style={styles.sectionContainer}>
-          <Typography variant="h4" style={styles.sectionSubtitle}>
-            Mandatory Documents
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+      <ScreenContainer>
+        <Header title="Required Documents" />
+        
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+          <Typography variant="h3" style={styles.sectionTitle}>
+            Upload Required Documents
           </Typography>
-          
-          {renderDocumentField(
-            'propertyDeed',
-            'Property Deed',
-            'Official property deed showing ownership'
-          )}
-          
-          {renderDocumentField(
-            'governmentId',
-            'Government-issued ID',
-            'Valid USA-based government identification (Driver\'s License, Passport, etc.)'
-          )}
-          
-          {renderDocumentField(
-            'propertyTaxBill',
-            'Property Tax Bill',
-            'Current property tax bill or statement'
-          )}
-          
-          {renderDocumentField(
-            'proofOfInsurance',
-            'Proof of Insurance',
-            'Current property insurance policy or certificate'
-          )}
-          
-          {renderDocumentField(
-            'utilityBill',
-            'Utility Bill or Statement',
-            'Recent utility bill (electricity, water, gas, etc.)'
-          )}
-          
-          {renderDocumentField(
-            'appraisalReport',
-            'Appraisal Report',
-            'Recent property appraisal report'
-          )}
-          
-          {renderDocumentField(
-            'authorizationToSell',
-            'Authorization to Sell or Tokenize',
-            'Digitally signed authorization document'
-          )}
-        </View>
 
-        {/* Conditional Documents Section */}
-        <View style={styles.sectionContainer}>
-          <Typography variant="h4" style={styles.sectionSubtitle}>
-            Conditional Documents
+          <Typography variant="body" style={styles.sectionDescription}>
+            Please upload all mandatory documents and any applicable conditional documents. All documents must be in PDF format and under 10MB.
           </Typography>
-          
-          {renderConditionalToggle(
-            'hasMortgage',
-            'Do you have a mortgage on this property?',
-            'If yes, please upload your current mortgage statement'
-          )}
-          
-          {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) && 
-            renderDocumentField(
-              'mortgageStatement',
-              'Mortgage Statement',
-              'Current mortgage statement or loan document',
-              false
-            )
-          }
-          
-          {renderConditionalToggle(
-            'hasHOA',
-            'Is this property part of a Homeowner Association (HOA)?',
-            'If yes, please upload relevant HOA documents'
-          )}
-          
-          {(data.documentsUpload?.hasHOA ?? formData.hasHOA) && 
-            renderDocumentField(
-              'hoaDocuments',
-              'HOA Documents',
-              'HOA bylaws, rules, or relevant documents',
-              false
-            )
-          }
-        </View>
 
-        <Button
-          title="Next"
-          onPress={handleNext}
-          disabled={!isFormValid()}
-          style={styles.nextButton}
-        />
-      </ScrollView>
-
-      {/* Document Preview Modal */}
-      <Modal
-        visible={showDocumentPreview}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Document Preview</Typography>
-            <TouchableOpacity onPress={() => setShowDocumentPreview(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.modalContent}>
-            {previewDocumentData && (
-              <View style={styles.previewContainer}>
-                <Ionicons name="document-text" size={64} color={colors.primary.gold} />
-                <Typography variant="h4" style={styles.previewTitle}>
-                  {previewDocumentData.name}
-                </Typography>
-                <Typography variant="body" style={styles.previewDetails}>
-                  Size: {formatFileSize(previewDocumentData.size)}
-                </Typography>
-                <Typography variant="body" style={styles.previewDetails}>
-                  Type: {previewDocumentData.type}
-                </Typography>
-              </View>
+          {/* Mandatory Documents Section */}
+          <View style={styles.sectionContainer}>
+            <Typography variant="h4" style={styles.sectionSubtitle}>
+              Mandatory Documents
+            </Typography>
+            
+            {renderDocumentField(
+              'propertyDeed',
+              'Property Deed',
+              'Official property deed showing ownership'
+            )}
+            
+            {renderDocumentField(
+              'governmentId',
+              'Government-issued ID',
+              'Valid USA-based government identification (Driver\'s License, Passport, etc.)'
+            )}
+            
+            {renderDocumentField(
+              'propertyTaxBill',
+              'Property Tax Bill',
+              'Current property tax bill or statement'
+            )}
+            
+            {renderDocumentField(
+              'proofOfInsurance',
+              'Proof of Insurance',
+              'Current property insurance policy or certificate'
+            )}
+            
+            {renderDocumentField(
+              'utilityBill',
+              'Utility Bill or Statement',
+              'Recent utility bill (electricity, water, gas, etc.)'
+            )}
+            
+            {renderDocumentField(
+              'appraisalReport',
+              'Appraisal Report',
+              'Recent property appraisal report'
+            )}
+            
+            {renderDocumentField(
+              'authorizationToSell',
+              'Authorization to Sell or Tokenize',
+              'Digitally signed authorization document'
             )}
           </View>
-        </View>
-      </Modal>
-    </ScreenContainer>
+
+          {/* Conditional Documents Section */}
+          <View style={styles.sectionContainer}>
+            <Typography variant="h4" style={styles.sectionSubtitle}>
+              Conditional Documents
+            </Typography>
+            
+            {renderConditionalToggle(
+              'hasMortgage',
+              'Do you have a mortgage on this property?',
+              'If yes, please upload your current mortgage statement'
+            )}
+            
+            {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) && 
+              renderDocumentField(
+                'mortgageStatement',
+                'Mortgage Statement',
+                'Current mortgage statement or loan document',
+                false
+              )
+            }
+            
+            {renderConditionalToggle(
+              'hasHOA',
+              'Is this property part of a Homeowner Association (HOA)?',
+              'If yes, please upload relevant HOA documents'
+            )}
+            
+            {(data.documentsUpload?.hasHOA ?? formData.hasHOA) && 
+              renderDocumentField(
+                'hoaDocuments',
+                'HOA Documents',
+                'HOA bylaws, rules, or relevant documents',
+                false
+              )
+            }
+          </View>
+
+          <Button
+            title="Next"
+            onPress={handleNext}
+            disabled={!isFormValid()}
+            style={styles.nextButton}
+          />
+        </ScrollView>
+
+        {/* Document Preview Modal */}
+        <Modal
+          visible={showDocumentPreview}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Typography variant="h4">Document Preview</Typography>
+              <TouchableOpacity onPress={() => setShowDocumentPreview(false)}>
+                <Typography variant="h4">✕</Typography>
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalContent}>
+              {previewDocumentData && (
+                <View style={styles.previewContainer}>
+                  <Ionicons name="document-text" size={64} color={colors.primary.gold} />
+                  <Typography variant="h4" style={styles.previewTitle}>
+                    {previewDocumentData.name}
+                  </Typography>
+                  <Typography variant="body" style={styles.previewDetails}>
+                    Size: {formatFileSize(previewDocumentData.size)}
+                  </Typography>
+                  <Typography variant="body" style={styles.previewDetails}>
+                    Type: {previewDocumentData.type}
+                  </Typography>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </ScreenContainer>
+    </View>
   );
 }
 

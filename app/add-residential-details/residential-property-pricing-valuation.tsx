@@ -299,7 +299,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Rental Pricing & Valuation" />
       <ScrollView 
         style={styles.container}
@@ -708,7 +708,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
           </View>
         </View>
       </Modal>
-    </ScreenContainer>
+    </View>
   );
 }
 

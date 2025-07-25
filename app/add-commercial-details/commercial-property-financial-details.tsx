@@ -204,7 +204,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Financial & Rental Details" />
       <ScrollView 
         style={styles.container}
@@ -318,7 +318,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
           />
         </View>
       </Modal>
-    </ScreenContainer>
+    </View>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
@@ -13,6 +13,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 import {
   Bell,
   Plus,
@@ -32,66 +33,34 @@ import {
   Building,
   X,
 } from 'lucide-react-native';
-// Mock data for homeowner dashboard
-const mockHomeownerData = {
-  totalProperties: 12,
-  pendingApprovals: 3,
-  totalEarnings: 125000,
-  activeBookings: 8,
-  properties: [
-    {
-      id: '1',
-      title: 'Luxury Oceanfront Villa',
-      location: 'Malibu, USA',
-      status: 'approved',
-      image:
-        'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop&quality=40',
-      monthlyEarnings: 15000,
-      occupancyRate: 85,
-      bookings: 5,
-    },
-    {
-      id: '2',
-      title: 'Manhattan Penthouse Suite',
-      location: 'New York, USA',
-      status: 'pending',
-      image:
-        'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop&quality=40',
-      monthlyEarnings: 0,
-      occupancyRate: 0,
-      bookings: 0,
-    },
-    {
-      id: '3',
-      title: 'Swiss Alpine Chalet',
-      location: 'Zermatt, Switzerland',
-      status: 'approved',
-      image:
-        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop&quality=40',
-      monthlyEarnings: 22000,
-      occupancyRate: 92,
-      bookings: 3,
-    },
-    {
-      id: '4',
-      title: 'Santorini Cliffside Villa',
-      location: 'Santorini, Greece',
-      status: 'rejected',
-      image:
-        'https://images.unsplash.com/photo-1533116927835-e3bfa3b8a1bd?w=400&h=300&fit=crop&quality=40',
-      monthlyEarnings: 0,
-      occupancyRate: 0,
-      bookings: 0,
-    },
-  ],
-};
+
 export default function HomeownerDashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
   const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
   const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
+  const { 
+    properties, 
+    dashboardMetrics, 
+    isLoading, 
+    fetchProperties, 
+    fetchDashboardMetrics,
+    getRecentProperties, 
+    syncFromCommercialStore,
+    syncFromResidentialStore
+  } = useHomeownerPropertyStore();
+  
   const [showPropertyModal, setShowPropertyModal] = useState(false);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchProperties();
+    fetchDashboardMetrics();
+    // Sync with property stores
+    syncFromCommercialStore();
+    syncFromResidentialStore();
+  }, []);
 
   const handleNotifications = () => {
     router.push('/notifications');
@@ -105,26 +74,22 @@ export default function HomeownerDashboardScreen() {
     setShowPropertyModal(false);
   };
 
-
   const handleAddCommercialProperty = () => {
     setShowPropertyModal(false);
-    // Reset the commercial property store to start fresh
     resetCommercialStore();
-    // Navigate to add commercial property screen
     router.push('/add-commercial-details/add-commercial-property');
   };
 
   const handleAddResidentialProperty = () => {
     setShowPropertyModal(false);
-    // Reset the residential property store to start fresh
     resetResidentialStore();
-    // Navigate to add residential property screen
     router.push('/add-residential-details/add-residential-property');
   };
 
   const handlePropertyPress = (propertyId: string) => {
-    router.push(`/property/${propertyId}`);
+    router.push(`/property-details/${propertyId}`);
   };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -137,6 +102,7 @@ export default function HomeownerDashboardScreen() {
         return colors.text.secondary;
     }
   };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
@@ -149,6 +115,7 @@ export default function HomeownerDashboardScreen() {
         return AlertCircle;
     }
   };
+
   const headerRightComponent = (
     <TouchableOpacity onPress={handleNotifications} style={styles.notificationButton}>
       <Bell size={24} color={colors.neutral.white} />
@@ -161,6 +128,7 @@ export default function HomeownerDashboardScreen() {
       )}
     </TouchableOpacity>
   );
+
   const renderPropertyCard = ({ item: property }: { item: any }) => {
     const StatusIcon = getStatusIcon(property.status);
     return (
@@ -192,7 +160,7 @@ export default function HomeownerDashboardScreen() {
                 <View style={styles.statItem}>
                   <DollarSign size={14} color={colors.primary.gold} />
                   <Typography variant="caption" color="secondary">
-                    ${property.monthlyEarnings.toLocaleString()}/mo
+                    ${property.monthlyEarnings?.toLocaleString()}/mo
                   </Typography>
                 </View>
                 <View style={styles.statItem}>
@@ -214,6 +182,7 @@ export default function HomeownerDashboardScreen() {
       </TouchableOpacity>
     );
   };
+
   const PropertyTypeModal = () => (
     <Modal visible={showPropertyModal} onClose={handleCloseModal}>
       <View style={styles.modalHeader}>
@@ -266,6 +235,9 @@ export default function HomeownerDashboardScreen() {
       </View>
     </Modal>
   );
+
+  const recentProperties = getRecentProperties(4);
+
   return (
     <View style={styles.container}>
       <Header
@@ -283,7 +255,7 @@ export default function HomeownerDashboardScreen() {
                 <Building2 size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {mockHomeownerData.totalProperties}
+                    {dashboardMetrics.totalProperties}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Properties
@@ -296,7 +268,7 @@ export default function HomeownerDashboardScreen() {
                 <Clock size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {mockHomeownerData.pendingApprovals}
+                    {dashboardMetrics.pendingApprovals}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Pending Approvals
@@ -309,7 +281,7 @@ export default function HomeownerDashboardScreen() {
                 <DollarSign size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    ${mockHomeownerData.totalEarnings.toLocaleString()}
+                    ${dashboardMetrics.totalEarnings.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Earnings
@@ -322,7 +294,7 @@ export default function HomeownerDashboardScreen() {
                 <Calendar size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {mockHomeownerData.activeBookings}
+                    {dashboardMetrics.activeBookings}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Active Bookings
@@ -353,7 +325,7 @@ export default function HomeownerDashboardScreen() {
             </TouchableOpacity>
           </View>
           <FlatList
-            data={mockHomeownerData.properties}
+            data={recentProperties}
             renderItem={renderPropertyCard}
             keyExtractor={(item) => item.id}
             showsVerticalScrollIndicator={false}

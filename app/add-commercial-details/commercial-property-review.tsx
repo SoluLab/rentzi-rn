@@ -42,6 +42,7 @@ import {
   Bell,
 } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 
 interface ReviewSection {
   id: string;
@@ -105,20 +106,13 @@ const REVIEW_SECTIONS: ReviewSection[] = [
 
 export default function CommercialPropertyReviewScreen() {
   const router = useRouter();
-  const {
-    data,
-    isPropertyDetailsComplete,
-    isFinancialDetailsComplete,
-    isFeaturesComplianceComplete,
-    isMediaUploadsComplete,
-    isDocumentsComplete,
-    isLegalConsentsComplete,
-    isListingTypeComplete,
+  const { 
+    data, 
+    submitProperty, 
     isAllSectionsComplete,
-    getCompletionStatus,
-    submitProperty,
+    getCompletionStatus 
   } = useCommercialPropertyStore();
-
+  const { syncFromCommercialStore } = useHomeownerPropertyStore();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -165,6 +159,10 @@ export default function CommercialPropertyReviewScreen() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       submitProperty();
+      
+      // Sync with homeowner property store
+      await syncFromCommercialStore();
+      
       setShowSuccessPopup(true);
     } catch (error) {
       Alert.alert('Submission Failed', 'Please try again later.');
@@ -322,7 +320,9 @@ export default function CommercialPropertyReviewScreen() {
         <View style={styles.detailRow}>
           <Typography variant="body" color="secondary">Virtual Tour:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {mediaUploads.virtualTour || 'Not provided'}
+            {typeof mediaUploads.virtualTour === 'string' 
+              ? mediaUploads.virtualTour 
+              : mediaUploads.virtualTour?.name || 'Not provided'}
           </Typography>
         </View>
         {mediaUploads.photos.length > 0 && (

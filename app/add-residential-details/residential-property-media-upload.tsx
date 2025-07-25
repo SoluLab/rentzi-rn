@@ -412,7 +412,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Media Uploads" />
       
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -516,9 +516,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
           style={styles.nextButton}
         />
       </ScrollView>
-
-
-    </ScreenContainer>
+    </View>
   );
 }
 

@@ -177,7 +177,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Features & Compliance" />
       <ScrollView 
         style={styles.container}
@@ -302,7 +302,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
           />
         </View>
       </Modal>
-    </ScreenContainer>
+    </View>
   );
 }
 

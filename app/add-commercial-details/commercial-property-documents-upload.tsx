@@ -285,7 +285,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Required Documents" />
       <ScrollView 
         style={styles.container}
@@ -449,7 +449,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
           style={styles.nextButton}
         />
       </ScrollView>
-    </ScreenContainer>
+    </View>
   );
 }
 

@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
+import { Modal } from '@/components/ui/Modal';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
+import { shadow } from '@/constants/shadow';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerPropertyStore, HomeownerProperty } from '@/stores/homeownerPropertyStore';
 import {
   Plus,
   Building2,
@@ -16,73 +21,95 @@ import {
   XCircle,
   AArrowUp,
   Eye,
-  ALargeSmall,
+  Search,
+  Filter,
+  AlertCircle,
+  RefreshCw,
+  X,
+  Home,
+  Building,
+  Edit3,
+  Trash2,
 } from 'lucide-react-native';
-// Mock data for property management
-const mockProperties = [
-  {
-    id: '1',
-    title: 'Luxury Oceanfront Villa',
-    location: 'Malibu, USA',
-    status: 'approved',
-    image:
-      'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=400&h=300&fit=crop&quality=40',
-    price: 2500,
-    bedrooms: 5,
-    bathrooms: 4,
-    createdAt: '2024-01-15',
-  },
-  {
-    id: '2',
-    title: 'Manhattan Penthouse Suite',
-    location: 'New York, USA',
-    status: 'pending',
-    image:
-      'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=300&fit=crop&quality=40',
-    price: 3500,
-    bedrooms: 3,
-    bathrooms: 3,
-    createdAt: '2024-02-01',
-  },
-  {
-    id: '3',
-    title: 'Swiss Alpine Chalet',
-    location: 'Zermatt, Switzerland',
-    status: 'approved',
-    image:
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop&quality=40',
-    price: 4000,
-    bedrooms: 6,
-    bathrooms: 5,
-    createdAt: '2024-01-20',
-  },
-  {
-    id: '4',
-    title: 'Santorini Cliffside Villa',
-    location: 'Santorini, Greece',
-    status: 'rejected',
-    image:
-      'https://images.unsplash.com/photo-1533116927835-e3bfa3b8a1bd?w=400&h=300&fit=crop&quality=40',
-    price: 3000,
-    bedrooms: 3,
-    bathrooms: 2,
-    createdAt: '2024-02-05',
-  },
-];
+
 export default function PropertyManagementScreen() {
   const router = useRouter();
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'approved' | 'pending' | 'rejected'>(
-    'all'
-  );
+  const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
+  const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
+  const { 
+    properties, 
+    isLoading, 
+    fetchProperties, 
+    deleteProperty, 
+    updatePropertyStatus,
+    syncFromCommercialStore,
+    syncFromResidentialStore
+  } = useHomeownerPropertyStore();
+  
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<HomeownerProperty | null>(null);
+
+  // Fetch properties on component mount
+  useEffect(() => {
+    fetchProperties();
+    // Sync with property stores
+    syncFromCommercialStore();
+    syncFromResidentialStore();
+  }, []);
+
   const handleAddProperty = () => {
-    router.push('/add-property');
+    setShowPropertyModal(true);
   };
-  const handlePropertyPress = (propertyId: string) => {
-    router.push(`/property/${propertyId}`);
+
+  const handleCloseModal = () => {
+    setShowPropertyModal(false);
   };
-  const handleEditProperty = (propertyId: string) => {
-    router.push(`/edit-property/${propertyId}`);
+
+  const handleAddCommercialProperty = () => {
+    setShowPropertyModal(false);
+    resetCommercialStore();
+    router.push('/add-commercial-details/add-commercial-property');
   };
+
+  const handleAddResidentialProperty = () => {
+    setShowPropertyModal(false);
+    resetResidentialStore();
+    router.push('/add-residential-details/add-residential-property');
+  };
+
+  const handleViewProperty = (property: HomeownerProperty) => {
+    setSelectedProperty(property);
+    router.push(`/property-details/${property.id}`);
+  };
+
+  const handleEditProperty = (property: HomeownerProperty) => {
+    if (property.type === 'commercial') {
+      router.push('/add-commercial-details/add-commercial-property');
+    } else {
+      router.push('/add-residential-details/add-residential-property');
+    }
+  };
+
+  const handleDeleteProperty = (property: HomeownerProperty) => {
+    Alert.alert(
+      'Delete Property',
+      `Are you sure you want to delete "${property.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteProperty(property.id);
+          },
+        },
+      ]
+    );
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -91,10 +118,13 @@ export default function PropertyManagementScreen() {
         return colors.primary.gold;
       case 'rejected':
         return colors.status.error;
+      case 'draft':
+        return colors.text.secondary;
       default:
         return colors.text.secondary;
     }
   };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'approved':
@@ -103,78 +133,202 @@ export default function PropertyManagementScreen() {
         return Clock;
       case 'rejected':
         return XCircle;
+      case 'draft':
+        return AlertCircle;
       default:
-        return Clock;
+        return AlertCircle;
     }
   };
-  const filteredProperties =
-    selectedFilter === 'all'
-      ? mockProperties
-      : mockProperties.filter((property) => property.status === selectedFilter);
-  const getFilterCount = (filter: string) => {
-    if (filter === 'all') return mockProperties.length;
-    return mockProperties.filter((property) => property.status === filter).length;
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return 'Approved';
+      case 'pending':
+        return 'Awaiting Approval';
+      case 'rejected':
+        return 'Reassigned with Reason';
+      case 'draft':
+        return 'Draft';
+      default:
+        return status;
+    }
   };
-  const renderPropertyCard = ({ item: property }: { item: any }) => {
+
+  // Filter properties based on search query and selected filter
+  const filteredProperties = properties.filter((property) => {
+    const matchesSearch = property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         property.location.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = selectedFilter === 'all' || property.status === selectedFilter;
+    return matchesSearch && matchesFilter;
+  });
+
+  const getFilterCount = (filter: string) => {
+    if (filter === 'all') return properties.length;
+    return properties.filter((property) => property.status === filter).length;
+  };
+
+  const renderPropertyCard = ({ item: property }: { item: HomeownerProperty }) => {
     const StatusIcon = getStatusIcon(property.status);
+    
     return (
       <Card style={styles.propertyCard}>
-        <Image source={{ uri: property.image }} style={styles.propertyImage} />
-        <View style={styles.propertyContent}>
-          <View style={styles.propertyHeader}>
-            <Typography variant="h5" numberOfLines={1} style={styles.propertyTitle}>
-              {property.title}
-            </Typography>
+        <View style={styles.cardHeader}>
+          <Image source={{ uri: property.image }} style={styles.propertyImage} />
+          <View style={styles.statusContainer}>
             <View
               style={[styles.statusBadge, { backgroundColor: getStatusColor(property.status) }]}
             >
               <StatusIcon size={12} color={colors.neutral.white} />
               <Typography variant="label" color="inverse" style={styles.statusText}>
-                {property.status.toUpperCase()}
+                {getStatusLabel(property.status)}
+              </Typography>
+            </View>
+            {property.rejectionReason && (
+              <View style={styles.rejectionReasonContainer}>
+                <AlertCircle size={12} color={colors.status.error} />
+                <Typography variant="caption" color="error" numberOfLines={2}>
+                  {property.rejectionReason}
+                </Typography>
+              </View>
+            )}
+          </View>
+        </View>
+        
+        <View style={styles.propertyContent}>
+          <View style={styles.propertyHeader}>
+            <Typography variant="h5" numberOfLines={1} style={styles.propertyTitle}>
+              {property.title}
+            </Typography>
+            <View style={styles.propertyTypeBadge}>
+              <Typography variant="caption" color="secondary">
+                {property.type === 'commercial' ? 'Commercial' : 'Residential'}
               </Typography>
             </View>
           </View>
+          
           <Typography variant="caption" color="secondary" numberOfLines={1}>
             {property.location}
           </Typography>
+          
           <View style={styles.propertyDetails}>
-            <Typography variant="body" color="gold">
-              ${property.price}/night
-            </Typography>
-            <Typography variant="caption" color="secondary">
-              {property.bedrooms} bed • {property.bathrooms} bath
-            </Typography>
+            {property.price && (
+              <Typography variant="body" color="gold">
+                ${parseInt(property.price).toLocaleString()}
+              </Typography>
+            )}
+            <View style={styles.propertySpecs}>
+              {property.bedrooms && (
+                <Typography variant="caption" color="secondary">
+                  {property.bedrooms} bed
+                </Typography>
+              )}
+              {property.bathrooms && (
+                <Typography variant="caption" color="secondary">
+                  • {property.bathrooms} bath
+                </Typography>
+              )}
+              {property.squareFootage && (
+                <Typography variant="caption" color="secondary">
+                  • {property.squareFootage} sq ft
+                </Typography>
+              )}
+            </View>
           </View>
+          
           <Typography variant="caption" color="secondary">
-            Listed on {new Date(property.createdAt).toLocaleDateString()}
+            {property.status === 'draft' ? 'Created' : 'Submitted'} on {(property.createdAt instanceof Date ? property.createdAt : new Date(property.createdAt || Date.now())).toLocaleDateString()}
           </Typography>
+          
           <View style={styles.propertyActions}>
             <TouchableOpacity
-              onPress={() => handlePropertyPress(property.id)}
+              onPress={() => handleViewProperty(property)}
               style={styles.actionButton}
             >
               <Eye size={16} color={colors.primary.navy} />
               <Typography variant="caption" color="primary">
-                View
+                View Details
               </Typography>
             </TouchableOpacity>
+            
             <TouchableOpacity
-              onPress={() => handleEditProperty(property.id)}
+              onPress={() => handleEditProperty(property)}
               style={styles.actionButton}
             >
-              <AArrowUp size={16} color={colors.primary.navy} />
+              <Edit3 size={16} color={colors.primary.navy} />
               <Typography variant="caption" color="primary">
                 Edit
               </Typography>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton}>
-              <ALargeSmall size={16} color={colors.text.secondary} />
+            
+            <TouchableOpacity
+              onPress={() => handleDeleteProperty(property)}
+              style={[styles.actionButton, styles.deleteButton]}
+            >
+              <Trash2 size={16} color={colors.status.error} />
+              <Typography variant="caption" color="error">
+                Delete
+              </Typography>
             </TouchableOpacity>
           </View>
         </View>
       </Card>
     );
   };
+
+  const PropertyTypeModal = () => (
+    <Modal visible={showPropertyModal} onClose={handleCloseModal}>
+      <View style={styles.modalHeader}>
+        <Typography variant="h4" style={styles.modalTitle}>
+          Add New Property
+        </Typography>
+        <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
+          <X size={24} color={colors.text.secondary} />
+        </TouchableOpacity>
+      </View>
+      
+      <Typography variant="body" color="secondary" style={styles.modalSubtitle}>
+        Choose the type of property you want to add to your portfolio
+      </Typography>
+
+      <View style={styles.propertyTypeContainer}>
+        <TouchableOpacity
+          style={styles.propertyTypeCard}
+          onPress={handleAddResidentialProperty}
+        >
+          <View style={styles.propertyTypeIcon}>
+            <Home size={32} color={colors.primary.gold} />
+          </View>
+          <View style={styles.propertyTypeContent}>
+            <Typography variant="h5" style={styles.propertyTypeTitle}>
+              Residential Property
+            </Typography>
+            <Typography variant="caption" color="secondary" style={styles.propertyTypeDescription}>
+              Houses, apartments, villas, and other residential units for personal or rental use
+            </Typography>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.propertyTypeCard}
+          onPress={handleAddCommercialProperty}
+        >
+          <View style={styles.propertyTypeIcon}>
+            <Building size={32} color={colors.primary.blue} />
+          </View>
+          <View style={styles.propertyTypeContent}>
+            <Typography variant="h5" style={styles.propertyTypeTitle}>
+              Commercial Property
+            </Typography>
+            <Typography variant="caption" color="secondary" style={styles.propertyTypeDescription}>
+              Office buildings, retail spaces, warehouses, and other commercial real estate
+            </Typography>
+          </View>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+
   return (
     <View style={styles.container}>
       <Header
@@ -182,6 +336,7 @@ export default function PropertyManagementScreen() {
         subtitle="Manage your luxury properties"
         showBackButton={false}
       />
+      
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Add Property Button */}
         <View style={styles.section}>
@@ -189,18 +344,40 @@ export default function PropertyManagementScreen() {
             title="Add New Property"
             onPress={handleAddProperty}
             style={styles.addPropertyButton}
-            leftIcon={<Plus size={20} color={colors.neutral.white} />}
           />
         </View>
+
+        {/* Search and Filter Section */}
+        <View style={styles.section}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Search size={20} color={colors.text.secondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search properties..."
+                placeholderTextColor={colors.text.secondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={20} color={colors.primary.navy} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Filter Tabs */}
         <View style={styles.section}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.filterContainer}>
               {[
                 { key: 'all', label: 'All Properties' },
+                { key: 'pending', label: 'Awaiting Approval' },
                 { key: 'approved', label: 'Approved' },
-                { key: 'pending', label: 'Pending' },
-                { key: 'rejected', label: 'Rejected' },
+                { key: 'rejected', label: 'Reassigned with Reason' },
               ].map((filter) => (
                 <TouchableOpacity
                   key={filter.key}
@@ -212,7 +389,7 @@ export default function PropertyManagementScreen() {
                 >
                   <Typography
                     variant="body"
-                    color={selectedFilter === filter.key ? 'white' : 'secondary'}
+                    color={selectedFilter === filter.key ? 'inverse' : 'secondary'}
                     style={styles.filterText}
                   >
                     {filter.label} ({getFilterCount(filter.key)})
@@ -222,6 +399,7 @@ export default function PropertyManagementScreen() {
             </View>
           </ScrollView>
         </View>
+
         {/* Properties List */}
         <View style={styles.section}>
           {filteredProperties.length > 0 ? (
@@ -240,11 +418,13 @@ export default function PropertyManagementScreen() {
                 No properties found
               </Typography>
               <Typography variant="body" color="secondary" align="center">
-                {selectedFilter === 'all'
+                {searchQuery
+                  ? 'No properties match your search criteria'
+                  : selectedFilter === 'all'
                   ? 'Start by adding your first property'
                   : `No ${selectedFilter} properties at the moment`}
               </Typography>
-              {selectedFilter === 'all' && (
+              {selectedFilter === 'all' && !searchQuery && (
                 <Button
                   title="Add Property"
                   onPress={handleAddProperty}
@@ -255,9 +435,12 @@ export default function PropertyManagementScreen() {
           )}
         </View>
       </ScrollView>
+      
+      <PropertyTypeModal />
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -273,6 +456,40 @@ const styles = StyleSheet.create({
   addPropertyButton: {
     marginHorizontal: 0,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.small,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.primary,
+    fontFamily: 'Montserrat-Regular',
+  },
+  filterButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.small,
+  },
   filterContainer: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -284,6 +501,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.card,
     borderWidth: 1,
     borderColor: colors.border.light,
+    ...shadow.small,
   },
   activeFilterTab: {
     backgroundColor: colors.primary.gold,
@@ -294,17 +512,49 @@ const styles = StyleSheet.create({
   },
   propertyCard: {
     backgroundColor: colors.neutral.white,
-    borderRadius: 16,
+    borderRadius: radius.xl,
     overflow: 'hidden',
-    shadowColor: colors.primary.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.medium,
+  },
+  cardHeader: {
+    position: 'relative',
   },
   propertyImage: {
     width: '100%',
-    height: 120,
+    height: 140,
+  },
+  statusContainer: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    alignItems: 'flex-end',
+    gap: spacing.xs,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    ...shadow.small,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  rejectionReasonContainer: {
+    backgroundColor: colors.neutral.white,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    maxWidth: 150,
+    ...shadow.small,
   },
   propertyContent: {
     padding: spacing.md,
@@ -319,22 +569,21 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: spacing.sm,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
+  propertyTypeBadge: {
+    backgroundColor: colors.background.secondary,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.sm,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '600',
   },
   propertyDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  propertySpecs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   propertyActions: {
     flexDirection: 'row',
@@ -351,6 +600,11 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background.secondary,
+  },
+  deleteButton: {
+    backgroundColor: colors.background.tertiary,
   },
   separator: {
     height: spacing.md,
@@ -359,9 +613,64 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     padding: spacing.xl,
+    borderRadius: radius.xl,
+    ...shadow.medium,
   },
   emptyStateButton: {
     marginTop: spacing.md,
     paddingHorizontal: spacing.xl,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  modalSubtitle: {
+    marginBottom: spacing.lg,
+    lineHeight: 20,
+  },
+  propertyTypeContainer: {
+    gap: spacing.md,
+  },
+  propertyTypeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    shadowColor: colors.text.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  propertyTypeIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.lg,
+    backgroundColor: colors.background.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+  },
+  propertyTypeContent: {
+    flex: 1,
+  },
+  propertyTypeTitle: {
+    fontWeight: '600',
+    marginBottom: spacing.xs,
+  },
+  propertyTypeDescription: {
+    lineHeight: 16,
   },
 });
