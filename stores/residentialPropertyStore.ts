@@ -83,12 +83,24 @@ export interface DocumentsUploadData {
   hasHOA: boolean;
 }
 
+// Legal consents interface
+export interface LegalConsentsData {
+  investmentRisks: boolean;
+  platformTerms: boolean;
+  variableIncome: boolean;
+  tokenizationConsent: boolean;
+  usageRights: boolean;
+  liquidityLimitations: boolean;
+  governanceRights: boolean;
+}
+
 // Complete residential property data interface
 export interface ResidentialPropertyData {
   propertyDetails: PropertyDetails;
   pricingValuation: PricingValuationData;
   mediaUpload: MediaUploadData;
   documentsUpload: DocumentsUploadData;
+  legalConsents: LegalConsentsData;
   isSubmitted: boolean;
   submittedAt?: Date;
 }
@@ -100,18 +112,21 @@ interface ResidentialPropertyStore {
   updatePricingValuation: (pricingValuation: Partial<PricingValuationData>) => void;
   updateMediaUpload: (mediaUpload: Partial<MediaUploadData>) => void;
   updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => void;
+  updateLegalConsents: (legalConsents: Partial<LegalConsentsData>) => void;
   submitProperty: () => void;
   resetStore: () => void;
   isPropertyDetailsComplete: () => boolean;
   isPricingValuationComplete: () => boolean;
   isMediaUploadComplete: () => boolean;
   isDocumentsUploadComplete: () => boolean;
+  isLegalConsentsComplete: () => boolean;
   isAllSectionsComplete: () => boolean;
   getCompletionStatus: () => {
     propertyDetails: boolean;
     pricingValuation: boolean;
     mediaUpload: boolean;
     documentsUpload: boolean;
+    legalConsents: boolean;
   };
 }
 
@@ -169,6 +184,15 @@ const initialData: ResidentialPropertyData = {
     hasMortgage: false,
     hasHOA: false,
   },
+  legalConsents: {
+    investmentRisks: false,
+    platformTerms: false,
+    variableIncome: false,
+    tokenizationConsent: false,
+    usageRights: false,
+    liquidityLimitations: false,
+    governanceRights: false,
+  },
   isSubmitted: false,
 };
 
@@ -220,6 +244,18 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             documentsUpload: {
               ...state.data.documentsUpload,
               ...documentsUpload,
+            },
+          },
+        }));
+      },
+
+      updateLegalConsents: (legalConsents: Partial<LegalConsentsData>) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            legalConsents: {
+              ...state.data.legalConsents,
+              ...legalConsents,
             },
           },
         }));
@@ -291,11 +327,17 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
         return mandatoryComplete && conditionalComplete;
       },
 
+      isLegalConsentsComplete: () => {
+        const { legalConsents } = get().data;
+        return Object.values(legalConsents).every(consent => consent === true);
+      },
+
       isAllSectionsComplete: () => {
         return get().isPropertyDetailsComplete() && 
                get().isPricingValuationComplete() && 
                get().isMediaUploadComplete() &&
-               get().isDocumentsUploadComplete();
+               get().isDocumentsUploadComplete() &&
+               get().isLegalConsentsComplete();
       },
 
       getCompletionStatus: () => {
@@ -304,6 +346,7 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
           pricingValuation: get().isPricingValuationComplete(),
           mediaUpload: get().isMediaUploadComplete(),
           documentsUpload: get().isDocumentsUploadComplete(),
+          legalConsents: get().isLegalConsentsComplete(),
         };
       },
     }),

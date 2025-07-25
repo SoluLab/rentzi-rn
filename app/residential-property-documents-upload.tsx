@@ -246,8 +246,8 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to legal consents (to be implemented)
-      Alert.alert('Success', 'Documents upload completed! Legal consents step to be implemented.');
+      // Navigate to legal consents step
+      router.push('/residential-property-legal-consents');
     }
   };
 
