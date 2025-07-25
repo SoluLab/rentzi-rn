@@ -92,35 +92,35 @@ export default function LoginScreen() {
 
   const loginMutation = useLogin({
     onSuccess: async (response) => {
-      console.log('Login API success:', response);
+      console.log("Login API success:", response);
       if (response.success && response.data) {
         const { token, user } = response.data;
         // Check verification status
         if (!user.isEmailVerified || !user.isPhoneVerified) {
-          toast.info('Please verify your account');
+          toast.info("Please verify your account");
           // Pass token and email/phone to OTP screen
           router.push({
-            pathname: '/(auth)/mobile-verification',
+            pathname: "/(auth)/mobile-verification",
             params: {
               email: user.email,
               phone: user.phoneNumber,
               token,
-              type: 'login',
+              type: "login",
             },
           });
           return;
         }
         // Store token and proceed
-        await AsyncStorage.setItem('token', token);
+        await AsyncStorage.setItem("token", token);
         toast.success(AUTH.LOGIN.SUCCESS);
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
       } else {
         toast.error(response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED);
-        console.error('Login API error:', response);
+        console.error("Login API error:", response);
       }
     },
     onError: (error) => {
-      console.error('Login API error:', error);
+      console.error("Login API error:", error);
       const errorMessage = error?.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
       toast.error(errorMessage);
     },
@@ -128,40 +128,59 @@ export default function LoginScreen() {
 
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
-    const isEmail = emailOrMobile.includes('@');
-    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ''));
+    const isEmail = emailOrMobile.includes("@");
+    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
     let payload: any = { password };
     if (isEmail) {
       payload.email = emailOrMobile;
     } else if (isMobile) {
       payload.email = emailOrMobile; // API expects email field for both
     } else {
-      toast.error('Please enter a valid email address or mobile number');
+      toast.error("Please enter a valid email address or mobile number");
       toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
       return;
     }
-    console.log('Login payload:', payload);
+    console.log("Login payload:", payload);
     loginMutation.mutate(payload);
   }, [emailOrMobile, password, loginMutation]);
 
   const isLoading = loginMutation.isPending;
 
+  const quickAccessLogin = (role: string) => {
+    let email = "";
+    switch (role) {
+      case "renter":
+        email = "vimal@solulab.co";
+        break;
+      case "investor":
+        email = "investor@solulab.co";
+        break;
+      case "homeowner":
+        email = "homeowner@solulab.co";
+        break;
+      default:
+        email = "vimal@solulab.co";
+    }
+    setEmailOrMobile(email);
+    setPassword("@Test12345");
+  };
+
   return (
     <View style={styles.container}>
       <LinearGradient colors={["#0E2538", "#28679E"]} style={styles.container}>
         <KeyboardAwareScrollView
-           contentContainerStyle={styles.scrollContent}
-           enableOnAndroid={true}
-           extraScrollHeight={20}
-           keyboardShouldPersistTaps="handled"
-           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          enableOnAndroid={true}
+          extraScrollHeight={20}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
             {/* Header Section */}
             <View style={styles.headerSection}>
               <View style={styles.logoContainer}>
                 <Image
-                  source={require('../../assets/images/logo.png')}
+                  source={require("../../assets/images/logo.png")}
                   style={styles.logo}
                   resizeMode="cover"
                 />
@@ -258,6 +277,43 @@ export default function LoginScreen() {
                         color={colors.primary.gold}
                       />
                     }
+                  />
+                </View>
+
+
+                {/* Quick Access Buttons at Bottom End */}
+
+                <Typography variant="body2" color="secondary" align="center" style={{ marginTop: spacing.md }}>Quick Access</Typography>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginTop: spacing.md,
+                    marginBottom: spacing.md,
+                    gap: 12,
+                  }}
+                >
+                  <Button
+                    title="Renter"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("renter")}
+                  />
+                  <Button
+                    title="Investor"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("investor")}
+                  />
+                  <Button
+                    title="Homeowner"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("homeowner")}
                   />
                 </View>
               </View>

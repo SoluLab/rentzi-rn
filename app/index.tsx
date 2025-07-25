@@ -62,8 +62,8 @@ export default function SplashScreen() {
           if (isAuthenticated) {
             router.replace('/(tabs)');
           } else {
-         //   router.replace('/(auth)/login');
-         router.replace('/(tabs)');
+          router.replace('/(auth)/login');
+        // router.replace('/(tabs)');
           }
         } catch (error) {
           console.error('Navigation error:', error);

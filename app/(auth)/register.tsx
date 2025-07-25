@@ -95,6 +95,7 @@ export default function RegisterScreen() {
         password: formData.password,
         phoneNumber: fullMobile,
       });
+      console.log("[Register] API response:", response);
       if (response?.success) {
         toast.success("Registration successful! Please verify your account");
         // Navigate directly to mobile verification
@@ -110,13 +111,13 @@ export default function RegisterScreen() {
         const errorMsg =
           response?.message || "Registration failed. Please try again.";
         toast.error(errorMsg);
-        console.error("Registration error:", response);
+        console.error("[Register] Registration error (API response):", response);
       }
     } catch (error: any) {
       const errorMsg =
         error?.message || "Registration failed. Please try again.";
       toast.error(errorMsg);
-      console.error("Registration error:", error);
+      console.error("[Register] Registration error (exception):", error);
     }
   };
   const updateFormData = (field: keyof FormData, value: string) => {
