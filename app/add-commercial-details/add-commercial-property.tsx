@@ -19,6 +19,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search } from 'lucide-react-native';
+import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -68,17 +69,16 @@ interface ValidationErrors {
 
 export default function AddCommercialPropertyScreen() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    propertyTitle: '',
-    market: '',
-    otherMarket: '',
-    pincode: '',
-    fullAddress: '',
-    zoningType: '',
-    squareFootage: '',
-    yearBuilt: '',
-  });
-
+  const { data, updatePropertyDetails, resetStore } = useCommercialPropertyStore();
+  
+  // Reset store if property was already submitted
+  React.useEffect(() => {
+    if (data.isSubmitted) {
+      resetStore();
+    }
+  }, []);
+  
+  const [formData, setFormData] = useState<FormData>(data.propertyDetails);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showMarketModal, setShowMarketModal] = useState(false);
   const [showZoningModal, setShowZoningModal] = useState(false);
@@ -189,7 +189,9 @@ export default function AddCommercialPropertyScreen() {
   };
 
   const updateFormData = (field: keyof FormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    const newFormData = { ...formData, [field]: value };
+    setFormData(newFormData);
+    updatePropertyDetails(newFormData);
     
     // Clear error when user starts typing
     if (errors[field]) {
@@ -197,19 +199,27 @@ export default function AddCommercialPropertyScreen() {
     }
   };
 
-  const handleNext = () => {
-    if (validateForm()) {
-      // Navigate to next step or save data
-      Alert.alert('Success', 'Form validation passed! Proceeding to next step...');
-      // router.push('/next-step');
-    }
-  };
 
   const filteredLocations = APPROVED_LOCATIONS.filter(location =>
     location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: ValidationErrors = {};
+
+    newErrors.propertyTitle = validatePropertyTitle(formData.propertyTitle);
+    newErrors.market = validateMarket(formData.market);
+    if (formData.market === 'Other') {
+      newErrors.otherMarket = validatePropertyTitle(formData.otherMarket);
+    }
+    newErrors.pincode = validatePincode(formData.pincode);
+    newErrors.fullAddress = validateFullAddress(formData.fullAddress);
+    newErrors.zoningType = validateZoningType(formData.zoningType);
+    newErrors.squareFootage = validateSquareFootage(formData.squareFootage);
+    newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+
+    // Check if all required fields are filled and no validation errors
     return (
       formData.propertyTitle.trim() &&
       formData.market &&
@@ -219,7 +229,7 @@ export default function AddCommercialPropertyScreen() {
       formData.zoningType &&
       formData.squareFootage.trim() &&
       formData.yearBuilt.trim() &&
-      Object.keys(errors).length === 0
+      Object.values(newErrors).every(error => !error)
     );
   };
 
@@ -247,6 +257,13 @@ export default function AddCommercialPropertyScreen() {
       <Typography variant="body">{item}</Typography>
     </TouchableOpacity>
   );
+
+  const handleNext = () => {
+    if (validateForm()) {
+      // Navigate to financial details step
+      router.push('/add-commercial-details/commercial-property-financial-details');
+    }
+  };
 
   return (
     <ScreenContainer>

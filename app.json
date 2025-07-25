@@ -4,36 +4,25 @@
     "slug": "rentzi",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#000000"
-    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.flexapp.rentzi"
+      "bundleIdentifier": "com.solulab.rentzi"
     },
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#000000"
-      },
-      "package": "app.flexapp.rentzi"
+      "package": "com.solulab.rentzi"
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "output": "static"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://flexapp.ai/"
+          "origin": "https://rentzi.app/"
         }
       ]
     ],
