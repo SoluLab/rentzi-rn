@@ -35,7 +35,7 @@ interface MediaFile {
 
 interface MediaFormData {
   photos: MediaFile[];
-  virtualTour: string;
+  virtualTour: { uri: string; name: string; size: number; type: string; } | string;
 }
 
 interface MediaValidationErrors {
@@ -96,14 +96,23 @@ export default function CommercialPropertyMediaUploadScreen() {
     return undefined;
   };
 
-  const validateVirtualTour = (url: string): string | undefined => {
-    if (!url.trim()) return undefined; // Optional field
-    
-    const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-    const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
-    
-    if (!youtubeRegex.test(url) && !vimeoRegex.test(url)) {
-      return 'Please enter a valid YouTube or Vimeo URL';
+  const validateVirtualTour = (virtualTour: MediaFormData['virtualTour']): string | undefined => {
+    if (typeof virtualTour === 'string') {
+      if (!virtualTour.trim()) return undefined; // Optional field
+      
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+      const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
+      
+      if (!youtubeRegex.test(virtualTour) && !vimeoRegex.test(virtualTour)) {
+        return 'Please enter a valid YouTube or Vimeo URL';
+      }
+    } else if (typeof virtualTour === 'object' && virtualTour.uri) {
+      if (virtualTour.size && virtualTour.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+        return 'Video file must be less than 100MB';
+      }
+      if (virtualTour.name && !virtualTour.name.toLowerCase().endsWith('.mp4')) {
+        return 'Only MP4 files are allowed';
+      }
     }
     
     return undefined;
@@ -119,7 +128,7 @@ export default function CommercialPropertyMediaUploadScreen() {
     return Object.values(newErrors).every(error => !error);
   };
 
-  const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string) => {
+  const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string | { uri: string; name: string; size: number; type: string; }) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateMediaUploads(newFormData);
@@ -185,9 +194,37 @@ export default function CommercialPropertyMediaUploadScreen() {
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        for (const asset of result.assets) {
-          await processImage(asset);
-        }
+        // Process all selected images at once
+        const newPhotos = await Promise.all(
+          result.assets.map(async (asset) => {
+            try {
+              // Get image dimensions
+              const { width, height } = await getImageDimensions(asset.uri);
+              
+              // Get file size
+              const response = await fetch(asset.uri);
+              const blob = await response.blob();
+              const size = blob.size;
+              
+              return {
+                uri: asset.uri,
+                name: asset.fileName || `photo_${Date.now()}.jpg`,
+                size: size,
+                type: 'image/jpeg',
+                width,
+                height,
+              };
+            } catch (error) {
+              console.error('Error processing image:', error);
+              return null;
+            }
+          })
+        );
+
+        // Filter out any failed images and add to existing photos
+        const validPhotos = newPhotos.filter(photo => photo !== null);
+        const updatedPhotos = [...formData.photos, ...validPhotos];
+        updateFormData('photos', updatedPhotos);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick photos. Please try again.');
@@ -235,28 +272,88 @@ export default function CommercialPropertyMediaUploadScreen() {
     });
   };
 
-  const pickVideoFile = async () => {
+  const showVideoPickerOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Video', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takeVideo();
+          } else if (buttonIndex === 2) {
+            pickVideoFromLibrary();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Upload Video',
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Take Video', onPress: takeVideo },
+          { text: 'Choose from Library', onPress: pickVideoFromLibrary },
+        ]
+      );
+    }
+  };
+
+  const takeVideo = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        // Get file size
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const size = blob.size;
+        if (size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+          Alert.alert('Error', `Video file size (${(size / (1024 * 1024)).toFixed(1)}MB) exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`);
+          return;
+        }
+        const newVirtualTour = {
+          uri: asset.uri,
+          name: asset.fileName || `video_${Date.now()}.mp4`,
+          size: size,
+          type: 'video/mp4',
+        };
+        updateFormData('virtualTour', newVirtualTour);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take video. Please try again.');
+    }
+  };
+
+  const pickVideoFromLibrary = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Videos,
         allowsEditing: false,
         quality: 0.8,
       });
-
-      if (!result.canceled && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
-        
         // Get file size
         const response = await fetch(asset.uri);
         const blob = await response.blob();
         const size = blob.size;
-        
         if (size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
           Alert.alert('Error', `Video file size (${(size / (1024 * 1024)).toFixed(1)}MB) exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`);
           return;
         }
-
-        Alert.alert('Success', `Video uploaded successfully. Size: ${formatFileSize(size)}`);
+        const newVirtualTour = {
+          uri: asset.uri,
+          name: asset.fileName || `video_${Date.now()}.mp4`,
+          size: size,
+          type: 'video/mp4',
+        };
+        updateFormData('virtualTour', newVirtualTour);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick video file. Please try again.');
@@ -315,20 +412,20 @@ export default function CommercialPropertyMediaUploadScreen() {
             Upload Photos *
           </Typography>
           
-          <Button
-            title={isUploading ? "Uploading..." : "Upload Photos"}
-            onPress={showPhotoPickerOptions}
-            disabled={isUploading || formData.photos.length >= MAX_PHOTOS}
-            style={styles.uploadButton}
-          />
-          
           <Typography variant="caption" color="secondary" style={styles.validationText}>
             Requirements: Min 5 photos, Max {MAX_PHOTOS} photos • JPG/PNG only • Max {MAX_PHOTO_SIZE_MB}MB per photo • Min {MIN_PHOTO_DIMENSIONS.width}x{MIN_PHOTO_DIMENSIONS.height}px
           </Typography>
           
-          <Typography variant="caption" color="secondary" style={styles.photoCount}>
-            {formData.photos.length}/{MAX_PHOTOS} photos uploaded
-          </Typography>
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={showPhotoPickerOptions}
+            disabled={isUploading || formData.photos.length >= MAX_PHOTOS}
+          >
+            <Camera size={24} color={colors.primary.gold} />
+            <Typography variant="body" style={styles.uploadButtonText}>
+              {isUploading ? "Uploading..." : `Add Photos (${formData.photos.length}/${MAX_PHOTOS})`}
+            </Typography>
+          </TouchableOpacity>
 
           {errors.photos && (
             <Typography variant="caption" color="error" style={styles.errorText}>
@@ -348,14 +445,14 @@ export default function CommercialPropertyMediaUploadScreen() {
                   >
                     <X size={16} color={colors.neutral.white} />
                   </TouchableOpacity>
-                  <Typography variant="caption" style={styles.photoInfo}>
-                    {formatFileSize(photo.size)}
-                  </Typography>
-                  {photo.width && photo.height && (
-                    <Typography variant="caption" style={styles.photoInfo}>
-                      {photo.width}x{photo.height}
+                  <View style={styles.photoInfo}>
+                    <Typography variant="caption" style={styles.photoName}>
+                      {photo.name}
                     </Typography>
-                  )}
+                    <Typography variant="caption" style={styles.photoSize}>
+                      {formatFileSize(photo.size)} • {photo.width}x{photo.height}
+                    </Typography>
+                  </View>
                 </View>
               ))}
             </View>
@@ -370,7 +467,7 @@ export default function CommercialPropertyMediaUploadScreen() {
           
           <Input
             label="YouTube/Vimeo URL"
-            value={formData.virtualTour}
+            value={typeof formData.virtualTour === 'string' ? formData.virtualTour : ''}
             onChangeText={(value) => updateFormData('virtualTour', value)}
             placeholder="https://youtube.com/watch?v=..."
             error={errors.virtualTour}
@@ -388,16 +485,30 @@ export default function CommercialPropertyMediaUploadScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-          <Button
-            title="Upload Video File"
-            onPress={pickVideoFile}
-            variant="outline"
+          <TouchableOpacity
             style={styles.uploadButton}
-          />
-          
-          <Typography variant="caption" color="secondary" style={styles.validationText}>
-            Optional: MP4 format • Max {MAX_VIDEO_SIZE_MB}MB
-          </Typography>
+            onPress={showVideoPickerOptions}
+          >
+            <Video size={24} color={colors.primary.gold} />
+            <Typography variant="body" style={styles.uploadButtonText}>
+              Upload Video File
+            </Typography>
+          </TouchableOpacity>
+
+          {/* Show selected video info if present */}
+          {typeof formData.virtualTour === 'object' && formData.virtualTour.uri && (
+            <View style={styles.virtualTourDisplay}>
+              <View style={styles.virtualTourInfo}>
+                <Video size={20} color={colors.primary.gold} />
+                <Typography variant="body" style={styles.virtualTourText}>
+                  {formData.virtualTour.name} ({formatFileSize(formData.virtualTour.size)})
+                </Typography>
+              </View>
+              <TouchableOpacity onPress={() => updateFormData('virtualTour', '')}>
+                <X size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Next Button */}
@@ -432,7 +543,22 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.neutral.white,
+    borderWidth: 2,
+    borderColor: colors.primary.gold,
+    borderStyle: 'dashed',
+    borderRadius: radius.input,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.sm,
+  },
+  uploadButtonText: {
+    marginLeft: spacing.sm,
+    color: colors.primary.gold,
+    fontWeight: '500',
   },
   validationText: {
     marginBottom: spacing.sm,
@@ -451,22 +577,24 @@ const styles = StyleSheet.create({
   photoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: spacing.md,
     gap: spacing.sm,
   },
   photoItem: {
-    width: '48%',
+    width: (Dimensions.get('window').width - spacing.lg * 2 - spacing.sm * 2) / 3,
+    aspectRatio: 1,
     position: 'relative',
   },
   photoThumbnail: {
     width: '100%',
-    height: 120,
+    height: '100%',
     borderRadius: radius.input,
     backgroundColor: colors.background.secondary,
   },
   removeButton: {
     position: 'absolute',
-    top: spacing.xs,
-    right: spacing.xs,
+    top: -8,
+    right: -8,
     backgroundColor: colors.status.error,
     borderRadius: 12,
     width: 24,
@@ -475,9 +603,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   photoInfo: {
-    marginTop: spacing.xs,
-    textAlign: 'center',
-    color: colors.text.secondary,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: spacing.xs,
+    borderBottomLeftRadius: radius.input,
+    borderBottomRightRadius: radius.input,
+  },
+  photoName: {
+    color: colors.neutral.white,
+    fontSize: 10,
+  },
+  photoSize: {
+    color: colors.neutral.white,
+    fontSize: 9,
+    opacity: 0.8,
   },
   orDivider: {
     flexDirection: 'row',
@@ -495,5 +637,24 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     marginTop: spacing.xl,
+  },
+  virtualTourDisplay: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  virtualTourInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  virtualTourText: {
+    marginLeft: spacing.xs,
+    color: colors.text.primary,
   },
 }); 

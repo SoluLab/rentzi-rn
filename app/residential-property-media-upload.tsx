@@ -10,6 +10,7 @@ import {
   Alert,
   Platform,
   Dimensions,
+  ActionSheetIOS,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
@@ -21,6 +22,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Typography } from '@/components/ui/Typography';
 import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
+import { Input } from '@/components/ui/Input';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
@@ -69,9 +71,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
     },
   });
   const [errors, setErrors] = useState<MediaUploadErrors>({});
-  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
-  const [showVirtualTourOptions, setShowVirtualTourOptions] = useState(false);
-  const [virtualTourType, setVirtualTourType] = useState<'link' | 'file'>('link');
+  const [isUploading, setIsUploading] = useState(false);
 
   // Validation functions
   const validatePhotos = (photos: MediaUploadData['photos']): string | undefined => {
@@ -161,6 +161,62 @@ export default function ResidentialPropertyMediaUploadScreen() {
     return status === 'granted';
   };
 
+  const showPhotoPickerOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takePhoto();
+          } else if (buttonIndex === 2) {
+            pickImages();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Upload Photos',
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Take Photo', onPress: takePhoto },
+          { text: 'Choose from Library', onPress: pickImages },
+        ]
+      );
+    }
+  };
+
+  const showVideoPickerOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take Video', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takeVideo();
+          } else if (buttonIndex === 2) {
+            pickVideo();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Upload Video',
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Take Video', onPress: takeVideo },
+          { text: 'Choose from Library', onPress: pickVideo },
+        ]
+      );
+    }
+  };
+
   const pickImages = async () => {
     const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) {
@@ -233,11 +289,12 @@ export default function ResidentialPropertyMediaUploadScreen() {
   };
 
   // Virtual tour functions
-  const pickVideo = async () => {
+  const takeVideo = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'video/mp4',
-        copyToCacheDirectory: true,
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 0.8,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
@@ -245,8 +302,31 @@ export default function ResidentialPropertyMediaUploadScreen() {
         const newVirtualTour = {
           type: 'file' as const,
           value: asset.uri,
-          name: asset.name,
-          size: asset.size,
+          name: asset.fileName || `video_${Date.now()}.mp4`,
+          size: asset.fileSize || 0,
+        };
+        updateFormData('virtualTour', newVirtualTour);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take video. Please try again.');
+    }
+  };
+
+  const pickVideo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+        allowsEditing: false,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        const newVirtualTour = {
+          type: 'file' as const,
+          value: asset.uri,
+          name: asset.fileName || `video_${Date.now()}.mp4`,
+          size: asset.fileSize || 0,
         };
         updateFormData('virtualTour', newVirtualTour);
       }
@@ -335,7 +415,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
           
           <TouchableOpacity
             style={styles.uploadButton}
-            onPress={() => setShowPhotoOptions(true)}
+            onPress={showPhotoPickerOptions}
           >
             <Ionicons name="camera" size={24} color={colors.primary.gold} />
             <Typography variant="body" style={styles.uploadButtonText}>
@@ -357,39 +437,53 @@ export default function ResidentialPropertyMediaUploadScreen() {
           <Typography variant="body" style={styles.label}>
             Virtual Tour or Video Walkthrough
           </Typography>
+          
+          <Input
+            label="YouTube/Vimeo URL"
+            value={formData.virtualTour.type === 'link' ? formData.virtualTour.value : ''}
+            onChangeText={(value) => updateVirtualTourLink(value)}
+            placeholder="https://youtube.com/watch?v=..."
+            error={errors.virtualTour}
+          />
+          
           <Typography variant="caption" style={styles.helperText}>
-            Optional. YouTube/Vimeo link or MP4 file. Max 100MB.
+            Optional: Enter YouTube or Vimeo URL
           </Typography>
 
-          {formData.virtualTour.value ? (
+          <View style={styles.orDivider}>
+            <View style={styles.dividerLine} />
+            <Typography variant="caption" style={styles.orText}>
+              OR
+            </Typography>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={showVideoPickerOptions}
+          >
+            <Ionicons name="videocam" size={24} color={colors.primary.gold} />
+            <Typography variant="body" style={styles.uploadButtonText}>
+              Upload Video File
+            </Typography>
+          </TouchableOpacity>
+          
+          <Typography variant="caption" style={styles.helperText}>
+            Optional: MP4 format • Max 100MB
+          </Typography>
+
+          {formData.virtualTour.value && formData.virtualTour.type === 'file' && (
             <View style={styles.virtualTourDisplay}>
               <View style={styles.virtualTourInfo}>
-                <Ionicons 
-                  name={formData.virtualTour.type === 'link' ? 'link' : 'videocam'} 
-                  size={20} 
-                  color={colors.primary.gold} 
-                />
+                <Ionicons name="videocam" size={20} color={colors.primary.gold} />
                 <Typography variant="body" style={styles.virtualTourText}>
-                  {formData.virtualTour.type === 'link' 
-                    ? formData.virtualTour.value 
-                    : formData.virtualTour.name
-                  }
+                  {formData.virtualTour.name}
                 </Typography>
               </View>
               <TouchableOpacity onPress={removeVirtualTour}>
                 <Ionicons name="close" size={20} color={colors.text.secondary} />
               </TouchableOpacity>
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.uploadButton}
-              onPress={() => setShowVirtualTourOptions(true)}
-            >
-              <Ionicons name="videocam" size={24} color={colors.primary.gold} />
-              <Typography variant="body" style={styles.uploadButtonText}>
-                Add Virtual Tour
-              </Typography>
-            </TouchableOpacity>
           )}
 
           {errors.virtualTour && (
@@ -407,110 +501,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
         />
       </ScrollView>
 
-      {/* Photo Options Modal */}
-      <Modal
-        visible={showPhotoOptions}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Add Photos</Typography>
-            <TouchableOpacity onPress={() => setShowPhotoOptions(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                setShowPhotoOptions(false);
-                pickImages();
-              }}
-            >
-              <Ionicons name="images" size={24} color={colors.primary.gold} />
-              <Typography variant="body" style={styles.modalItemText}>
-                Choose from Library
-              </Typography>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                setShowPhotoOptions(false);
-                takePhoto();
-              }}
-            >
-              <Ionicons name="camera" size={24} color={colors.primary.gold} />
-              <Typography variant="body" style={styles.modalItemText}>
-                Take Photo
-              </Typography>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
-      {/* Virtual Tour Options Modal */}
-      <Modal
-        visible={showVirtualTourOptions}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Add Virtual Tour</Typography>
-            <TouchableOpacity onPress={() => setShowVirtualTourOptions(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.modalContent}>
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                setVirtualTourType('link');
-                setShowVirtualTourOptions(false);
-                Alert.prompt(
-                  'Enter Video Link',
-                  'Please enter a YouTube or Vimeo URL:',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { 
-                      text: 'Add', 
-                      onPress: (link) => {
-                        if (link) {
-                          updateVirtualTourLink(link);
-                        }
-                      }
-                    }
-                  ],
-                  'plain-text'
-                );
-              }}
-            >
-              <Ionicons name="link" size={24} color={colors.primary.gold} />
-              <Typography variant="body" style={styles.modalItemText}>
-                Add Video Link
-              </Typography>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={styles.modalItem}
-              onPress={() => {
-                setVirtualTourType('file');
-                setShowVirtualTourOptions(false);
-                pickVideo();
-              }}
-            >
-              <Ionicons name="videocam" size={24} color={colors.primary.gold} />
-              <Typography variant="body" style={styles.modalItemText}>
-                Upload Video File
-              </Typography>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </ScreenContainer>
   );
 }
@@ -626,30 +617,18 @@ const styles = StyleSheet.create({
   nextButton: {
     marginTop: spacing.xl,
   },
-  modalContainer: {
+  orDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: spacing.md,
+  },
+  dividerLine: {
     flex: 1,
-    backgroundColor: colors.neutral.white,
+    height: 1,
+    backgroundColor: colors.border.light,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  modalContent: {
-    padding: spacing.lg,
-  },
-  modalItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  modalItemText: {
-    marginLeft: spacing.md,
-    fontSize: 16,
+  orText: {
+    marginHorizontal: spacing.md,
+    color: colors.text.secondary,
   },
 }); 

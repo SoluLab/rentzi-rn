@@ -51,9 +51,10 @@ export interface FeaturesCompliance {
 }
 
 // Media uploads interface
+declare type VirtualTourType = string | { uri: string; name: string; size: number; type: string; };
 export interface MediaUploads {
   photos: MediaFile[];
-  virtualTour: string;
+  virtualTour: VirtualTourType;
 }
 
 // Documents interface
