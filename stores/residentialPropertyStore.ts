@@ -94,6 +94,11 @@ export interface LegalConsentsData {
   governanceRights: boolean;
 }
 
+// Listing purpose interface
+export interface ListingPurposeData {
+  selectedPurpose: string | null;
+}
+
 // Complete residential property data interface
 export interface ResidentialPropertyData {
   propertyDetails: PropertyDetails;
@@ -101,6 +106,7 @@ export interface ResidentialPropertyData {
   mediaUpload: MediaUploadData;
   documentsUpload: DocumentsUploadData;
   legalConsents: LegalConsentsData;
+  listingPurpose: ListingPurposeData;
   isSubmitted: boolean;
   submittedAt?: Date;
 }
@@ -113,6 +119,7 @@ interface ResidentialPropertyStore {
   updateMediaUpload: (mediaUpload: Partial<MediaUploadData>) => void;
   updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => void;
   updateLegalConsents: (legalConsents: Partial<LegalConsentsData>) => void;
+  updateListingPurpose: (listingPurpose: Partial<ListingPurposeData>) => void;
   submitProperty: () => void;
   resetStore: () => void;
   isPropertyDetailsComplete: () => boolean;
@@ -120,6 +127,7 @@ interface ResidentialPropertyStore {
   isMediaUploadComplete: () => boolean;
   isDocumentsUploadComplete: () => boolean;
   isLegalConsentsComplete: () => boolean;
+  isListingPurposeComplete: () => boolean;
   isAllSectionsComplete: () => boolean;
   getCompletionStatus: () => {
     propertyDetails: boolean;
@@ -127,6 +135,7 @@ interface ResidentialPropertyStore {
     mediaUpload: boolean;
     documentsUpload: boolean;
     legalConsents: boolean;
+    listingPurpose: boolean;
   };
 }
 
@@ -193,6 +202,9 @@ const initialData: ResidentialPropertyData = {
     liquidityLimitations: false,
     governanceRights: false,
   },
+  listingPurpose: {
+    selectedPurpose: null,
+  },
   isSubmitted: false,
 };
 
@@ -256,6 +268,18 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             legalConsents: {
               ...state.data.legalConsents,
               ...legalConsents,
+            },
+          },
+        }));
+      },
+
+      updateListingPurpose: (listingPurpose: Partial<ListingPurposeData>) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            listingPurpose: {
+              ...state.data.listingPurpose,
+              ...listingPurpose,
             },
           },
         }));
@@ -332,12 +356,18 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
         return Object.values(legalConsents).every(consent => consent === true);
       },
 
+      isListingPurposeComplete: () => {
+        const { listingPurpose } = get().data;
+        return listingPurpose.selectedPurpose !== null;
+      },
+
       isAllSectionsComplete: () => {
         return get().isPropertyDetailsComplete() && 
                get().isPricingValuationComplete() && 
                get().isMediaUploadComplete() &&
                get().isDocumentsUploadComplete() &&
-               get().isLegalConsentsComplete();
+               get().isLegalConsentsComplete() &&
+               get().isListingPurposeComplete();
       },
 
       getCompletionStatus: () => {
@@ -347,6 +377,7 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
           mediaUpload: get().isMediaUploadComplete(),
           documentsUpload: get().isDocumentsUploadComplete(),
           legalConsents: get().isLegalConsentsComplete(),
+          listingPurpose: get().isListingPurposeComplete(),
         };
       },
     }),

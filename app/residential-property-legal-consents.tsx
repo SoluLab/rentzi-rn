@@ -130,8 +130,8 @@ export default function ResidentialPropertyLegalConsentsScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to review details step (to be implemented)
-      Alert.alert('Success', 'Legal consents completed! Review step to be implemented.');
+      // Navigate to listing purpose step
+      router.push('/residential-property-listing-purpose');
     }
   };
 
