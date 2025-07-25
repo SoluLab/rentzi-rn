@@ -78,6 +78,13 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   }, []);
 
+  // Sync local state with store data
+  React.useEffect(() => {
+    if (data.documentsUpload) {
+      setFormData(data.documentsUpload);
+    }
+  }, [data.documentsUpload]);
+
   const [formData, setFormData] = useState<DocumentsUploadData>(data.documentsUpload || {
     propertyDeed: null,
     governmentId: null,
@@ -149,7 +156,11 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   };
 
   const updateFormData = (field: keyof DocumentsUploadData, value: any) => {
+    console.log(`updateFormData called: ${field} = ${value}`);
+    
     const newFormData = { ...formData, [field]: value };
+    console.log('New form data:', newFormData);
+    
     setFormData(newFormData);
     updateDocumentsUpload(newFormData);
     
@@ -320,6 +331,15 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     label: string,
     description: string
   ) => {
+    // Use store data directly to ensure we get the latest value
+    const currentValue = data.documentsUpload?.[field] ?? formData[field];
+    
+    console.log(`Toggle Debug - ${field}:`, {
+      currentValue,
+      formData: formData,
+      storeData: data.documentsUpload
+    });
+    
     return (
       <View style={styles.fieldContainer}>
         <Typography variant="body" style={styles.label}>
@@ -333,16 +353,19 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           <TouchableOpacity
             style={{
               ...styles.toggleButton,
-              ...(formData[field] ? styles.toggleButtonActive : {})
+              ...(currentValue ? styles.toggleButtonActive : {})
             }}
-            onPress={() => updateFormData(field, true)}
+            onPress={() => {
+              console.log(`Setting ${field} to true`);
+              updateFormData(field, true);
+            }}
           >
             <Typography 
               variant="body" 
-              style={[
-                styles.toggleButtonText,
-                formData[field] && styles.toggleButtonTextActive
-              ]}
+              style={{
+                ...styles.toggleButtonText,
+                ...(currentValue ? styles.toggleButtonTextActive : {})
+              }}
             >
               Yes
             </Typography>
@@ -351,24 +374,34 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           <TouchableOpacity
             style={{
               ...styles.toggleButton,
-              ...(!formData[field] ? styles.toggleButtonActive : {})
+              ...(!currentValue ? styles.toggleButtonActive : {})
             }}
             onPress={() => {
-              updateFormData(field, false);
+              console.log(`Setting ${field} to false`);
+              // Force immediate state update
+              const newValue = false;
+              const newFormData = { ...formData, [field]: newValue };
+              setFormData(newFormData);
+              updateDocumentsUpload(newFormData);
+              
               // Clear the document if toggling to No
               if (field === 'hasMortgage') {
-                updateFormData('mortgageStatement', null);
+                const updatedFormData = { ...newFormData, mortgageStatement: null };
+                setFormData(updatedFormData);
+                updateDocumentsUpload(updatedFormData);
               } else if (field === 'hasHOA') {
-                updateFormData('hoaDocuments', null);
+                const updatedFormData = { ...newFormData, hoaDocuments: null };
+                setFormData(updatedFormData);
+                updateDocumentsUpload(updatedFormData);
               }
             }}
           >
             <Typography 
               variant="body" 
-              style={[
-                styles.toggleButtonText,
-                !formData[field] && styles.toggleButtonTextActive
-              ]}
+              style={{
+                ...styles.toggleButtonText,
+                ...(!currentValue ? styles.toggleButtonTextActive : {})
+              }}
             >
               No
             </Typography>
@@ -452,7 +485,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             'If yes, please upload your current mortgage statement'
           )}
           
-          {formData.hasMortgage && 
+          {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) && 
             renderDocumentField(
               'mortgageStatement',
               'Mortgage Statement',
@@ -467,7 +500,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             'If yes, please upload relevant HOA documents'
           )}
           
-          {formData.hasHOA && 
+          {(data.documentsUpload?.hasHOA ?? formData.hasHOA) && 
             renderDocumentField(
               'hoaDocuments',
               'HOA Documents',
@@ -616,6 +649,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.lightGray,
     borderRadius: radius.input,
     padding: spacing.xs,
+    gap: spacing.xs,
   },
   toggleButton: {
     flex: 1,
@@ -623,9 +657,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.input,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
   },
   toggleButtonActive: {
     backgroundColor: colors.primary.gold,
+    shadowColor: colors.primary.gold,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   toggleButtonText: {
     color: colors.text.secondary,

@@ -86,7 +86,14 @@ export default function ResidentialPropertyMediaUploadScreen() {
       if (photo.width < 800 || photo.height < 600) {
         return 'Each photo must be at least 800x600 pixels';
       }
-      if (!['image/jpeg', 'image/jpg', 'image/png'].includes(photo.type)) {
+      // More flexible file type checking
+      const fileType = photo.type?.toLowerCase() || '';
+      const fileName = photo.name?.toLowerCase() || '';
+      const isJPEG = fileType.includes('jpeg') || fileType.includes('jpg') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg');
+      const isPNG = fileType.includes('png') || fileName.endsWith('.png');
+      
+      if (!isJPEG && !isPNG) {
+        console.log('Invalid photo type:', { type: photo.type, name: photo.name, fileType, fileName });
         return 'Only JPG and PNG files are allowed';
       }
     }
@@ -94,8 +101,9 @@ export default function ResidentialPropertyMediaUploadScreen() {
   };
 
   const validateVirtualTour = (virtualTour: MediaUploadData['virtualTour']): string | undefined => {
-    if (!virtualTour.value.trim()) {
-      return undefined; // Optional field
+    // Check if either link or file is provided
+    if (!virtualTour.value || !virtualTour.value.trim()) {
+      return 'Please provide either a YouTube/Vimeo URL or upload a video file'; // Mandatory field
     }
 
     if (virtualTour.type === 'link') {
@@ -137,17 +145,25 @@ export default function ResidentialPropertyMediaUploadScreen() {
   };
 
   const isFormValid = () => {
-    // Re-validate the form to check if it's actually valid
-    const newErrors: MediaUploadErrors = {};
-
-    newErrors.photos = validatePhotos(formData.photos);
-    newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
-
-    // Check if all required fields are filled and no validation errors
-    return (
-      formData.photos.length >= 3 &&
-      Object.values(newErrors).every(error => !error)
-    );
+    // Check if minimum photos requirement is met
+    const hasMinimumPhotos = formData.photos.length >= 3;
+    
+    // Check for validation errors
+    const photoError = validatePhotos(formData.photos);
+    const virtualTourError = validateVirtualTour(formData.virtualTour);
+    
+    // Debug logging
+    console.log('Form Validation Debug:', {
+      photosCount: formData.photos.length,
+      hasMinimumPhotos,
+      photoError,
+      virtualTourError,
+      virtualTourData: formData.virtualTour,
+      isFormValid: hasMinimumPhotos && !photoError && !virtualTourError
+    });
+    
+    // Form is valid if we have minimum photos and no validation errors
+    return hasMinimumPhotos && !photoError && !virtualTourError;
   };
 
   // Photo upload functions
@@ -447,7 +463,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
           />
           
           <Typography variant="caption" style={styles.helperText}>
-            Optional: Enter YouTube or Vimeo URL
+            Required: Enter YouTube or Vimeo URL
           </Typography>
 
           <View style={styles.orDivider}>
@@ -469,7 +485,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
           </TouchableOpacity>
           
           <Typography variant="caption" style={styles.helperText}>
-            Optional: MP4 format • Max 100MB
+            Required: MP4 format • Max 100MB
           </Typography>
 
           {formData.virtualTour.value && formData.virtualTour.type === 'file' && (
