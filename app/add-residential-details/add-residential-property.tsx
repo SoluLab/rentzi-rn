@@ -339,7 +339,7 @@ export default function AddResidentialPropertyScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-      <Header title="Add Residential Property" />
+      <Header title={id ? "Edit Residential Property" : "Add Residential Property"} />
       <ScrollView 
         style={styles.container}
         contentContainerStyle={styles.content}
