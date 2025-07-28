@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -74,6 +76,8 @@ interface ValidationErrors {
 
 export default function AddResidentialPropertyScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
+  const { getPropertyById } = useHomeownerPropertyStore();
   const { data, updatePropertyDetails, resetStore } = useResidentialPropertyStore();
   
   // Reset store if property was already submitted
@@ -82,8 +86,30 @@ export default function AddResidentialPropertyScreen() {
       resetStore();
     }
   }, []);
-  
+
+  // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>(data.propertyDetails);
+  useEffect(() => {
+    if (id) {
+      const property = getPropertyById(id as string);
+      if (property) {
+        setFormData({
+          propertyTitle: property.title || '',
+          market: property.location || '',
+          otherMarket: '',
+          pincode: '',
+          fullAddress: property.location || '',
+          propertyType: property.data?.propertyDetails?.propertyType || '',
+          yearBuilt: property.data?.propertyDetails?.yearBuilt?.toString() || '',
+          bedrooms: property.bedrooms?.toString() || '',
+          bathrooms: property.bathrooms?.toString() || '',
+          guestCapacity: property.data?.propertyDetails?.guestCapacity?.toString() || '',
+          squareFootage: property.squareFootage?.toString() || '',
+        });
+      }
+    }
+  }, [id, getPropertyById]);
+  
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showMarketModal, setShowMarketModal] = useState(false);
   const [showPropertyTypeModal, setShowPropertyTypeModal] = useState(false);

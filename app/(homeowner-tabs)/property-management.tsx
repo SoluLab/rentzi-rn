@@ -89,7 +89,10 @@ export default function PropertyManagementScreen() {
     if (property.type === 'commercial') {
       router.push('/add-commercial-details/add-commercial-property');
     } else {
-      router.push('/add-residential-details/add-residential-property');
+      router.push({
+        pathname: '/add-residential-details/add-residential-property',
+        params: { id: property.id },
+      });
     }
   };
 
