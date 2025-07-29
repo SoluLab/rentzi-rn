@@ -21,13 +21,15 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
-import { Camera, CheckCircle2 } from 'lucide-react-native';
+import { Camera, CheckCircle2, Settings, Upload, Eye } from 'lucide-react-native';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
   const [name, setName] = useState(user?.name || ' ');
   const [email, setEmail] = useState(user?.email || '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.profileDetails?.phone || '');
+  const [address, setAddress] = useState('');
   const [originalEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -156,6 +158,8 @@ export default function EditProfileScreen() {
   const updateField = (field: string, value: string) => {
     if (field === 'name') setName(value);
     if (field === 'email') setEmail(value);
+    if (field === 'phoneNumber') setPhoneNumber(value);
+    if (field === 'address') setAddress(value);
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
     if (field === 'confirmPassword') setConfirmPassword(value);
@@ -223,6 +227,23 @@ export default function EditProfileScreen() {
                 You will need to verify your new email address.
               </Typography>
             )}
+            <Input
+              label="Phone Number"
+              value={phoneNumber}
+              onChangeText={(value) => updateField('phoneNumber', value)}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              error={errors.phoneNumber}
+            />
+            <Input
+              label="Address"
+              value={address}
+              onChangeText={(value) => updateField('address', value)}
+              placeholder="Enter your address"
+              multiline
+              numberOfLines={3}
+              error={errors.address}
+            />
           </View>
           {/* Change Password */}
           <View style={styles.section}>
@@ -263,6 +284,69 @@ export default function EditProfileScreen() {
               error={errors.confirmPassword}
             />
           </View>
+          
+          {/* Profile Actions - HOME-11-1 Requirements */}
+          <View style={styles.section}>
+            <Typography variant="h4" style={styles.sectionTitle}>
+              Profile Actions
+            </Typography>
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity 
+                style={styles.actionItem} 
+                onPress={() => console.log('Contact preferences')}
+              >
+                <View style={styles.actionContent}>
+                  <View style={styles.actionIcon}>
+                    <Settings size={24} color={colors.text.primary} />
+                  </View>
+                  <View style={styles.actionText}>
+                    <Typography variant="body">Update Contact Preferences</Typography>
+                    <Typography variant="caption" color="secondary">
+                      Manage your notification and contact settings
+                    </Typography>
+                  </View>
+                </View>
+                <CheckCircle2 size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionItem} 
+                onPress={() => console.log('Upload ID')}
+              >
+                <View style={styles.actionContent}>
+                  <View style={styles.actionIcon}>
+                    <Upload size={24} color={colors.text.primary} />
+                  </View>
+                  <View style={styles.actionText}>
+                    <Typography variant="body">Upload ID Document</Typography>
+                    <Typography variant="caption" color="secondary">
+                      Upload or update your identification documents
+                    </Typography>
+                  </View>
+                </View>
+                <CheckCircle2 size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionItem} 
+                onPress={() => console.log('KYC Status')}
+              >
+                <View style={styles.actionContent}>
+                  <View style={styles.actionIcon}>
+                    <Eye size={24} color={colors.text.primary} />
+                  </View>
+                  <View style={styles.actionText}>
+                    <Typography variant="body">View KYC Status</Typography>
+                    <Typography variant="caption" color="secondary">
+                      Check your Know Your Customer verification status
+                    </Typography>
+                  </View>
+                </View>
+                <CheckCircle2 size={20} color={colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
           {/* Save Button */}
           <View style={styles.buttonContainer}>
             <Button
@@ -332,5 +416,35 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginBottom: spacing.lg,
+  },
+  actionsContainer: {
+    backgroundColor: colors.neutral.white,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: colors.neutral.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  actionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  actionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  actionIcon: {
+    marginRight: spacing.md,
+  },
+  actionText: {
+    flex: 1,
+    gap: spacing.xs,
   },
 });
