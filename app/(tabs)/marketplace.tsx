@@ -20,7 +20,7 @@ import { Header } from "@/components/ui/Header";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { useAuthStore } from "@/stores/authStore";
-import { ShoppingCart, ChevronDown } from "lucide-react-native";
+import { ShoppingCart, ChevronDown, List, User, Clock, CheckCircle } from "lucide-react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 const { width } = Dimensions.get("window");
@@ -307,88 +307,96 @@ export default function MarketplaceScreen() {
         showBackButton={false}
       />
       */}
-      {/* Tab Section */}
-      <View style={styles.tabContainerCustom}>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "main" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("main")}
-          activeOpacity={0.8}
+      {/* Horizontal Scrollable Segmented Tab Section */}
+      <View style={styles.segmentedTabContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.segmentedTabScrollContent}
         >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "main" && styles.activeTabTextCustom,
-              ] as any
-            }
+          <TouchableOpacity
+            style={[
+              styles.segmentedTab,
+              activeTab === "main" && styles.activeSegmentedTab,
+            ]}
+            onPress={() => setActiveTab("main")}
+            activeOpacity={0.8}
           >
-            Main Listings
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "my" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("my")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "my" && styles.activeTabTextCustom,
-              ] as any
-            }
+            <View style={styles.tabContentRow}>
+              <List 
+                size={16} 
+                color={activeTab === "main" ? colors.text.inverse : colors.text.secondary} 
+              />
+              <Typography
+                variant="body2"
+                color={activeTab === "main" ? "white" : "secondary"}
+              >
+                Main Listings
+              </Typography>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.segmentedTab,
+              activeTab === "my" && styles.activeSegmentedTab,
+            ]}
+            onPress={() => setActiveTab("my")}
+            activeOpacity={0.8}
           >
-            My Listings
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "requests" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("requests")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "requests" && styles.activeTabTextCustom,
-              ] as any
-            }
+            <View style={styles.tabContentRow}>
+              <User 
+                size={16} 
+                color={activeTab === "my" ? colors.text.inverse : colors.text.secondary} 
+              />
+              <Typography
+                variant="body2"
+                color={activeTab === "my" ? "white" : "secondary"}
+              >
+                My Listings
+              </Typography>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.segmentedTab,
+              activeTab === "requests" && styles.activeSegmentedTab,
+            ]}
+            onPress={() => setActiveTab("requests")}
+            activeOpacity={0.8}
           >
-            Purchase Requests
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "purchases" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("purchases")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "purchases" && styles.activeTabTextCustom,
-              ] as any
-            }
+            <View style={styles.tabContentRow}>
+              <Clock 
+                size={16} 
+                color={activeTab === "requests" ? colors.text.inverse : colors.text.secondary} 
+              />
+              <Typography
+                 variant="body2"
+                 color={activeTab === "requests" ? "white" : "secondary"}>
+                Purchase Requests
+              </Typography>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.segmentedTab,
+              activeTab === "purchases" && styles.activeSegmentedTab,
+            ]}
+            onPress={() => setActiveTab("purchases")}
+            activeOpacity={0.8}
           >
-            Purchases Done
-          </Typography>
-        </TouchableOpacity>
+            <View style={styles.tabContentRow}>
+              <CheckCircle 
+                size={16} 
+                color={activeTab === "purchases" ? colors.text.inverse : colors.text.secondary} 
+              />
+              <Typography 
+                variant="body2"
+                color={activeTab === "purchases" ? "white" : "secondary"}>
+                Purchases Done
+              </Typography>
+            </View>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
       {/* Tab Content */}
       {activeTab === "main" && (
@@ -400,7 +408,7 @@ export default function MarketplaceScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTitleContainer}>
-                <Typography variant="h5" style={styles.sectionTitle}>
+                <Typography variant="h6" style={styles.sectionTitle}>
                   Available Token Listings
                 </Typography>
                 <Typography variant="caption" color="secondary">
@@ -1332,8 +1340,10 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border.primary,
+    borderColor: colors.border.medium,
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
   },
   sortButtonText: {
     fontWeight: "600",
@@ -2270,34 +2280,53 @@ const styles = StyleSheet.create({
   confirmPurchaseButton: {
     backgroundColor: colors.primary.gold,
   },
-  // Add custom tab styles
-  tabContainerCustom: {
-    flexDirection: "row",
-    backgroundColor: colors.background.secondary,
+  // Horizontal Scrollable Segmented Tab styles
+  segmentedTabContainer: {
     marginHorizontal: spacing.layout.screenPadding,
     marginTop: spacing.md,
     marginBottom: spacing.md,
-    borderRadius: radius.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.primary.gold,
   },
-  tabCustom: {
-    flex: 1,
-    paddingVertical: spacing.md,
+  segmentedTabScrollContent: {
+    paddingHorizontal: spacing.xs,
+    gap: spacing.xs,
+  },
+  segmentedTab: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    borderRadius: radius.lg,
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderColor: colors.border.medium,
+    minWidth: 120,
   },
-  activeTabCustom: {
+  activeSegmentedTab: {
     backgroundColor: colors.primary.gold,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary.gold,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 4,
+      },
+    }),
   },
-  tabTextCustom: {
+  segmentedTabText: {
     fontWeight: "600",
-    color: colors.text.primary,
-    fontSize: 16,
+    color: colors.text.secondary,
+    fontSize: 14,
   },
-  activeTabTextCustom: {
+  activeSegmentedTabText: {
     color: colors.text.inverse,
+    fontWeight: "700",
+  },
+  tabContentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
 });
