@@ -6,6 +6,8 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
 import { Modal } from '@/components/ui/Modal';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Input } from '@/components/ui/Input';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
@@ -30,6 +32,8 @@ import {
   Building,
   Edit3,
   Trash2,
+  Coins,
+  AlertTriangle,
 } from 'lucide-react-native';
 
 export default function PropertyManagementScreen() {
@@ -42,15 +46,21 @@ export default function PropertyManagementScreen() {
     fetchProperties, 
     deleteProperty, 
     updatePropertyStatus,
+    pauseFractionalization,
     syncFromCommercialStore,
     syncFromResidentialStore
   } = useHomeownerPropertyStore();
   
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [propertyListFilter, setPropertyListFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [tokenizedFilter, setTokenizedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('approved');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<HomeownerProperty | null>(null);
+  const [activeTab, setActiveTab] = useState<'property-list' | 'tokenized'>('property-list');
+  const [showPauseBottomSheet, setShowPauseBottomSheet] = useState(false);
+  const [pauseReason, setPauseReason] = useState('');
+  const [propertyToPause, setPropertyToPause] = useState<HomeownerProperty | null>(null);
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -59,6 +69,15 @@ export default function PropertyManagementScreen() {
     syncFromCommercialStore();
     syncFromResidentialStore();
   }, []);
+
+  // Reset filters when tab changes
+  useEffect(() => {
+    if (activeTab === 'tokenized') {
+      setTokenizedFilter('approved');
+    } else if (activeTab === 'property-list') {
+      setPropertyListFilter('all');
+    }
+  }, [activeTab]);
 
   const handleAddProperty = () => {
     setShowPropertyModal(true);
@@ -113,6 +132,31 @@ export default function PropertyManagementScreen() {
     );
   };
 
+  const handlePauseFractionalization = (property: HomeownerProperty) => {
+    setPropertyToPause(property);
+    setPauseReason('');
+    setShowPauseBottomSheet(true);
+  };
+
+  const handleConfirmPause = async () => {
+    if (!propertyToPause) return;
+    
+    try {
+      await pauseFractionalization(propertyToPause.id, pauseReason);
+      setShowPauseBottomSheet(false);
+      setPropertyToPause(null);
+      setPauseReason('');
+    } catch (error) {
+      console.error('Failed to pause fractionalization:', error);
+    }
+  };
+
+  const handleCancelPause = () => {
+    setShowPauseBottomSheet(false);
+    setPropertyToPause(null);
+    setPauseReason('');
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
@@ -162,7 +206,8 @@ export default function PropertyManagementScreen() {
   const filteredProperties = properties.filter((property) => {
     const matchesSearch = property.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          property.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = selectedFilter === 'all' || property.status === selectedFilter;
+    const currentFilter = activeTab === 'property-list' ? propertyListFilter : tokenizedFilter;
+    const matchesFilter = currentFilter === 'all' || property.status === currentFilter;
     return matchesSearch && matchesFilter;
   });
 
@@ -274,6 +319,19 @@ export default function PropertyManagementScreen() {
               </Typography>
             </TouchableOpacity>
           </View>
+
+          {/* Pause Fractionalization Button - Only for approved tokenized properties in Tokenized tab */}
+          {activeTab === 'tokenized' && property.status === 'approved' && (
+            <View style={styles.pauseFractionalizationContainer}>
+              <Button
+                title="Pause Fractionalization"
+                onPress={() => handlePauseFractionalization(property)}
+                variant="primary"
+                 
+                style={styles.pauseFractionalizationButton}
+              />
+            </View>
+          )}
         </View>
       </Card>
     );
@@ -341,105 +399,351 @@ export default function PropertyManagementScreen() {
       />
       
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Add Property Button */}
-        <View style={styles.section}>
-          <Button
-            title="Add New Property"
-            onPress={handleAddProperty}
-            style={styles.addPropertyButton}
-          />
-        </View>
 
-        {/* Search and Filter Section */}
+        {/* Main Tab Navigation */}
         <View style={styles.section}>
-          <View style={styles.searchContainer}>
-            <View style={styles.searchInputContainer}>
-              <Search size={20} color={colors.text.secondary} style={styles.searchIcon} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search properties..."
-                placeholderTextColor={colors.text.secondary}
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-              />
-            </View>
+          <View style={styles.tabContainer}>
             <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setShowFilters(!showFilters)}
+              style={[styles.tabButton, activeTab === 'property-list' && styles.activeTabButton]}
+              onPress={() => setActiveTab('property-list')}
             >
-              <Filter size={20} color={colors.primary.navy} />
+              <Building2 size={20} color={activeTab === 'property-list' ? colors.neutral.white : colors.text.secondary} />
+              <Typography 
+                variant="body" 
+                color={activeTab === 'property-list' ? 'white' : 'secondary'}
+                style={styles.tabText}
+              >
+                Property List
+              </Typography>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.tabButton, activeTab === 'tokenized' && styles.activeTabButton]}
+              onPress={() => setActiveTab('tokenized')}
+            >
+              <Coins size={20} color={activeTab === 'tokenized' ? colors.neutral.white : colors.text.secondary} />
+              <Typography 
+                variant="body" 
+                color={activeTab === 'tokenized' ? 'white' : 'secondary'}
+                style={styles.tabText}
+              >
+                Tokenized
+              </Typography>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Filter Tabs */}
-        <View style={styles.section}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.filterContainer}>
-              {[
-                { key: 'all', label: 'All Properties' },
-                { key: 'pending', label: 'Awaiting Approval' },
-                { key: 'approved', label: 'Approved' },
-                { key: 'rejected', label: 'Reassigned with Reason' },
-              ].map((filter) => (
-                <TouchableOpacity
-                  key={filter.key}
-                  onPress={() => setSelectedFilter(filter.key as any)}
-                  style={[
-                    styles.filterTab,
-                    selectedFilter === filter.key && styles.activeFilterTab,
-                  ]}
-                >
-                  <Typography
-                    variant="body"
-                    color={selectedFilter === filter.key ? 'inverse' : 'secondary'}
-                    style={styles.filterText}
-                  >
-                    {filter.label} ({getFilterCount(filter.key)})
-                  </Typography>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* Properties List */}
-        <View style={styles.section}>
-          {filteredProperties.length > 0 ? (
-            <FlatList
-              data={filteredProperties}
-              renderItem={renderPropertyCard}
-              keyExtractor={(item) => item.id}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
+        {/* Add Property Button - Only show for Property List tab */}
+        {activeTab === 'property-list' && (
+          <View style={styles.section}>
+            <Button
+              title="Add New Property"
+              onPress={handleAddProperty}
+              style={styles.addPropertyButton}
             />
-          ) : (
-            <Card style={styles.emptyState}>
-              <Building2 size={48} color={colors.text.secondary} />
-              <Typography variant="h4" color="secondary" align="center">
-                No properties found
-              </Typography>
-              <Typography variant="body" color="secondary" align="center">
-                {searchQuery
-                  ? 'No properties match your search criteria'
-                  : selectedFilter === 'all'
-                  ? 'Start by adding your first property'
-                  : `No ${selectedFilter} properties at the moment`}
-              </Typography>
-              {selectedFilter === 'all' && !searchQuery && (
-                <Button
-                  title="Add Property"
-                  onPress={handleAddProperty}
-                  style={styles.emptyStateButton}
+          </View>
+        )}
+
+        {/* Property List Tab Content */}
+        {activeTab === 'property-list' && (
+          <>
+            {/* Search and Filter Section */}
+            <View style={styles.section}>
+              <View style={styles.searchContainer}>
+                <View style={styles.searchInputContainer}>
+                  <Search size={20} color={colors.text.secondary} style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search properties..."
+                    placeholderTextColor={colors.text.secondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => setShowFilters(!showFilters)}
+                >
+                  <Filter size={20} color={colors.primary.navy} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Filter Tabs */}
+            <View style={styles.section}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterContainer}>
+                  {[
+                    { key: 'all', label: 'All Properties' },
+                    { key: 'pending', label: 'Awaiting Approval' },
+                    { key: 'approved', label: 'Approved' },
+                    { key: 'rejected', label: 'Reassigned with Reason' },
+                  ].map((filter) => (
+                    <TouchableOpacity
+                      key={filter.key}
+                      onPress={() => setPropertyListFilter(filter.key as any)}
+                      style={[
+                        styles.filterTab,
+                        propertyListFilter === filter.key && styles.activeFilterTab,
+                      ]}
+                    >
+                      <Typography
+                        variant="body"
+                        color={propertyListFilter === filter.key ? 'inverse' : 'secondary'}
+                        style={styles.filterText}
+                      >
+                        {filter.label} ({getFilterCount(filter.key)})
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Properties List */}
+            <View style={styles.section}>
+              {filteredProperties.length > 0 ? (
+                <FlatList
+                  data={filteredProperties}
+                  renderItem={renderPropertyCard}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
                 />
+              ) : (
+                <Card style={styles.emptyState}>
+                  <Building2 size={48} color={colors.text.secondary} />
+                  <Typography variant="h4" color="secondary" align="center">
+                    No properties found
+                  </Typography>
+                  <Typography variant="body" color="secondary" align="center">
+                    {searchQuery
+                      ? 'No properties match your search criteria'
+                      : propertyListFilter === 'all'
+                      ? 'Start by adding your first property'
+                      : `No ${propertyListFilter} properties at the moment`}
+                  </Typography>
+                  {propertyListFilter === 'all' && !searchQuery && (
+                    <Button
+                      title="Add Property"
+                      onPress={handleAddProperty}
+                      style={styles.emptyStateButton}
+                    />
+                  )}
+                </Card>
               )}
-            </Card>
-          )}
-        </View>
+            </View>
+          </>
+        )}
+
+        {/* Tokenized Tab Content */}
+        {activeTab === 'tokenized' && (
+          <>
+            {/* Search and Filter Section for Tokenized */}
+            <View style={styles.section}>
+              <View style={styles.searchContainer}>
+                <View style={styles.searchInputContainer}>
+                  <Search size={20} color={colors.text.secondary} style={styles.searchIcon} />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search tokenized properties..."
+                    placeholderTextColor={colors.text.secondary}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.filterButton}
+                  onPress={() => setShowFilters(!showFilters)}
+                >
+                  <Filter size={20} color={colors.primary.navy} />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Filter Tabs for Tokenized */}
+            <View style={styles.section}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterContainer}>
+                  {[
+                    { key: 'approved', label: 'Tokenized' },
+                    { key: 'pending', label: 'Pending Tokenization' },
+                    { key: 'rejected', label: 'Tokenization Failed' },
+                  ].map((filter) => (
+                    <TouchableOpacity
+                      key={filter.key}
+                      onPress={() => setTokenizedFilter(filter.key as any)}
+                      style={[
+                        styles.filterTab,
+                        tokenizedFilter === filter.key && styles.activeFilterTab,
+                      ]}
+                    >
+                      <Typography
+                        variant="body"
+                        color={tokenizedFilter === filter.key ? 'inverse' : 'secondary'}
+                        style={styles.filterText}
+                      >
+                        {filter.label} ({getFilterCount(filter.key)})
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+
+            {/* Tokenized Properties List */}
+            <View style={styles.section}>
+              {filteredProperties.length > 0 ? (
+                <FlatList
+                  data={filteredProperties}
+                  renderItem={renderPropertyCard}
+                  keyExtractor={(item) => item.id}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={false}
+                  ItemSeparatorComponent={() => <View style={styles.separator} />}
+                />
+              ) : (
+                <Card style={styles.emptyState}>
+                  <Coins size={48} color={colors.text.secondary} />
+                  <Typography variant="h4" color="secondary" align="center">
+                    No tokenized properties found
+                  </Typography>
+                  <Typography variant="body" color="secondary" align="center">
+                    {searchQuery
+                      ? 'No tokenized properties match your search criteria'
+                      : tokenizedFilter === 'approved'
+                      ? 'Start by tokenizing your first property'
+                      : `No ${tokenizedFilter} tokenized properties at the moment`}
+                  </Typography>
+
+                </Card>
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
       
       <PropertyTypeModal />
+      
+      {/* Pause Fractionalization Bottom Sheet */}
+      <BottomSheet
+        visible={showPauseBottomSheet}
+        onClose={handleCancelPause}
+        title="Pause Fractionalization?"
+      >
+        {propertyToPause && (
+          <View style={styles.bottomSheetContent}>
+            <Typography variant="body" color="secondary" style={styles.bottomSheetSubtitle}>
+              This will temporarily stop new token investments.
+            </Typography>
+            
+            {/* Property Details */}
+            <View style={styles.propertyDetailsSection}>
+              <View style={styles.propertyThumbnailContainer}>
+                <Image source={{ uri: propertyToPause.image }} style={styles.propertyThumbnail} />
+                <View style={styles.propertyInfo}>
+                  <Typography variant="h5" numberOfLines={2}>
+                    {propertyToPause.title}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {propertyToPause.location}
+                  </Typography>
+                </View>
+              </View>
+              
+              {/* Token Details */}
+              <View style={styles.tokenDetailsContainer}>
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Token Name/Symbol:
+                  </Typography>
+                  <Typography variant="body" style={styles.tokenValue}>
+                    {propertyToPause.tokenSymbol || 'N/A'}
+                  </Typography>
+                </View>
+                
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Current Status:
+                  </Typography>
+                  <View style={[styles.tokenStatusBadge, { backgroundColor: propertyToPause.tokenStatus === 'active' ? colors.status.success : colors.status.error }]}>
+                    <Typography variant="caption" color="inverse">
+                      {propertyToPause.tokenStatus === 'active' ? 'Active' : 'Paused'}
+                    </Typography>
+                  </View>
+                </View>
+                
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Total Tokens Issued:
+                  </Typography>
+                  <Typography variant="body" style={styles.tokenValue}>
+                    {propertyToPause.totalTokensIssued?.toLocaleString() || '0'}
+                  </Typography>
+                </View>
+                
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Investors Count:
+                  </Typography>
+                  <Typography variant="body" style={styles.tokenValue}>
+                    {propertyToPause.investorsCount?.toLocaleString() || '0'}
+                  </Typography>
+                </View>
+                
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Total Investment Raised:
+                  </Typography>
+                  <Typography variant="body" style={styles.tokenValue}>
+                    ₹{propertyToPause.totalInvestmentRaised?.toLocaleString() || '0'}
+                  </Typography>
+                </View>
+              </View>
+              
+              {/* Warning Message */}
+              <View style={styles.warningContainer}>
+                <AlertTriangle size={16} color={colors.status.error} />
+                <Typography variant="caption" color="error" style={styles.warningText}>
+                  Pausing fractionalization will prevent new investors from purchasing tokens. Existing token holders will not be affected.
+                </Typography>
+              </View>
+              
+              {/* Reason Input */}
+              <View style={styles.reasonInputContainer}>
+                <Typography variant="body" color="secondary" style={styles.reasonLabel}>
+                  Reason for Pausing (Optional)
+                </Typography>
+                <Input
+                  placeholder="Enter reason for pausing..."
+                  value={pauseReason}
+                  onChangeText={setPauseReason}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.reasonInput}
+                />
+              </View>
+              
+              {/* Action Buttons */}
+              <View style={styles.bottomSheetActions}>
+                <Button
+                  title="Cancel"
+                  onPress={handleCancelPause}
+                  variant="outline"
+                  style={styles.cancelButton}
+                />
+                <Button
+                  title="Confirm Pause"
+                  onPress={handleConfirmPause}
+                  variant="primary"
+                  style={styles.confirmButton}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </BottomSheet>
     </View>
   );
 }
@@ -450,11 +754,37 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background.primary,
+    backgroundColor: colors.background.secondary,
   },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
+
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    padding: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.small,
+  },
+  tabButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.md,
+  },
+  activeTabButton: {
+    backgroundColor: colors.primary.gold,
+  },
+  tabText: {
+    fontWeight: '600',
   },
   addPropertyButton: {
     marginHorizontal: 0,
@@ -675,5 +1005,94 @@ const styles = StyleSheet.create({
   },
   propertyTypeDescription: {
     lineHeight: 16,
+  },
+  pauseFractionalizationContainer: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+  },
+  pauseFractionalizationButton: {
+    width: '100%',
+  },
+  // Bottom Sheet Styles
+  bottomSheetContent: {
+    gap: spacing.lg,
+  },
+  bottomSheetSubtitle: {
+    marginBottom: spacing.md,
+  },
+  propertyDetailsSection: {
+    gap: spacing.lg,
+  },
+  propertyThumbnailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.background.secondary,
+    borderRadius: radius.lg,
+  },
+  propertyThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.md,
+  },
+  propertyInfo: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  tokenDetailsContainer: {
+    gap: spacing.md,
+  },
+  tokenDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs,
+  },
+  tokenValue: {
+    fontWeight: '600',
+  },
+  tokenStatusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  warningContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: radius.lg,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.status.error,
+  },
+  warningText: {
+    flex: 1,
+    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  reasonInputContainer: {
+    gap: spacing.sm,
+  },
+  reasonLabel: {
+    fontWeight: '500',
+  },
+  reasonInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  bottomSheetActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+  },
+  cancelButton: {
+    flex: 1,
+  },
+  confirmButton: {
+    flex: 1,
   },
 });

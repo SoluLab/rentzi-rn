@@ -16,7 +16,8 @@ interface TypographyProps {
     | 'success'
     | 'warning'
     | 'info'
-    | 'muted';
+    | 'muted'
+    | 'white';
   align?: 'left' | 'center' | 'right' | 'justify';
   weight?: keyof typeof typography.fontWeight;
   style?: TextStyle;
