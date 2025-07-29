@@ -172,7 +172,7 @@ export default function BookingHomeownerDetailScreen() {
           <View style={styles.actionButtonsContainer}>
             <Button
               variant="primary"
-              size="large"
+              size="medium"
               style={styles.primaryActionButton}
               onPress={handleApprove}
               title="Approve Booking"
@@ -180,21 +180,21 @@ export default function BookingHomeownerDetailScreen() {
             <View style={styles.secondaryActionsRow}>
               <Button
                 variant="outline"
-                size="medium"
+                size="small"
                 onPress={handleCancel}
                 style={styles.secondaryActionButton}
                 title="Cancel"
               />
               <Button
                 variant="outline"
-                size="medium"
+                size="small"
                 onPress={handleContactGuest}
                 style={styles.secondaryActionButton}
                 title="Contact"
               />
               <Button
                 variant="outline"
-                size="medium"
+                size="small"
                 onPress={handleReschedule}
                 style={styles.secondaryActionButton}
                 title="Reschedule"
@@ -665,7 +665,6 @@ const styles = StyleSheet.create({
   },
   secondaryActionButton: {
     flex: 1,
-    minWidth: 0,
   },
   feedbackRow: {
     flexDirection: "row",

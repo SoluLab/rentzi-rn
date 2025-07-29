@@ -327,7 +327,7 @@ export default function PropertyManagementScreen() {
                 title="Pause Fractionalization"
                 onPress={() => handlePauseFractionalization(property)}
                 variant="primary"
-                 
+                size="medium"
                 style={styles.pauseFractionalizationButton}
               />
             </View>
@@ -433,16 +433,7 @@ export default function PropertyManagementScreen() {
           </View>
         </View>
 
-        {/* Add Property Button - Only show for Property List tab */}
-        {activeTab === 'property-list' && (
-          <View style={styles.section}>
-            <Button
-              title="Add New Property"
-              onPress={handleAddProperty}
-              style={styles.addPropertyButton}
-            />
-          </View>
-        )}
+
 
         {/* Property List Tab Content */}
         {activeTab === 'property-list' && (
@@ -562,36 +553,6 @@ export default function PropertyManagementScreen() {
               </View>
             </View>
 
-            {/* Filter Tabs for Tokenized */}
-            <View style={styles.section}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.filterContainer}>
-                  {[
-                    { key: 'approved', label: 'Tokenized' },
-                    { key: 'pending', label: 'Pending Tokenization' },
-                    { key: 'rejected', label: 'Tokenization Failed' },
-                  ].map((filter) => (
-                    <TouchableOpacity
-                      key={filter.key}
-                      onPress={() => setTokenizedFilter(filter.key as any)}
-                      style={[
-                        styles.filterTab,
-                        tokenizedFilter === filter.key && styles.activeFilterTab,
-                      ]}
-                    >
-                      <Typography
-                        variant="body"
-                        color={tokenizedFilter === filter.key ? 'inverse' : 'secondary'}
-                        style={styles.filterText}
-                      >
-                        {filter.label} ({getFilterCount(filter.key)})
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
             {/* Tokenized Properties List */}
             <View style={styles.section}>
               {filteredProperties.length > 0 ? (
@@ -612,11 +573,8 @@ export default function PropertyManagementScreen() {
                   <Typography variant="body" color="secondary" align="center">
                     {searchQuery
                       ? 'No tokenized properties match your search criteria'
-                      : tokenizedFilter === 'approved'
-                      ? 'Start by tokenizing your first property'
-                      : `No ${tokenizedFilter} tokenized properties at the moment`}
+                      : 'Start by tokenizing your first property'}
                   </Typography>
-
                 </Card>
               )}
             </View>
@@ -625,6 +583,16 @@ export default function PropertyManagementScreen() {
       </ScrollView>
       
       <PropertyTypeModal />
+      
+      {/* Floating Add Property Button - Only show for Property List tab */}
+      {activeTab === 'property-list' && (
+        <TouchableOpacity
+          style={styles.floatingButton}
+          onPress={handleAddProperty}
+        >
+          <Plus size={24} color={colors.neutral.white} />
+        </TouchableOpacity>
+      )}
       
       {/* Pause Fractionalization Bottom Sheet */}
       <BottomSheet
@@ -663,7 +631,7 @@ export default function PropertyManagementScreen() {
                   </Typography>
                 </View>
                 
-                <View style={styles.tokenDetailRow}>
+              {/*  <View style={styles.tokenDetailRow}>
                   <Typography variant="body" color="secondary">
                     Current Status:
                   </Typography>
@@ -672,7 +640,7 @@ export default function PropertyManagementScreen() {
                       {propertyToPause.tokenStatus === 'active' ? 'Active' : 'Paused'}
                     </Typography>
                   </View>
-                </View>
+                </View>*/}
                 
                 <View style={styles.tokenDetailRow}>
                   <Typography variant="body" color="secondary">
@@ -713,7 +681,7 @@ export default function PropertyManagementScreen() {
               {/* Reason Input */}
               <View style={styles.reasonInputContainer}>
                 <Typography variant="body" color="secondary" style={styles.reasonLabel}>
-                  Reason for Pausing (Optional)
+                  Reason for Pausing  
                 </Typography>
                 <Input
                   placeholder="Enter reason for pausing..."
@@ -726,20 +694,15 @@ export default function PropertyManagementScreen() {
               </View>
               
               {/* Action Buttons */}
-              <View style={styles.bottomSheetActions}>
-                <Button
-                  title="Cancel"
-                  onPress={handleCancelPause}
-                  variant="outline"
-                  style={styles.cancelButton}
-                />
-                <Button
+              <Button
                   title="Confirm Pause"
                   onPress={handleConfirmPause}
                   variant="primary"
+                  size="medium"
                   style={styles.confirmButton}
+                 
                 />
-              </View>
+             
             </View>
           </View>
         )}
@@ -1085,14 +1048,27 @@ const styles = StyleSheet.create({
     textAlignVertical: 'top',
   },
   bottomSheetActions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.lg,
+    paddingVertical: spacing.lg,
   },
   cancelButton: {
     flex: 1,
   },
   confirmButton: {
-    flex: 1,
+    width: '100%',
+    marginBottom: 120,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: spacing.md,
+    right: spacing.md,
+    width: 52,
+    height: 52,
+    borderRadius: 28,
+    backgroundColor: colors.primary.gold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadow.large,
+    elevation: 8,
+    zIndex: 1000,
   },
 });
