@@ -2,7 +2,7 @@
 export const BASE_URLS = {
     DEVELOPMENT: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'https://auth-api.landhacker.ai/api/v1',
+      AUTH_API: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://test-stripe-checkout.com',
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -17,7 +17,7 @@ export const BASE_URLS = {
     },
     STAGING: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'https://auth-api.landhacker.ai/api/v1',
+      AUTH_API: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://test-stripe-checkout.com',
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -31,7 +31,7 @@ export const BASE_URLS = {
     },
     PRODUCTION: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'https://auth-api.landhacker.ai/api/v1',
+      AUTH_API: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://checkout.stripe.com', // Use real Stripe URL in production
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -62,15 +62,21 @@ export const BASE_URLS = {
   // API endpoints
   export const ENDPOINTS = {
     AUTH: {
-      LOGIN: '/auth/login',
-      REGISTER: '/auth/register',
-      REFRESH_TOKEN: '/auth/refresh-token',
+      LOGIN: '/auth/signin',
+      REGISTER: '/auth/signup',
       FORGOT_PASSWORD: '/auth/forgot-password',
+      VERIFY_OTP: '/auth/verify-otp',
       RESET_PASSWORD: '/auth/reset-password',
+      
+      REFRESH_TOKEN: '/auth/refresh-token',
       VERIFY_EMAIL: '/auth/verify-email',
       RESEND_OTP: '/auth/resend-otp',
       CHECK_EMAIL: '/auth/check-email',
       LOGOUT: '/auth/logout',
+      VERIFY_EMAIL_OTP: '/auth/verify-email-otp',
+      VERIFY_MOBILE_OTP: '/auth/verify-mobile-otp',
+      SEND_FORGOT_PASSWORD_OTP: '/auth/send-forgot-password-otp',
+      VERIFY_FORGOT_PASSWORD_OTP: '/auth/verify-forgot-password-otp',
     },
     PARCEL: {
       ADVANCED_SEARCH: '/parcel/advanceSearch',
