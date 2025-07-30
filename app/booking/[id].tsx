@@ -155,9 +155,10 @@ export default function BookingScreen() {
               <Typography variant="body" color="gold">
                 ${property.price.rent}/night
               </Typography>
-              <Typography variant="body" color="gold">
+            {/*}  <Typography variant="body" color="gold">
                 60 Tokens/night
               </Typography>
+              */}
             </View>
           </Card>
           {/* Booking Details */}

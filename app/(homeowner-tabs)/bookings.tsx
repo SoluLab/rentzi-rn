@@ -43,21 +43,6 @@ const mockBookings = [
     bookingDate: '2024-02-28',
   },
   {
-    id: '2',
-    propertyTitle: 'Swiss Alpine Chalet',
-    propertyImage:
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop&quality=40',
-    guestName: 'Victoria Blackwood',
-    guestEmail: 'victoria@example.com',
-    guestPhone: '+1 (555) 987-6543',
-    checkIn: '2024-03-25',
-    checkOut: '2024-03-30',
-    guests: 6,
-    totalAmount: 20000,
-    status: 'pending',
-    bookingDate: '2024-03-01',
-  },
-  {
     id: '3',
     propertyTitle: 'Luxury Oceanfront Villa',
     propertyImage:
@@ -91,7 +76,7 @@ const mockBookings = [
 export default function BookingsScreen() {
   const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled'
+    'all' | 'confirmed' | 'cancelled'
   >('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -102,10 +87,6 @@ export default function BookingsScreen() {
     switch (status) {
       case 'confirmed':
         return colors.status.success;
-      case 'pending':
-        return colors.primary.gold;
-      case 'completed':
-        return colors.primary.navy;
       case 'cancelled':
         return colors.status.error;
       default:
@@ -116,14 +97,10 @@ export default function BookingsScreen() {
     switch (status) {
       case 'confirmed':
         return CheckCircle;
-      case 'pending':
-        return Clock;
-      case 'completed':
-        return CheckCircle;
       case 'cancelled':
         return XCircle;
       default:
-        return Clock;
+        return CheckCircle;
     }
   };
   const filteredBookings = mockBookings.filter((booking) => {
@@ -370,8 +347,6 @@ export default function BookingsScreen() {
               {[
                 { key: 'all', label: 'All Bookings' },
                 { key: 'confirmed', label: 'Confirmed' },
-                { key: 'pending', label: 'Pending' },
-                { key: 'completed', label: 'Completed' },
                 { key: 'cancelled', label: 'Cancelled' },
               ].map((filter) => (
                 <TouchableOpacity

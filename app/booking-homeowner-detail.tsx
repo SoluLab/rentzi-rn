@@ -37,7 +37,7 @@ import {
 // Mock booking detail data
 const mockBooking = {
   id: "BKG-20240301-001",
-  status: "pending", // confirmed, pending, completed, cancelled
+  status: "confirmed", // confirmed, cancelled
   checkIn: "2024-03-15",
   checkOut: "2024-03-20",
   guests: { adults: 2, children: 2 },
@@ -60,6 +60,13 @@ const mockBooking = {
     status: "Paid", // Paid, Pending, Failed
     method: "Card", // UPI, Card, etc.
   },
+  bankInfo: {
+    accountHolder: "John Smith",
+    accountNumber: "****1234",
+    bankName: "Chase Bank",
+    routingNumber: "021000021",
+    swiftCode: "CHASUS33",
+  },
   cancellationReason: "Guest requested cancellation due to change in travel plans",
   guestFeedback: {
     rating: 4.5,
@@ -70,22 +77,16 @@ const mockBooking = {
 
 const statusColors: Record<string, string> = {
   confirmed: colors.status.success,
-  pending: colors.primary.gold,
-  completed: colors.primary.navy,
   cancelled: colors.status.error,
 };
 
 const statusLabels: Record<string, string> = {
   confirmed: "Confirmed",
-  pending: "Pending",
-  completed: "Completed",
   cancelled: "Cancelled",
 };
 
 const statusIcons: Record<string, any> = {
   confirmed: CheckCircle,
-  pending: Clock,
-  completed: CheckCircle,
   cancelled: XCircle,
 };
 
@@ -97,23 +98,7 @@ export default function BookingHomeownerDetailScreen() {
   const [cancellationReason, setCancellationReason] = useState("");
   const StatusIcon = statusIcons[booking.status] || Clock;
 
-  const handleApprove = () => {
-    Alert.alert(
-      "Approve Booking",
-      "Are you sure you want to approve this booking?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Approve",
-          style: "default",
-          onPress: () => {
-            setBooking({ ...booking, status: "confirmed" });
-            Alert.alert("Success", "Booking has been approved!");
-          },
-        },
-      ]
-    );
-  };
+
 
   const handleCancel = () => {
     if (!cancellationReason.trim()) {
@@ -337,6 +322,43 @@ export default function BookingHomeownerDetailScreen() {
           </View>
         </Card>
 
+        {/* Bank Information */}
+        <Card style={styles.section}>
+          <Typography variant="h6" style={styles.sectionTitle}>
+            Bank Information
+          </Typography>
+          <View style={styles.infoRow}>
+            <Typography variant="body" color="secondary">
+              Account Holder:
+            </Typography>
+            <Typography variant="body">{booking.bankInfo.accountHolder}</Typography>
+          </View>
+          <View style={styles.infoRow}>
+            <Typography variant="body" color="secondary">
+              Account Number:
+            </Typography>
+            <Typography variant="body">{booking.bankInfo.accountNumber}</Typography>
+          </View>
+          <View style={styles.infoRow}>
+            <Typography variant="body" color="secondary">
+              Bank Name:
+            </Typography>
+            <Typography variant="body">{booking.bankInfo.bankName}</Typography>
+          </View>
+          <View style={styles.infoRow}>
+            <Typography variant="body" color="secondary">
+              Routing Number:
+            </Typography>
+            <Typography variant="body">{booking.bankInfo.routingNumber}</Typography>
+          </View>
+          <View style={styles.infoRow}>
+            <Typography variant="body" color="secondary">
+              SWIFT Code:
+            </Typography>
+            <Typography variant="body">{booking.bankInfo.swiftCode}</Typography>
+          </View>
+        </Card>
+
         {/* Guest Feedback for Completed Bookings */}
         {booking.status === "completed" && booking.guestFeedback && (
           <Card style={styles.section}>
@@ -376,28 +398,46 @@ export default function BookingHomeownerDetailScreen() {
             Actions
           </Typography>
           
-          {/* Cancellation Reason Input */}
-          <View style={styles.inputContainer}>
-            <Typography variant="body" style={styles.inputLabel}>
-              Cancellation Reason
-            </Typography>
-            <Input
-              placeholder="Enter reason for cancellation..."
-              value={cancellationReason}
-              onChangeText={setCancellationReason}
-              multiline
-              numberOfLines={3}
-              style={styles.reasonInput}
-            />
-          </View>
+          {booking.status === "confirmed" && (
+            <>
+              {/* Cancellation Reason Input */}
+              <View style={styles.inputContainer}>
+                <Typography variant="body" style={styles.inputLabel}>
+                  Cancellation Reason
+                </Typography>
+                <Input
+                  placeholder="Enter reason for cancellation..."
+                  value={cancellationReason}
+                  onChangeText={setCancellationReason}
+                  multiline
+                  numberOfLines={3}
+                  style={styles.reasonInput}
+                />
+              </View>
+              
+              <Button
+                variant="outline"
+                size="medium"
+                style={styles.primaryActionButton}
+                onPress={handleCancel}
+                title="Cancel Booking"
+              />
+            </>
+          )}
           
-          <Button
-              variant="primary"
-              size="medium"
-              style={styles.primaryActionButton}
-              onPress={handleCancel}
-              title="Cancel"
-            />
+          {booking.status === "cancelled" && (
+            <View style={styles.cancelledInfo}>
+              <AlertTriangle size={20} color={colors.status.error} />
+              <Typography variant="body" color="error" style={styles.cancelledText}>
+                This booking has been cancelled
+              </Typography>
+              {booking.cancellationReason && (
+                <Typography variant="body" color="secondary" style={styles.cancelledReason}>
+                  Reason: {booking.cancellationReason}
+                </Typography>
+              )}
+            </View>
+          )}
         </Card>
 
         <View style={{ height: spacing.xl }} />
@@ -629,5 +669,22 @@ const styles = StyleSheet.create({
   },
   reasonInput: {
     minHeight: 80,
+  },
+  cancelledInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.md,
+  },
+  cancelledText: {
+    flex: 1,
+    marginLeft: spacing.xs,
+  },
+  cancelledReason: {
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
   },
 });
