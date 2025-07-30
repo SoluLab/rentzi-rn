@@ -13,6 +13,7 @@ import { Typography } from "@/components/ui/Typography";
 import { Card } from "@/components/ui/Card";
 import { Header } from "@/components/ui/Header";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
@@ -93,6 +94,7 @@ export default function BookingHomeownerDetailScreen() {
   const [booking, setBooking] = useState(mockBooking);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
   const StatusIcon = statusIcons[booking.status] || Clock;
 
   const handleApprove = () => {
@@ -114,6 +116,11 @@ export default function BookingHomeownerDetailScreen() {
   };
 
   const handleCancel = () => {
+    if (!cancellationReason.trim()) {
+      Alert.alert("Error", "Please provide a reason for cancellation.");
+      return;
+    }
+    
     Alert.alert(
       "Cancel Booking",
       "Are you sure you want to cancel this booking? This action cannot be undone.",
@@ -123,7 +130,12 @@ export default function BookingHomeownerDetailScreen() {
           text: "Yes, Cancel",
           style: "destructive",
           onPress: () => {
-            setBooking({ ...booking, status: "cancelled" });
+            setBooking({ 
+              ...booking, 
+              status: "cancelled",
+              cancellationReason: cancellationReason.trim()
+            });
+            setCancellationReason("");
             Alert.alert("Cancelled", "Booking has been cancelled.");
           },
         },
@@ -164,130 +176,7 @@ export default function BookingHomeownerDetailScreen() {
     (checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)
   );
 
-  // Render action buttons based on booking status
-  const renderActionButtons = () => {
-    switch (booking.status) {
-      case "pending":
-        return (
-          <View style={styles.actionButtonsContainer}>
-            <Button
-              variant="primary"
-              size="medium"
-              style={styles.primaryActionButton}
-              onPress={handleApprove}
-              title="Approve Booking"
-            />
-            <View style={styles.secondaryActionsRow}>
-              <Button
-                variant="outline"
-                size="small"
-                onPress={handleCancel}
-                style={styles.secondaryActionButton}
-                title="Cancel"
-              />
-              <Button
-                variant="outline"
-                size="small"
-                onPress={handleContactGuest}
-                style={styles.secondaryActionButton}
-                title="Contact"
-              />
-              <Button
-                variant="outline"
-                size="small"
-                onPress={handleReschedule}
-                style={styles.secondaryActionButton}
-                title="Reschedule"
-              />
-            </View>
-          </View>
-        );
-
-      case "confirmed":
-        return (
-          <View style={styles.actionButtonsContainer}>
-            <Button
-              variant="primary"
-              size="large"
-              onPress={handleContactGuest}
-              style={styles.primaryActionButton}
-              title="Contact Guest"
-            />
-            <View style={styles.secondaryActionsRow}>
-              <Button
-                variant="outline"
-                size="medium"
-                onPress={handleCancel}
-                style={styles.secondaryActionButton}
-                title="Cancel"
-              />
-              <Button
-                variant="outline"
-                size="medium"
-                onPress={handleViewProperty}
-                style={styles.secondaryActionButton}
-                title="View Property"
-              />
-            </View>
-          </View>
-        );
-
-      case "completed":
-        return (
-          <View style={styles.actionButtonsContainer}>
-            <Button
-              variant="primary"
-              size="large"
-              onPress={handleLeaveFeedback}
-              style={styles.primaryActionButton}
-              title="Leave Feedback"
-            />
-            <View style={styles.secondaryActionsRow}>
-              <Button
-                variant="outline"
-                size="medium"
-                onPress={handleContactGuest}
-                style={styles.secondaryActionButton}
-                title="Contact"
-              />
-              <Button
-                variant="outline"
-                size="medium"
-                onPress={handleViewProperty}
-                style={styles.secondaryActionButton}
-                title="View Property"
-              />
-            </View>
-          </View>
-        );
-
-      case "cancelled":
-        return (
-          <View style={styles.actionButtonsContainer}>
-            <Button
-              variant="outline"
-              size="large"
-              onPress={() => Alert.alert("Cancellation Reason", booking.cancellationReason)}
-              style={styles.primaryActionButton}
-              title="View Cancellation Reason"
-            />
-            <View style={styles.secondaryActionsRow}>
-                             <Button
-                 variant="outline"
-                 size="medium"
-                 onPress={handleContactGuest}
-                 style={styles.secondaryActionButton}
-                 title="Contact (Disabled)"
-                 disabled={true}
-               />
-            </View>
-          </View>
-        );
-
-      default:
-        return null;
-    }
-  };
+  
 
   return (
     <View style={styles.container}>
@@ -486,7 +375,29 @@ export default function BookingHomeownerDetailScreen() {
           <Typography variant="h6" style={styles.sectionTitle}>
             Actions
           </Typography>
-          {renderActionButtons()}
+          
+          {/* Cancellation Reason Input */}
+          <View style={styles.inputContainer}>
+            <Typography variant="body" style={styles.inputLabel}>
+              Cancellation Reason
+            </Typography>
+            <Input
+              placeholder="Enter reason for cancellation..."
+              value={cancellationReason}
+              onChangeText={setCancellationReason}
+              multiline
+              numberOfLines={3}
+              style={styles.reasonInput}
+            />
+          </View>
+          
+          <Button
+              variant="primary"
+              size="medium"
+              style={styles.primaryActionButton}
+              onPress={handleCancel}
+              title="Cancel"
+            />
         </Card>
 
         <View style={{ height: spacing.xl }} />
@@ -708,5 +619,15 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     marginBottom: spacing.sm,
+  },
+  inputContainer: {
+    marginBottom: spacing.md,
+  },
+  inputLabel: {
+    marginBottom: spacing.xs,
+    fontWeight: "500",
+  },
+  reasonInput: {
+    minHeight: 80,
   },
 });
