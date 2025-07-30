@@ -38,7 +38,7 @@ import {
   Wallet,
   Hash,
 } from "lucide-react-native";
-import MarketplaceScreen from "./marketplace";
+import MarketplaceScreen from "../marketplace";
 const { width } = Dimensions.get("window");
 export default function PortfolioScreen() {
   const router = useRouter();

@@ -1492,11 +1492,7 @@ const styles = StyleSheet.create({
         gap: spacing.md,
         backgroundColor: colors.neutral.white,
         borderRadius: 16,
-        shadowColor: colors.neutral.back,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+      
     },
     rulesSubtitle: {
         color: colors.text.secondary,
