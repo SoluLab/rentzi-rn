@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { Header } from "@/components/ui/Header";
 import { Typography } from "@/components/ui/Typography";
 import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp } from '@/services/apiClient';
+import { useVerifyOtp } from "@/services/apiClient";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
@@ -24,7 +16,8 @@ export default function ForgotPasswordOTPScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams();
   const verifyOtpMutation = useVerifyOtp();
-  const isLoading = verifyOtpMutation.status === 'pending' || verifyOtpMutation.isPending;
+  const isLoading =
+    verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending;
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
@@ -56,18 +49,44 @@ export default function ForgotPasswordOTPScreen() {
       return;
     }
     try {
-      await verifyOtpMutation.mutateAsync({ email: email as string, otp });
-      toast.success("OTP verified successfully!");
-      router.push({
-        pathname: "/(auth)/new-password",
-        params: { email: email },
+      const response = await verifyOtpMutation.mutateAsync({
+        email: email as string,
+        otp,
       });
+
+      // Check the new response format
+      if (response.success) {
+        toast.success("OTP verified successfully!");
+        router.push({
+          pathname: "/(auth)/new-password",
+          params: { email: email },
+        });
+      } else {
+        // Handle unsuccessful response
+        const errorMessage = response.message || "OTP verification failed";
+        toast.error(errorMessage);
+        setError(errorMessage);
+      }
     } catch (error: any) {
-      toast.error(error.message);
-      setError(error.message);
+      let errorMessage = "OTP verification failed";
+
+      // Handle different error formats
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      // Map specific error messages
+      if (errorMessage.includes("Invalid or expired OTP")) {
+        errorMessage = "Invalid or expired OTP. Please try again.";
+      }
+
+      toast.error(errorMessage);
+      setError(errorMessage);
     }
   };
-  
+
   const handleResendOTP = async () => {
     try {
       // The original code had sendForgotPasswordOTP here, but it's removed from imports.

@@ -75,26 +75,48 @@ export default function MobileVerificationScreen() {
 
     try {
       // For login and registration flow, verify OTP using TanStack mutation
-      await verifyOtpMutation.mutateAsync({ email: email || user?.email || '', otp });
-      toast.success("Mobile number verified successfully!");
+      const response = await verifyOtpMutation.mutateAsync({ email: email || user?.email || '', otp });
+      
+      // Check the new response format
+      if (response.success) {
+        toast.success("Mobile number verified successfully!");
 
-      // Navigation logic based on user type and role
-      if (type === "login") {
-        toast.success("Login successful! Welcome back.");
-        if (user?.role === "homeowner") {
-          router.replace("/(homeowner-tabs)");
+        // Navigation logic based on user type and role
+        if (type === "login") {
+          toast.success("Login successful! Welcome back.");
+          if (user?.role === "homeowner") {
+            router.replace("/(homeowner-tabs)");
+          } else {
+            router.replace("/(tabs)");
+          }
         } else {
-          router.replace("/(tabs)");
+          if (user?.role === "homeowner") {
+            router.push("/kyc-verification");
+          } else {
+            router.push("/role-selection");
+          }
         }
       } else {
-        if (user?.role === "homeowner") {
-          router.push("/kyc-verification");
-        } else {
-          router.push("/role-selection");
-        }
+        // Handle unsuccessful response
+        const errorMessage = response.message || "Failed to verify OTP";
+        toast.error(errorMessage);
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to verify OTP");
+      let errorMessage = "Failed to verify OTP";
+      
+      // Handle different error formats
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      // Map specific error messages
+      if (errorMessage.includes("Invalid or expired OTP")) {
+        errorMessage = "Invalid or expired OTP. Please try again.";
+      }
+      
+      toast.error(errorMessage);
     }
   };
 

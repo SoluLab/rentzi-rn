@@ -2,7 +2,8 @@
 export const BASE_URLS = {
     DEVELOPMENT: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'http://35.223.240.93:5001/api',
+      AUTH_API_RENTER: 'http://35.223.240.93:5001/api',
+      AUTH_API_HOMEOWNER: 'http://35.223.240.93:5000/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://test-stripe-checkout.com',
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -17,7 +18,8 @@ export const BASE_URLS = {
     },
     STAGING: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'http://35.223.240.93:5001/api',
+      AUTH_API_RENTER: 'http://35.223.240.93:5000/api',
+      AUTH_API_HOMEOWNER: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://test-stripe-checkout.com',
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -31,7 +33,8 @@ export const BASE_URLS = {
     },
     PRODUCTION: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API: 'http://35.223.240.93:5001/api',
+      AUTH_API_RENTER: 'http://35.223.240.93:5000/api',
+      AUTH_API_HOMEOWNER: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://checkout.stripe.com', // Use real Stripe URL in production
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -52,7 +55,8 @@ export const BASE_URLS = {
   // Export the current base URLs
   export const API_URLS = {
     PARCEL_API: BASE_URLS[CURRENT_ENV].PARCEL_API,
-    AUTH_API: BASE_URLS[CURRENT_ENV].AUTH_API,
+    AUTH_API_RENTER: BASE_URLS[CURRENT_ENV].AUTH_API_RENTER,
+    AUTH_API_HOMEOWNER: BASE_URLS[CURRENT_ENV].AUTH_API_HOMEOWNER,
     CAMPAIGN_API: BASE_URLS[CURRENT_ENV].CAMPAIGN_API,
     STRIPE_CHECKOUT: BASE_URLS[CURRENT_ENV].STRIPE_CHECKOUT,
     SELLER_BUYER_API: BASE_URLS[CURRENT_ENV].SELLER_BUYER_API,
@@ -62,8 +66,8 @@ export const BASE_URLS = {
   // API endpoints
   export const ENDPOINTS = {
     AUTH: {
-      LOGIN: '/auth/signin',
-      REGISTER: '/auth/signup',
+      SIGNIN: '/auth/signin',
+      SIGNUP: '/auth/signup',
       FORGOT_PASSWORD: '/auth/forgot-password',
       VERIFY_OTP: '/auth/verify-otp',
       RESET_PASSWORD: '/auth/reset-password',
@@ -73,6 +77,7 @@ export const BASE_URLS = {
       RESEND_OTP: '/auth/resend-otp',
       CHECK_EMAIL: '/auth/check-email',
       LOGOUT: '/auth/logout',
+
       VERIFY_EMAIL_OTP: '/auth/verify-email-otp',
       VERIFY_MOBILE_OTP: '/auth/verify-mobile-otp',
       SEND_FORGOT_PASSWORD_OTP: '/auth/send-forgot-password-otp',

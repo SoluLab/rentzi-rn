@@ -78,35 +78,53 @@ export default function EmailVerificationScreen() {
     }
     try {
       const response = await verifyOtpMutation.mutateAsync({ email, otp: emailOTP });
-      toast.success("Email verification successful!");
-      // For login, complete authentication after email verification
-      // For registration, continue to mobile verification
-      if (type === "login") {
-        toast.success("Login successful! Welcome back.");
-        router.replace("/(tabs)");
+      
+      // Check the new response format
+      if (response.success) {
+        toast.success("Email verification successful!");
+        // For login, complete authentication after email verification
+        // For registration, continue to mobile verification
+        if (type === "login") {
+          toast.success("Login successful! Welcome back.");
+          router.replace("/(tabs)");
+        } else {
+          // Navigate to mobile verification for registration
+          router.push({
+            pathname: "/(auth)/mobile-verification",
+            params: {
+              email: email,
+              phone: phone,
+              type: type,
+            },
+          });
+        }
       } else {
-        // Navigate to mobile verification for registration
-        router.push({
-          pathname: "/(auth)/mobile-verification",
-          params: {
-            email: email,
-            phone: phone,
-            type: type,
-          },
-        });
+        // Handle unsuccessful response
+        const errorMessage = response.message || "Email verification failed. Please check your OTP code.";
+        toast.error(errorMessage);
+        setError(errorMessage);
       }
     } catch (error: any) {
-      let errorMessage =
-        error?.message || "Email verification failed. Please check your OTP code.";
-      if (errorMessage) {
-        if (errorMessage.includes("expired")) {
-          errorMessage = "OTP expired. Request a new one";
-        } else if (errorMessage.includes("Incorrect OTP")) {
-          errorMessage = "Incorrect OTP entered";
-        } else if (errorMessage.includes("valid 6-digit")) {
-          errorMessage = "Please enter a valid 6-digit numeric OTP";
-        }
+      let errorMessage = "Email verification failed. Please check your OTP code.";
+      
+      // Handle different error formats
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
+      
+      // Map specific error messages
+      if (errorMessage.includes("Invalid or expired OTP")) {
+        errorMessage = "Invalid or expired OTP. Please try again.";
+      } else if (errorMessage.includes("expired")) {
+        errorMessage = "OTP expired. Request a new one";
+      } else if (errorMessage.includes("Incorrect OTP")) {
+        errorMessage = "Incorrect OTP entered";
+      } else if (errorMessage.includes("valid 6-digit")) {
+        errorMessage = "Please enter a valid 6-digit numeric OTP";
+      }
+      
       toast.error(errorMessage);
       setError(errorMessage);
     }

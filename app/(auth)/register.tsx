@@ -21,6 +21,7 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view
 import { useLocalSearchParams } from "expo-router";
 import * as Localization from "expo-localization";
 import { countryCodes } from "@/components/ui/PhoneInput";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 interface FormData {
   firstName: string;
   lastName: string;
@@ -85,25 +86,41 @@ export default function RegisterScreen() {
     }
     try {
       const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
-      const fullMobile = `${
-        selectedCountryCode?.phoneCode || "+1"
-      }${cleanMobile}`;
-      const response = await signupMutation.mutateAsync({
+      const countryCode = selectedCountryCode?.phoneCode || "+1";
+      
+      // Determine user type based on roleType parameter
+      // API only accepts "renter" or "investor" as valid user types
+      let userType = ["renter"];
+      if (roleType === "homeowner") {
+        // For homeowners, we'll use "renter" as the user type since API doesn't accept "homeowner"
+        userType = ["renter"];
+      } else if (roleType === "renter_investor") {
+        userType = ["renter"];
+      }
+      
+      const payload = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.toLowerCase().trim(),
         password: formData.password,
-        phoneNumber: fullMobile,
-      });
+        countryCode: countryCode,
+        mobile: cleanMobile,
+        userType: userType,
+      };
+      console.log("[Register] Sending payload:", payload);
+      const response = await signupMutation.mutateAsync(payload);
       console.log("[Register] API response:", response);
       if (response?.success) {
+        // Store the token if it exists in the response
+        if (response?.data?.token) {
+          await AsyncStorage.setItem("token", response.data.token);
+        }
         toast.success("Registration successful! Please verify your account");
         // Navigate directly to mobile verification
         router.push({
           pathname: "/(auth)/mobile-verification",
           params: {
             email: formData.email.toLowerCase().trim(),
-            // phone: fullMobile, // Not sent to API, so skip
             type: "register",
           },
         });

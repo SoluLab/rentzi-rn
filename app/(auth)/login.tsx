@@ -1,13 +1,10 @@
 import React, { useState, useCallback } from "react";
 import {
   View,
-  StyleSheet,
-  ScrollView,
+  StyleSheet, 
   TouchableOpacity,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
+  Image, 
+  Platform, 
   StatusBar,
 } from "react-native";
 import { ERROR_MESSAGES, AUTH } from "@/constants/strings";
@@ -23,17 +20,23 @@ import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { validateEmail, validateMobileNumber } from "@/utils/validation";
-import { useTheme } from "@react-navigation/native";
-import { useLogin } from "@/services/apiClient";
-import { useAuthStore } from "@/stores/authStore";
+import { useLogin } from "@/services/apiClient"; 
 import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { AuthResponse, LoginRequest } from "@/types";
 
 export default function LoginScreen() {
   const router = useRouter();
   const [emailOrMobile, setEmailOrMobile] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedUserType, setSelectedUserType] = useState("renter_investor");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const userTypeOptions = [
+    { value: "renter_investor", label: "Sign in as Renter/Investor", icon: "person-outline" },
+    { value: "homeowner", label: "Sign in as Homeowner", icon: "home-outline" },
+  ];
 
   useFocusEffect(
     React.useCallback(() => {
@@ -91,7 +94,7 @@ export default function LoginScreen() {
   };
 
   const loginMutation = useLogin({
-    onSuccess: async (response) => {
+    onSuccess: async (response: AuthResponse) => {
       console.log("Login API success:", response);
       if (response.success && response.data) {
         const { token, user } = response.data;
@@ -115,13 +118,26 @@ export default function LoginScreen() {
         toast.success(AUTH.LOGIN.SUCCESS);
         router.replace("/(tabs)");
       } else {
-        toast.error(response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED);
+        // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
+        const errorMessage =
+          response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+        toast.error(errorMessage);
         console.error("Login API error:", response);
       }
     },
     onError: (error) => {
       console.error("Login API error:", error);
-      const errorMessage = error?.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+      // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
+      let errorMessage = ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+
+      if (error?.data?.message) {
+        // If error has data.message (API error response)
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        // If error has direct message (network error, etc.)
+        errorMessage = error.message;
+      }
+
       toast.error(errorMessage);
     },
   });
@@ -130,7 +146,7 @@ export default function LoginScreen() {
     if (!validateForm()) return;
     const isEmail = emailOrMobile.includes("@");
     const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
-    let payload: any = { password };
+    let payload: LoginRequest = { email: "", password };
     if (isEmail) {
       payload.email = emailOrMobile;
     } else if (isMobile) {
@@ -140,7 +156,7 @@ export default function LoginScreen() {
       toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
       return;
     }
-    console.log("Login payload:", payload);
+    console.log("[Login] Sending payload:", payload);
     loginMutation.mutate(payload);
   }, [emailOrMobile, password, loginMutation]);
 
@@ -150,7 +166,7 @@ export default function LoginScreen() {
     let email = "";
     switch (role) {
       case "renter":
-        email = "vimal@solulab.co";
+        email = "renter@solulab.co";
         break;
       case "investor":
         email = "investor@solulab.co";
@@ -159,11 +175,13 @@ export default function LoginScreen() {
         email = "homeowner@solulab.co";
         break;
       default:
-        email = "vimal@solulab.co";
+        email = "renter@solulab.co";
     }
     setEmailOrMobile(email);
     setPassword("@Test12345");
   };
+
+  const selectedOption = userTypeOptions.find(option => option.value === selectedUserType);
 
   return (
     <View style={styles.container}>
@@ -209,6 +227,89 @@ export default function LoginScreen() {
                 >
                   Sign In
                 </Typography>
+
+                {/* User Type Dropdown */}
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity
+                    style={styles.dropdownButton}
+                    onPress={() => {
+                      console.log("Dropdown pressed, current state:", showDropdown);
+                      setShowDropdown(!showDropdown);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.dropdownContent}>
+                      <Ionicons
+                        name={selectedOption?.icon as any}
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                      <Typography variant="body" color="primary" style={styles.dropdownText}>
+                        {selectedOption?.label}
+                      </Typography>
+                    </View>
+                    <Ionicons
+                      name={showDropdown ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color={colors.primary.gold}
+                    />
+                  </TouchableOpacity>
+                  
+                  {showDropdown && (
+                    <View style={styles.dropdownMenu}>
+                      <TouchableOpacity
+                        style={[
+                          styles.dropdownItem,
+                          selectedUserType === "renter_investor" && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedUserType("renter_investor");
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name="person-outline"
+                          size={20}
+                          color={selectedUserType === "renter_investor" ? colors.background.primary : colors.primary.gold}
+                        />
+                        <Typography 
+                          variant="body" 
+                          color={selectedUserType === "renter_investor" ? "white" : "primary"}
+                          style={styles.dropdownItemText}
+                        >
+                          Sign in as Renter/Investor
+                        </Typography>
+                      </TouchableOpacity>
+                      
+                      <TouchableOpacity
+                        style={[
+                          styles.dropdownItem,
+                          selectedUserType === "homeowner" && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedUserType("homeowner");
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name="home-outline"
+                          size={20}
+                          color={selectedUserType === "homeowner" ? colors.background.primary : colors.primary.gold}
+                        />
+                        <Typography 
+                          variant="body" 
+                          color={selectedUserType === "homeowner" ? "white" : "primary"}
+                          style={styles.dropdownItemText}
+                        >
+                          Sign in as Homeowner
+                        </Typography>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+
                 <Input
                   label="Email/Mobile Number"
                   value={emailOrMobile}
@@ -280,10 +381,16 @@ export default function LoginScreen() {
                   />
                 </View>
 
-
                 {/* Quick Access Buttons at Bottom End */}
 
-                <Typography variant="body2" color="secondary" align="center" style={{ marginTop: spacing.md }}>Quick Access</Typography>
+                <Typography
+                  variant="body2"
+                  color="secondary"
+                  align="center"
+                  style={{ marginTop: spacing.md }}
+                >
+                  Quick Access
+                </Typography>
                 <View
                   style={{
                     flexDirection: "row",
@@ -391,5 +498,54 @@ const styles = StyleSheet.create({
 
   buttonSection: {
     paddingHorizontal: spacing.md,
+  },
+  dropdownContainer: {
+    marginBottom: spacing.md,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: colors.background.secondary,
+  },
+  dropdownButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  dropdownContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  dropdownText: {
+    fontWeight: "600",
+  },
+  dropdownMenu: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    marginTop: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.primary.gold,
+  },
+  dropdownItemText: {
+    fontWeight: "500",
   },
 });

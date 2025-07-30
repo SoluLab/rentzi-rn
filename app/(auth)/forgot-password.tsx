@@ -6,13 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
-import { spacing } from "@/constants/spacing";
-import { useAuthStore } from "@/stores/authStore";
+import { spacing } from "@/constants/spacing"; 
 import { validateEmail } from "@/utils/validation";
 import { Header } from "@/components/ui/Header";
 import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useForgotPassword } from '@/services/apiClient';
+import { useForgotPassword } from "@/services/apiClient";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -48,21 +47,21 @@ export default function ForgotPasswordScreen() {
   const handleSendOTP = async () => {
     if (!validateForm()) return;
     try {
-      await forgotPasswordMutation.mutateAsync({ email });
-      toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP);
-      router.push({
-        pathname: "/(auth)/forgot-password-otp",
-        params: { email: email },
-      });
+      const response = await forgotPasswordMutation.mutateAsync({ email });
+      
+      if (response.success) {
+        toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP);
+        router.push({
+          pathname: "/(auth)/forgot-password-otp",
+          params: { email: email },
+        });
+      } else {
+        toast.error(response.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED);
+        setError(response.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED);
+      }
     } catch (error: any) {
       console.log("ForgotPassword error:", error);
-      let errorMessage = error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
-      if (
-        errorMessage.toLowerCase().includes("email not found") ||
-        errorMessage.toLowerCase().includes("no account")
-      ) {
-        errorMessage = ERROR_MESSAGES.AUTH.EMAIL_NOT_FOUND;
-      }
+      const errorMessage = error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
       toast.error(errorMessage);
       setError(errorMessage);
     }
@@ -119,8 +118,8 @@ export default function ForgotPasswordScreen() {
           <Button
             title="Send Verification Code"
             onPress={handleSendOTP}
-            loading={forgotPasswordMutation.status === 'pending'}
-            disabled={!email || forgotPasswordMutation.status === 'pending'}
+            loading={forgotPasswordMutation.status === "pending"}
+            disabled={!email || forgotPasswordMutation.status === "pending"}
             style={styles.sendButton}
             variant="primary"
           />
