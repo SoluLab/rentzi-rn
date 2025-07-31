@@ -59,16 +59,18 @@ export default function SplashScreen() {
       if (!hasNavigated) {
         setHasNavigated(true);
         try {
-          if (isAuthenticated) {
-            router.replace('/(tabs)');
-          } else {
-          router.replace('/(auth)/login');
-        // router.replace('/(tabs)');
-          }
+          // Temporarily skip authentication and go directly to homeowner section
+          router.replace('/(homeowner-tabs)');
+          // Original logic (commented out for now):
+          // if (isAuthenticated) {
+          //   router.replace('/(tabs)');
+          // } else {
+          //   router.replace('/(auth)/login');
+          // }
         } catch (error) {
           console.error('Navigation error:', error);
           // Fallback navigation
-          router.replace('/(auth)/login');
+          router.replace('/(homeowner-tabs)');
         }
       }
     }, 2500);
