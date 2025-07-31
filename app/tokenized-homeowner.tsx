@@ -319,22 +319,27 @@ export default function TokenizedHomeownerScreen() {
               </Typography>
             </TouchableOpacity> */}
             
+          
+
             <TouchableOpacity
               onPress={() => handleToggleProperty(property)}
-              style={[styles.actionButton, property.enabled ? styles.enableButton : styles.disableButton]}
+              style={[
+                styles.actionButton,
+                property.enabled ? styles.enableButton : styles.disableButton,
+              ]}
             >
               {property.enabled ? (
                 <>
-                  <AlertTriangle size={16} color={colors.status.warning} />
-                  <Typography variant="caption" color="warning">
-                    Disable
+                  <CheckCircle size={16} color={colors.neutral.white} />
+                  <Typography variant="caption" color="white">
+                    Enable
                   </Typography>
                 </>
               ) : (
                 <>
-                  <CheckCircle size={16} color={colors.status.success} />
-                  <Typography variant="caption" color="success">
-                    Enable
+                  <AlertTriangle size={16} color={colors.neutral.white} />
+                  <Typography variant="caption" color="white">
+                    Disable
                   </Typography>
                 </>
               )}
@@ -562,7 +567,7 @@ export default function TokenizedHomeownerScreen() {
                 <Button
                   title="Cancel"
                   onPress={handleCancelToggle}
-                  variant="secondary"
+                  variant="outline"
                   size="medium"
                   style={styles.cancelButton}
                 />
