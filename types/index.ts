@@ -129,3 +129,38 @@ export interface PaymentTransaction {
   transactionStatus: 'pending' | 'completed' | 'failed';
   timestamp: string;
 }
+
+// Authentication API Types
+export interface AuthUser {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
+  isEmailVerified: boolean;
+  isPhoneVerified: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  profileImage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  data: {
+    token: string;
+    user: AuthUser;
+  } | null;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface ApiErrorResponse {
+  success: false;
+  message: string;
+  data: null;
+}

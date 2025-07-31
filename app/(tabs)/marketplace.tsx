@@ -307,89 +307,38 @@ export default function MarketplaceScreen() {
         showBackButton={false}
       />
       */}
-      {/* Tab Section */}
-      <View style={styles.tabContainerCustom}>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "main" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("main")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "main" && styles.activeTabTextCustom,
-              ] as any
-            }
+      {/* Tab Section - replaced with notification-style horizontal tab bar */}
+      <ScrollView
+        style={styles.tabsScrollView}
+        contentContainerStyle={styles.tabsContainer}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+      >
+        {[
+          { label: "Main Listings", value: "main" },
+          { label: "My Listings", value: "my" },
+          { label: "Purchase Requests", value: "requests" },
+          { label: "Purchases Done", value: "purchases" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.value}
+            style={[
+              styles.tab,
+              activeTab === tab.value && styles.tabActive,
+            ]}
+            onPress={() => setActiveTab(tab.value as any)}
+            activeOpacity={0.8}
           >
-            Main Listings
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "my" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("my")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "my" && styles.activeTabTextCustom,
-              ] as any
-            }
-          >
-            My Listings
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "requests" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("requests")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "requests" && styles.activeTabTextCustom,
-              ] as any
-            }
-          >
-            Purchase Requests
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.tabCustom,
-            activeTab === "purchases" && styles.activeTabCustom,
-          ]}
-          onPress={() => setActiveTab("purchases")}
-          activeOpacity={0.8}
-        >
-          <Typography
-            variant="body"
-            style={
-              [
-                styles.tabTextCustom,
-                activeTab === "purchases" && styles.activeTabTextCustom,
-              ] as any
-            }
-          >
-            Purchases Done
-          </Typography>
-        </TouchableOpacity>
-      </View>
+            <Typography
+              variant="body2"
+              color={activeTab === tab.value ? "inverse" : "secondary"}
+              weight={activeTab === tab.value ? "bold" : "normal"}
+            >
+              {tab.label}
+            </Typography>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
       {/* Tab Content */}
       {activeTab === "main" && (
         <ScrollView
@@ -2271,33 +2220,34 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.gold,
   },
   // Add custom tab styles
-  tabContainerCustom: {
+  tabsContainer: {
     flexDirection: "row",
-    backgroundColor: colors.background.secondary,
-    marginHorizontal: spacing.layout.screenPadding,
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: radius.lg,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: colors.primary.gold,
+    justifyContent: "flex-start",
+    paddingHorizontal: spacing.layout.screenPadding,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.background.primary,
+    gap: spacing.sm,
   },
-  tabCustom: {
-    flex: 1,
-    paddingVertical: spacing.md,
+  tab: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+    backgroundColor: colors.neutral.lightGray,
+    minWidth: 64,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    marginRight: spacing.sm,
   },
-  activeTabCustom: {
+  tabActive: {
     backgroundColor: colors.primary.gold,
+    shadowColor: colors.primary.gold,
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  tabTextCustom: {
-    fontWeight: "600",
-    color: colors.text.primary,
-    fontSize: 16,
-  },
-  activeTabTextCustom: {
-    color: colors.text.inverse,
+  tabsScrollView: {
+    maxHeight: 44,
+    marginBottom: 0,
+    backgroundColor: colors.background.primary,
   },
 });

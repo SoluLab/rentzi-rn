@@ -12,10 +12,10 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { Typography } from '@/components/ui/Typography';
-import { colors } from '@/constants/colors';
+ 
 import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
-const { width, height } = Dimensions.get('window');
+ 
 export default function SplashScreen() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -62,7 +62,8 @@ export default function SplashScreen() {
           if (isAuthenticated) {
             router.replace('/(tabs)');
           } else {
-            router.replace('/(auth)/login');
+          router.replace('/(auth)/login');
+        // router.replace('/(tabs)');
           }
         } catch (error) {
           console.error('Navigation error:', error);
@@ -102,9 +103,7 @@ export default function SplashScreen() {
           <View style={styles.logoContainer}>
             <Animated.View style={logoAnimatedStyle}>
               <Image
-                source={{
-                  uri: 'https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png',
-                }}
+                source={require('../assets/images/logo.png')}
                 style={styles.logo}
                 resizeMode="cover"
               />

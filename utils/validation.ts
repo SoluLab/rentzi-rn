@@ -179,3 +179,52 @@ export const validateYearBuilt = (year: string): { isValid: boolean; error?: str
   }
   return { isValid: true };
 };
+
+export const validateRegistrationForm = (formData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  mobileNumber: string;
+  password: string;
+  confirmPassword: string;
+  acceptedTerms: boolean;
+  selectedCountryCode?: { phoneCode: string };
+}): { errors: Record<string, string>; isValid: boolean } => {
+  const errors: Record<string, string> = {};
+  // First name validation
+  const firstNameValidation = validateFullName(formData.firstName);
+  if (!firstNameValidation.isValid) {
+    errors.firstName = firstNameValidation.error!;
+  }
+  // Last name validation
+  const lastNameValidation = validateFullName(formData.lastName);
+  if (!lastNameValidation.isValid) {
+    errors.lastName = lastNameValidation.error!;
+  }
+  // Email validation
+  const emailValidation = validateEmail(formData.email);
+  if (!emailValidation.isValid) {
+    errors.email = emailValidation.error!;
+  }
+  // Mobile number validation
+  const mobileValidation = validateMobileNumber(formData.mobileNumber);
+  if (!mobileValidation.isValid) {
+    errors.mobileNumber = mobileValidation.error!;
+  }
+  // Password validation
+  const passwordValidation = validatePassword(formData.password);
+  if (!passwordValidation.isValid) {
+    errors.password = passwordValidation.error!;
+  }
+  // Confirm password validation
+  if (!formData.confirmPassword) {
+    errors.confirmPassword = "Please confirm your password";
+  } else if (formData.password !== formData.confirmPassword) {
+    errors.confirmPassword = "Passwords do not match";
+  }
+  // Terms acceptance validation
+  if (!formData.acceptedTerms) {
+    errors.terms = "You must accept the Terms & Conditions";
+  }
+  return { errors, isValid: Object.keys(errors).length === 0 };
+};

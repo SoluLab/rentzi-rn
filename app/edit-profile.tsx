@@ -21,27 +21,30 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
-import { Camera, CheckCircle2, Settings, Upload, Eye } from 'lucide-react-native';
+import { Camera, CheckCircle2 } from 'lucide-react-native';
+import { useUpdateProfile } from '@/services/apiClient';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuthStore();
-  const [name, setName] = useState(user?.name || ' ');
-  const [email, setEmail] = useState(user?.email || '');
+  const { user } = useAuthStore();
+  const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.profileDetails?.phone || '');
+  const [email, setEmail] = useState(user?.email || '');
   const [address, setAddress] = useState('');
   const [originalEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [profileImage, setProfileImage] = useState(user?.profileDetails.avatar || '');
+  const [profileImage, setProfileImage] = useState(user?.profileDetails?.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { mutateAsync: updateProfile } = useUpdateProfile();
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     // Name validation
-    const nameValidation = validateFullName(name);
+    const nameValidation = validateFullName(firstName + ' ' + lastName);
     if (!nameValidation.isValid) {
       newErrors.name = nameValidation.error!;
     }
@@ -77,41 +80,31 @@ export default function EditProfileScreen() {
       toast.error('Please fix the errors below');
       return;
     }
-    // If email is changed, trigger OTP verification
     if (email !== originalEmail) {
-      // Navigate to email verification screen, pass new email and a callback
       router.push({
         pathname: '/(auth)/email-verification',
-        params: {
-          email: email,
-          type: 'change',
-          // Optionally pass other params if needed
-        },
+        params: { email: email, type: 'change' },
       });
-      // Do not proceed with saving until OTP is verified
       return;
     }
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Update user data
-      if (user) {
-        const updatedUser = {
-          ...user,
-          name,
-          email,
-          profileDetails: {
-            ...user.profileDetails,
-            avatar: profileImage,
-          },
-        };
-        setUser(updatedUser);
+      const payload: any = {
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+      };
+      if (profileImage) payload.profileImage = profileImage;
+      if (newPassword) {
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
       }
+      await updateProfile(payload);
       toast.success('Profile updated successfully!');
       router.back();
     } catch (error: any) {
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(error?.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -156,9 +149,10 @@ export default function EditProfileScreen() {
     }
   };
   const updateField = (field: string, value: string) => {
-    if (field === 'name') setName(value);
-    if (field === 'email') setEmail(value);
+    if (field === 'firstName') setFirstName(value);
+    if (field === 'lastName') setLastName(value);
     if (field === 'phoneNumber') setPhoneNumber(value);
+    if (field === 'email') setEmail(value);
     if (field === 'address') setAddress(value);
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
@@ -207,11 +201,26 @@ export default function EditProfileScreen() {
               Personal Information
             </Typography>
             <Input
-              label="Full Name"
-              value={name}
-              onChangeText={(value) => updateField('name', value)}
-              placeholder="Enter your full name"
-              error={errors.name}
+              label="First Name"
+              value={firstName}
+              onChangeText={(value) => updateField('firstName', value)}
+              placeholder="Enter your first name"
+              error={errors.firstName}
+            />
+            <Input
+              label="Last Name"
+              value={lastName}
+              onChangeText={(value) => updateField('lastName', value)}
+              placeholder="Enter your last name"
+              error={errors.lastName}
+            />
+            <Input
+              label="Phone Number"
+              value={phoneNumber}
+              onChangeText={(value) => updateField('phoneNumber', value)}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              error={errors.phoneNumber}
             />
             <Input
               label="Email Address"
@@ -227,14 +236,6 @@ export default function EditProfileScreen() {
                 You will need to verify your new email address.
               </Typography>
             )}
-            <Input
-              label="Phone Number"
-              value={phoneNumber}
-              onChangeText={(value) => updateField('phoneNumber', value)}
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
-              error={errors.phoneNumber}
-            />
             <Input
               label="Address"
               value={address}
@@ -283,68 +284,6 @@ export default function EditProfileScreen() {
               showPasswordToggle
               error={errors.confirmPassword}
             />
-          </View>
-          
-          {/* Profile Actions - HOME-11-1 Requirements */}
-          <View style={styles.section}>
-            <Typography variant="h4" style={styles.sectionTitle}>
-              Profile Actions
-            </Typography>
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity 
-                style={styles.actionItem} 
-                onPress={() => console.log('Contact preferences')}
-              >
-                <View style={styles.actionContent}>
-                  <View style={styles.actionIcon}>
-                    <Settings size={24} color={colors.text.primary} />
-                  </View>
-                  <View style={styles.actionText}>
-                    <Typography variant="body">Update Contact Preferences</Typography>
-                    <Typography variant="caption" color="secondary">
-                      Manage your notification and contact settings
-                    </Typography>
-                  </View>
-                </View>
-                <CheckCircle2 size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.actionItem} 
-                onPress={() => console.log('Upload ID')}
-              >
-                <View style={styles.actionContent}>
-                  <View style={styles.actionIcon}>
-                    <Upload size={24} color={colors.text.primary} />
-                  </View>
-                  <View style={styles.actionText}>
-                    <Typography variant="body">Upload ID Document</Typography>
-                    <Typography variant="caption" color="secondary">
-                      Upload or update your identification documents
-                    </Typography>
-                  </View>
-                </View>
-                <CheckCircle2 size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.actionItem} 
-                onPress={() => console.log('KYC Status')}
-              >
-                <View style={styles.actionContent}>
-                  <View style={styles.actionIcon}>
-                    <Eye size={24} color={colors.text.primary} />
-                  </View>
-                  <View style={styles.actionText}>
-                    <Typography variant="body">View KYC Status</Typography>
-                    <Typography variant="caption" color="secondary">
-                      Check your Know Your Customer verification status
-                    </Typography>
-                  </View>
-                </View>
-                <CheckCircle2 size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
           </View>
           
           {/* Save Button */}
@@ -416,35 +355,5 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginBottom: spacing.lg,
-  },
-  actionsContainer: {
-    backgroundColor: colors.neutral.white,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: colors.neutral.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 3,
-  },
-  actionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  actionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  actionIcon: {
-    marginRight: spacing.md,
-  },
-  actionText: {
-    flex: 1,
-    gap: spacing.xs,
   },
 });

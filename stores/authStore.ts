@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { User } from '@/types';
+import { authService } from '@/services/auth';
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -359,26 +360,12 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   sendForgotPasswordOTP: async (email: string) => {
     set({ isLoading: true });
     try {
-      // Check if email exists in demo users
-      const demoUsers = [
-        { email: 'renter@rentzi.com' },
-        { email: 'investor@rentzi.com' },
-        { email: 'homeowner@rentzi.com' },
-        { email: 'test@test.com' },
-      ];
-      const userExists = demoUsers.find((user) => user.email.toLowerCase() === email.toLowerCase());
-      if (!userExists) {
-        set({ isLoading: false });
-        throw new Error('No account found with this email address');
-      }
-      // Simulate API call to send OTP
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Set OTP expiry time (2 minutes from now)
-      const otpExpiryTime = Date.now() + 2 * 60 * 1000;
+      // Call real AuthService
+      const response = await authService.forgotPassword(email);
       set({
         isLoading: false,
         otpSent: true,
-        otpExpiry: otpExpiryTime,
+        // Optionally, you can set an expiry if the backend provides it, or remove this if not needed
       });
     } catch (error) {
       set({ isLoading: false });

@@ -1,75 +1,70 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from "react";
 import {
   View,
-  StyleSheet,
-  ScrollView,
+  StyleSheet, 
   TouchableOpacity,
-  Dimensions,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Keyboard,
-  TouchableWithoutFeedback,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { toast } from '@/components/ui/Toast';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { useAuthStore } from '@/stores/authStore';
-import { validateEmail, validatePassword, validateMobileNumber } from '@/utils/validation';
-import { staticText } from '@/constants/staticText';
-const { width } = Dimensions.get('window');
-const screenHeight = Dimensions.get('window').height;
-interface DemoUser {
-  role: string;
-  email: string;
-  password: string;
-  name: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}
-const demoUsers: DemoUser[] = [
-  {
-    role: 'Renter',
-    email: 'renter@rentzi.com',
-    password: 'renter123',
-    name: 'Alexander Sterling',
-    icon: 'home-outline',
-  },
-  {
-    role: 'Investor',
-    email: 'investor@rentzi.com',
-    password: 'investor123',
-    name: 'Victoria Blackwood',
-    icon: 'trending-up-outline',
-  },
-  {
-    role: 'Homeowner',
-    email: 'homeowner@rentzi.com',
-    password: 'homeowner123',
-    name: 'Marcus Rothschild',
-    icon: 'business-outline',
-  },
-];
+  Image, 
+  Platform, 
+  StatusBar,
+} from "react-native";
+import { ERROR_MESSAGES, AUTH } from "@/constants/strings";
+
+import { useRouter } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { toast } from "@/components/ui/Toast";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { validateEmail, validateMobileNumber } from "@/utils/validation";
+import { useLogin } from "@/services/apiClient"; 
+import { useFocusEffect } from "@react-navigation/native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { AuthResponse, LoginRequest } from "@/types";
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
-  const [emailOrMobile, setEmailOrMobile] = useState('');
-  const [password, setPassword] = useState('');
+  const [emailOrMobile, setEmailOrMobile] = useState("");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedUserType, setSelectedUserType] = useState<"renter_investor" | "homeowner">("renter_investor");
+  const [showDropdown, setShowDropdown] = useState(false);
+
+  const userTypeOptions = [
+    { value: "renter_investor", label: "Sign in as Renter/Investor", icon: "person-outline" },
+    { value: "homeowner", label: "Sign in as Homeowner", icon: "home-outline" },
+  ];
+
+  useFocusEffect(
+    React.useCallback(() => {
+      StatusBar.setBarStyle("light-content");
+      if (Platform.OS === "android") {
+        StatusBar.setBackgroundColor("#fff");
+      }
+      return () => {
+        StatusBar.setBarStyle("light-content");
+        if (Platform.OS === "android") {
+          StatusBar.setBackgroundColor("#fff");
+        }
+      };
+    }, [])
+  );
+
+  const handleRegister = (roleType: string) => {
+    router.push({ pathname: "/(auth)/register", params: { roleType } });
+  };
+
+  const handleForgotPassword = () => {
+    router.push("/(auth)/forgot-password");
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    // Detect if input is email or mobile number
-    const isEmail = emailOrMobile.includes('@');
-    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ''));
+    const isEmail = emailOrMobile.includes("@");
+    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
     if (isEmail) {
       const emailValidation = validateEmail(emailOrMobile);
       if (!emailValidation.isValid) {
@@ -81,250 +76,389 @@ export default function LoginScreen() {
         newErrors.emailOrMobile = mobileValidation.error!;
       }
     } else {
-      newErrors.emailOrMobile = 'Please enter a valid email address or mobile number';
+      newErrors.emailOrMobile = ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL;
     }
-    // Simple password validation for login - only check if password exists
     if (!password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = ERROR_MESSAGES.AUTH.PASSWORDS_REQUIRED;
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-  const handleLogin = async () => {
-    if (!validateForm()) return;
-    try {
-      await login(emailOrMobile, password);
-      toast.success('Credentials verified! Sending OTP...');
-      // Navigate directly to mobile verification for both email and mobile login
-      router.push({
-        pathname: '/(auth)/mobile-verification',
-        params: {
-          email: emailOrMobile.includes('@') ? emailOrMobile : 'user@example.com',
-          phone: emailOrMobile.includes('@') ? '+1 (555) 123-4567' : emailOrMobile,
-          type: 'login',
-        },
-      });
-    } catch (error: any) {
-      // Handle specific error messages from authStore with proper error display
-      let errorMessage = 'Login failed. Please try again.';
-      if (error.message) {
-        if (error.message.includes('No account found')) {
-          errorMessage = 'No account found with this email. Please sign up first';
-        } else if (error.message.includes('Incorrect password')) {
-          errorMessage = 'Incorrect password';
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      toast.error(errorMessage);
-    }
-  };
-  const handleDemoLogin = async (demoUser: DemoUser) => {
-    setEmailOrMobile(demoUser.email);
-    setPassword(demoUser.password);
-    setErrors({});
-    try {
-      await login(demoUser.email, demoUser.password);
-      toast.success(`Welcome ${demoUser.name}! Sending OTP...`);
-      // Navigate directly to mobile verification
-      router.push({
-        pathname: '/(auth)/mobile-verification',
-        params: {
-          email: demoUser.email,
-          phone: '+1 (555) 123-4567',
-          type: 'login',
-        },
-      });
-    } catch (error: any) {
-      const errorMessage = error.message || 'Demo login failed. Please try again.';
-      toast.error(errorMessage);
-    }
-  };
-  const handleRegister = () => {
-    router.push('/(auth)/register');
-  };
-  const handleForgotPassword = () => {
-    router.push('/(auth)/forgot-password');
-  };
+
   const updateField = (field: string, value: string) => {
-    if (field === 'emailOrMobile') setEmailOrMobile(value);
-    if (field === 'password') setPassword(value);
+    if (field === "emailOrMobile") setEmailOrMobile(value);
+    if (field === "password") setPassword(value);
     if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
+
+  const loginMutation = useLogin(selectedUserType, {
+    onSuccess: async (response: AuthResponse) => {
+      console.log("Login API success:", response);
+      if (response.success && response.data) {
+        const { token, user } = response.data;
+        // Check verification status
+        if (!user.isEmailVerified || !user.isPhoneVerified) {
+          toast.info("Please verify your account");
+          // Pass token and email/phone to OTP screen
+          router.push({
+            pathname: "/(auth)/mobile-verification",
+            params: {
+              email: user.email,
+              phone: user.phoneNumber,
+              token,
+              type: "login",
+            },
+          });
+          return;
+        }
+        // Store token and proceed
+        await AsyncStorage.setItem("token", token);
+        toast.success(AUTH.LOGIN.SUCCESS);
+        router.replace("/(tabs)");
+      } else {
+        // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
+        const errorMessage =
+          response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+        toast.error(errorMessage);
+        console.error("Login API error:", response);
+      }
+    },
+    onError: (error) => {
+      console.error("Login API error:", error);
+      // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
+      let errorMessage = ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+
+      if (error?.data?.message) {
+        // If error has data.message (API error response)
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        // If error has direct message (network error, etc.)
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage);
+    },
+  });
+
+  const handleLogin = useCallback(async () => {
+    if (!validateForm()) return;
+    const isEmail = emailOrMobile.includes("@");
+    const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
+    let payload: LoginRequest = { email: "", password };
+    if (isEmail) {
+      payload.email = emailOrMobile;
+    } else if (isMobile) {
+      payload.email = emailOrMobile; // API expects email field for both
+    } else {
+      toast.error("Please enter a valid email address or mobile number");
+      toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
+      return;
+    }
+    console.log("[Login] Sending payload:", payload);
+    loginMutation.mutate(payload);
+  }, [emailOrMobile, password, loginMutation]);
+
+  const isLoading = loginMutation.isPending;
+
+  const quickAccessLogin = (role: string) => {
+    let email = "";
+    switch (role) {
+      case "renter":
+        email = "renter@solulab.co";
+        break;
+      case "investor":
+        email = "investor@solulab.co";
+        break;
+      case "homeowner":
+        email = "homeowner@solulab.co";
+        break;
+      default:
+        email = "renter@solulab.co";
+    }
+    setEmailOrMobile(email);
+    setPassword("@Test12345");
+  };
+
+  const selectedOption = userTypeOptions.find(option => option.value === selectedUserType);
+
   return (
-    <ScreenContainer>
-      <LinearGradient
-        colors={['#0E2538', '#28679E']}
-        useAngle={true}
-        angle={45}
-        style={styles.gradient}
-      >
-        <View style={styles.container}>
-          <StatusBar style="light" />
-          <KeyboardAvoidingView
-            style={styles.keyboardView}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          >
-            <ScrollView
-              contentContainerStyle={styles.scrollContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.splitContainer}>
-                {/* Header Section */}
-                <View style={styles.headerSection}>
-                  <View style={styles.logoContainer}>
-                    <Image
-                      source={{
-                        uri: 'https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png',
-                      }}
-                      style={styles.logo}
-                      resizeMode="cover"
-                    />
-                  </View>
-                  <Typography variant="h1" color="white" align="center" style={styles.title}>
-                    Rentzi
-                  </Typography>
-                  <Typography variant="body" color="gold" align="center" style={styles.subtitle}>
-                    Welcome to Luxury Livings
-                  </Typography>
-                </View>
-                {/* Form Section */}
-                <View style={styles.formSection}>
-                  <Card style={styles.formCard}>
-                    <View style={styles.form}>
-                      <Typography
-                        variant="h3"
-                        color="primary"
-                        align="center"
-                        style={styles.formTitle}
-                      >
-                        Sign In
+    <View style={styles.container}>
+      <LinearGradient colors={["#0E2538", "#28679E"]} style={styles.container}>
+        <KeyboardAwareScrollView
+          contentContainerStyle={styles.scrollContent}
+          enableOnAndroid={true}
+          extraScrollHeight={20}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
+            {/* Header Section */}
+            <View style={styles.headerSection}>
+              <View style={styles.logoContainer}>
+                <Image
+                  source={require("../../assets/images/logo.png")}
+                  style={styles.logo}
+                  resizeMode="cover"
+                />
+              </View>
+              <Typography
+                variant="h4"
+                color="white"
+                align="center"
+                weight="bold"
+              >
+                Rentzi
+              </Typography>
+
+              <Typography variant="body" color="gold" align="center">
+                Welcome to Luxury Livings
+              </Typography>
+            </View>
+            {/* Form Section */}
+            <View style={styles.formSection}>
+              <View style={styles.form}>
+                <Typography
+                  variant="h3"
+                  color="primary"
+                  align="center"
+                  style={styles.formTitle}
+                >
+                  Sign In
+                </Typography>
+
+                {/* User Type Dropdown */}
+                <View style={styles.dropdownContainer}>
+                  <TouchableOpacity
+                    style={styles.dropdownButton}
+                    onPress={() => {
+                      console.log("Dropdown pressed, current state:", showDropdown);
+                      setShowDropdown(!showDropdown);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.dropdownContent}>
+                      <Ionicons
+                        name={selectedOption?.icon as any}
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                      <Typography variant="body" color="primary" style={styles.dropdownText}>
+                        {selectedOption?.label}
                       </Typography>
-                      <Input
-                        label="Email/Mobile Number"
-                        value={emailOrMobile}
-                        onChangeText={(value) => updateField('emailOrMobile', value)}
-                        placeholder="Enter your email or mobile number"
-                        keyboardType="default"
-                        autoCapitalize="none"
-                        error={errors.emailOrMobile}
-                      />
-                      <Input
-                        label="Password"
-                        value={password}
-                        onChangeText={(value) => updateField('password', value)}
-                        placeholder="Enter your password"
-                        showPasswordToggle={true}
-                        error={errors.password}
-                      />
+                    </View>
+                    <Ionicons
+                      name={showDropdown ? "chevron-up" : "chevron-down"}
+                      size={20}
+                      color={colors.primary.gold}
+                    />
+                  </TouchableOpacity>
+                  
+                  {showDropdown && (
+                    <View style={styles.dropdownMenu}>
                       <TouchableOpacity
-                        style={styles.forgotPassword}
-                        onPress={handleForgotPassword}
+                        style={[
+                          styles.dropdownItem,
+                          selectedUserType === "renter_investor" && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedUserType("renter_investor");
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
                       >
-                        <Typography variant="caption" color="secondary" align="right">
-                          Forgot Password?
+                        <Ionicons
+                          name="person-outline"
+                          size={20}
+                          color={selectedUserType === "renter_investor" ? colors.background.primary : colors.primary.gold}
+                        />
+                        <Typography 
+                          variant="body" 
+                          color={selectedUserType === "renter_investor" ? "white" : "primary"}
+                          style={styles.dropdownItemText}
+                        >
+                          Sign in as Renter/Investor
                         </Typography>
                       </TouchableOpacity>
-                      <Button
-                        title="Sign In"
-                        onPress={handleLogin}
-                        loading={isLoading}
-                        style={styles.loginButton}
-                        variant="primary"
-                      />
-                      <View style={styles.divider}>
-                        <View style={styles.dividerLine} />
-                        <Typography variant="caption" color="secondary" style={styles.dividerText}>
-                          Don't have an account?
-                        </Typography>
-                        <View style={styles.dividerLine} />
-                      </View>
-                      <Button
-                        title="Sign up as Renter/Investor"
-                        onPress={handleRegister}
-                        variant="outline"
-                      />
-                      <View style={{ height: 1 }} />
-                      <Button
-                        title="Sign up as Homeowner"
-                        onPress={handleRegister}
-                        variant="outline"
-                      />
-                    </View>
-                    {/* Demo Section */}
-                    <View style={styles.demoSection}>
-                      <Typography
-                        variant="caption"
-                        color="primary"
-                        align="center"
-                        style={styles.demoTitle}
+                      
+                      <TouchableOpacity
+                        style={[
+                          styles.dropdownItem,
+                          selectedUserType === "homeowner" && styles.dropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedUserType("homeowner");
+                          setShowDropdown(false);
+                        }}
+                        activeOpacity={0.7}
                       >
-                        Quick Demo Access
-                      </Typography>
-                      <View style={styles.demoButtons}>
-                        {demoUsers.map((user, index) => (
-                          <TouchableOpacity
-                            key={index}
-                            style={styles.demoButton}
-                            onPress={() => handleDemoLogin(user)}
-                            disabled={isLoading}
-                            activeOpacity={0.8}
-                          >
-                            <Ionicons name={user.icon} size={20} color={colors.neutral.white} />
-                            <Typography
-                              variant="caption"
-                              color="white"
-                              style={styles.demoButtonText}
-                            >
-                              {user.role}
-                            </Typography>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
+                        <Ionicons
+                          name="home-outline"
+                          size={20}
+                          color={selectedUserType === "homeowner" ? colors.background.primary : colors.primary.gold}
+                        />
+                        <Typography 
+                          variant="body" 
+                          color={selectedUserType === "homeowner" ? "white" : "primary"}
+                          style={styles.dropdownItemText}
+                        >
+                          Sign in as Homeowner
+                        </Typography>
+                      </TouchableOpacity>
                     </View>
-                  </Card>
+                  )}
+                </View>
+
+                <Input
+                  label="Email/Mobile Number"
+                  value={emailOrMobile}
+                  onChangeText={(value) => updateField("emailOrMobile", value)}
+                  placeholder="Enter your email or mobile number"
+                  keyboardType="default"
+                  autoCapitalize="none"
+                  error={errors.emailOrMobile}
+                />
+                <Input
+                  label="Password"
+                  value={password}
+                  onChangeText={(value) => updateField("password", value)}
+                  placeholder="Enter your password"
+                  showPasswordToggle={true}
+                  error={errors.password}
+                />
+                <TouchableOpacity
+                  style={styles.forgotPassword}
+                  onPress={handleForgotPassword}
+                >
+                  <Typography variant="caption" color="secondary" align="right">
+                    Forgot Password?
+                  </Typography>
+                </TouchableOpacity>
+                <Button
+                  title="Sign In"
+                  onPress={handleLogin}
+                  loading={isLoading}
+                  style={styles.loginButton}
+                  variant="primary"
+                />
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Typography
+                    variant="caption"
+                    color="secondary"
+                    style={styles.dividerText}
+                  >
+                    Don't have an account?
+                  </Typography>
+                  <View style={styles.dividerLine} />
+                </View>
+                <View style={styles.buttonSection}>
+                  <Button
+                    title="Sign up as Renter/Investor"
+                    onPress={() => handleRegister("renter_investor")}
+                    variant="outline"
+                    leftIcon={
+                      <Ionicons
+                        name="person-outline"
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                    }
+                  />
+                  <View style={{ height: 12 }} />
+                  <Button
+                    title="Sign up as Homeowner"
+                    onPress={() => handleRegister("homeowner")}
+                    variant="outline"
+                    leftIcon={
+                      <Ionicons
+                        name="home-outline"
+                        size={20}
+                        color={colors.primary.gold}
+                      />
+                    }
+                  />
+                </View>
+
+                {/* Quick Access Buttons at Bottom End */}
+
+                <Typography
+                  variant="body2"
+                  color="secondary"
+                  align="center"
+                  style={{ marginTop: spacing.md }}
+                >
+                  Quick Access
+                </Typography>
+                <View
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    marginTop: spacing.md,
+                    marginBottom: spacing.md,
+                    gap: 12,
+                  }}
+                >
+                  <Button
+                    title="Renter"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("renter")}
+                  />
+                  <Button
+                    title="Investor"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("investor")}
+                  />
+                  <Button
+                    title="Homeowner"
+                    variant="outline"
+                    size="small"
+                    style={{ minWidth: 90 }}
+                    onPress={() => quickAccessLogin("homeowner")}
+                  />
                 </View>
               </View>
-            </ScrollView>
-          </KeyboardAvoidingView>
-        </View>
+            </View>
+          </View>
+        </KeyboardAwareScrollView>
       </LinearGradient>
-    </ScreenContainer>
+    </View>
   );
 }
 const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
-    flex: 1,
-  },
-  keyboardView: {
-    flex: 1,
-  },
   scrollContent: {
     flexGrow: 1,
-    minHeight: Dimensions.get('window').height - 100,
-    paddingTop: spacing.lg,
-    paddingBottom: 0,
-  },
-  splitContainer: {
-    flex: 1,
+    justifyContent: "center",
   },
   headerSection: {
-    flex: 0.2,
-    alignItems: 'center',
-    justifyContent: 'center',
+    flex: 0.25,
+    alignItems: "center",
+    justifyContent: "center",
   },
   formSection: {
-    flex: 0.8,
-    justifyContent: 'flex-start',
+    flex: 0.75,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    overflow: "hidden",
+    marginTop: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+    backgroundColor: colors.background.primary,
   },
   logoContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: spacing.xs,
     marginTop: spacing.xxxl,
   },
@@ -332,45 +466,26 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '700',
-    letterSpacing: 1,
-  },
-  subtitle: {
-    opacity: 0.8,
-    fontSize: 16,
-  },
-  formCard: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
-    overflow: 'hidden',
-    marginTop: spacing.xl,
-  },
   form: {
-    gap: spacing.sm,
-    marginHorizontal: spacing.sm,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.layout.screenPadding,
   },
   formTitle: {
-    marginBottom: spacing.lg,
-    fontWeight: '700',
+    marginBottom: spacing.md,
+    fontWeight: "700",
   },
   forgotPassword: {
-    alignSelf: 'flex-end',
-    marginTop: -spacing.xs,
-    marginBottom: spacing.sm,
+    alignSelf: "flex-end",
+    marginBottom: spacing.md,
   },
   loginButton: {
-    marginTop: spacing.md,
+    marginTop: spacing.sm,
     marginHorizontal: spacing.xs,
   },
   divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: spacing.md,
-    gap: spacing.md,
   },
   dividerLine: {
     flex: 1,
@@ -380,34 +495,57 @@ const styles = StyleSheet.create({
   dividerText: {
     paddingHorizontal: spacing.sm,
   },
-  demoSection: {
-    marginTop: spacing.xxxl,
-    marginBottom: spacing.xxxl,
-  },
-  demoTitle: {
-    marginBottom: spacing.md,
-    opacity: 0.7,
-    fontSize: 14,
-  },
-  demoButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  demoButton: {
-    flex: 1,
-    backgroundColor: colors.primary.gold,
-    paddingVertical: spacing.md,
+
+  buttonSection: {
     paddingHorizontal: spacing.md,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: spacing.xs,
-    shadowColor: colors.primary.gold,
   },
-  demoButtonText: {
-    fontWeight: '600',
-    fontSize: 12,
+  dropdownContainer: {
+    marginBottom: spacing.md,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: colors.background.secondary,
+  },
+  dropdownButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  dropdownContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+  },
+  dropdownText: {
+    fontWeight: "600",
+  },
+  dropdownMenu: {
+    backgroundColor: colors.background.primary,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    marginTop: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    zIndex: 1000,
+  },
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    gap: spacing.xs,
+  },
+  dropdownItemSelected: {
+    backgroundColor: colors.primary.gold,
+  },
+  dropdownItemText: {
+    fontWeight: "500",
   },
 });
