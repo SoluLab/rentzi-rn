@@ -214,6 +214,7 @@ export const useApiMutation = <T = any, V = any>(
 
 // Login
 export const useLogin = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<AuthResponse, ApiError, LoginRequest>,
     "mutationFn"
@@ -228,13 +229,21 @@ export const useLogin = (
         password,
       };
 
+      // Set base URL based on user type
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
       console.log("[API Client] Login payload:", payload);
+      console.log("[API Client] User type:", userType);
       console.log(
         "[API Client] Login URL:",
-        `${BASE_URLS.DEVELOPMENT.AUTH_API_RENTER}${ENDPOINTS.AUTH.SIGNIN}`
+        `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`
       );
+
       const response = await apiPost<AuthResponse>({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNIN,
         data: payload,
         auth: false,
@@ -329,6 +338,7 @@ export const useSignup = (
 // Verify OTP
 
 export const useVerifyOtp = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<any, ApiError, { email: string; otp: string }>,
     "mutationFn"
@@ -336,8 +346,13 @@ export const useVerifyOtp = (
 ) => {
   return useMutation<any, ApiError, { email: string; otp: string }>({
     mutationFn: async ({ email, otp }) => {
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
       const response = await apiPost({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_OTP,
         data: { email, otp },
         auth: true, // Enable authentication to include Bearer token
@@ -351,6 +366,7 @@ export const useVerifyOtp = (
 // Logout
 
 export const useLogout = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<UseMutationOptions<any, ApiError, void>, "mutationFn">
 ) => {
   const queryClient = useQueryClient();
@@ -358,9 +374,15 @@ export const useLogout = (
   return useMutation<any, ApiError, void>({
     mutationFn: async () => {
       try {
+        // Set base URL based on user type
+        const baseURL =
+          userType === "homeowner"
+            ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+            : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
         // Call logout API
         const response = await apiPost({
-          baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+          baseURL,
           endpoint: ENDPOINTS.AUTH.LOGOUT,
           data: {},
           auth: true,
@@ -383,6 +405,7 @@ export const useLogout = (
 
 // Reset password
 export const useResetPassword = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<
       any,
@@ -403,8 +426,13 @@ export const useResetPassword = (
     { email: string; code: string; newPassword: string; verificationId: number }
   >({
     mutationFn: async ({ email, code, newPassword, verificationId }) => {
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
       const response = await apiPost({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: ENDPOINTS.AUTH.RESET_PASSWORD,
         data: { email, code, newPassword, verificationId },
         auth: false,
@@ -417,6 +445,7 @@ export const useResetPassword = (
 
 // Forgot password
 export const useForgotPassword = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<any, ApiError, { email: string }>,
     "mutationFn"
@@ -424,9 +453,14 @@ export const useForgotPassword = (
 ) => {
   return useMutation<any, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
       console.log("[API Client] ForgotPassword request:", { email });
       const response = await apiPost({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: ENDPOINTS.AUTH.FORGOT_PASSWORD,
         data: { email },
         auth: false,
@@ -440,12 +474,18 @@ export const useForgotPassword = (
 
 // Get profile
 export const useGetProfile = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">
 ) => {
+  const baseURL =
+    userType === "homeowner"
+      ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+      : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
   return useApiQuery(
     [...queryKeys.all, "profile"],
     {
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+      baseURL,
       endpoint: "/api/profile",
       auth: true,
     },
@@ -455,12 +495,18 @@ export const useGetProfile = (
 
 // Update profile
 export const useUpdateProfile = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<UseMutationOptions<any, ApiError, any>, "mutationFn">
 ) => {
   return useMutation<any, ApiError, any>({
     mutationFn: async (data) => {
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
       return apiPut({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: "/api/profile",
         data,
         auth: true,

@@ -30,7 +30,7 @@ export default function LoginScreen() {
   const [emailOrMobile, setEmailOrMobile] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedUserType, setSelectedUserType] = useState("renter_investor");
+  const [selectedUserType, setSelectedUserType] = useState<"renter_investor" | "homeowner">("renter_investor");
   const [showDropdown, setShowDropdown] = useState(false);
 
   const userTypeOptions = [
@@ -93,7 +93,7 @@ export default function LoginScreen() {
     }
   };
 
-  const loginMutation = useLogin({
+  const loginMutation = useLogin(selectedUserType, {
     onSuccess: async (response: AuthResponse) => {
       console.log("Login API success:", response);
       if (response.success && response.data) {
