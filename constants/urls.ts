@@ -61,6 +61,7 @@ export const BASE_URLS = {
     STRIPE_CHECKOUT: BASE_URLS[CURRENT_ENV].STRIPE_CHECKOUT,
     SELLER_BUYER_API: BASE_URLS[CURRENT_ENV].SELLER_BUYER_API,
     BALANCE_API: BASE_URLS[CURRENT_ENV].BALANCE_API,
+    MARKETPLACE_API: BASE_URLS[CURRENT_ENV].AUTH_API_RENTER, // Using the same base URL for now
   } as const;
   
   // API endpoints
@@ -115,6 +116,9 @@ export const BASE_URLS = {
       FILE_UPLOAD_SINGLE: '/property/fileUpload/single',
       FILE_UPLOAD_MULTIPLE: '/property/fileUpload/multiple',
       GET_PROPERTY_TYPES: '/property-type',
+    },
+    MARKETPLACE: {
+      PROPERTIES: '/marketplace/properties',
     },
     MAILING:{
       IS_EXIST:'/mailScheduling/is-exist'

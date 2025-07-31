@@ -37,7 +37,7 @@ export interface Property {
     investment: number;
     currency: string;
   };
-  propertyType: 'villa' | 'penthouse' | 'mansion' | 'estate' | 'yacht';
+  propertyType: 'villa' | 'penthouse' | 'mansion' | 'estate' | 'yacht' | 'apartment' | 'house' | 'condo' | 'loft' | 'cabin' | 'treehouse' | 'farmhouse' | 'office' | 'retail' | 'warehouse' | 'commercial';
   bedrooms: number;
   bathrooms: number;
   mediaGallery: {
