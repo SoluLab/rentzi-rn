@@ -45,6 +45,7 @@ export default function PropertyManagementScreen() {
     isLoading, 
     fetchProperties, 
     deleteProperty, 
+    updateProperty,
     updatePropertyStatus,
     pauseFractionalization,
     syncFromCommercialStore,
@@ -61,6 +62,8 @@ export default function PropertyManagementScreen() {
   const [showPauseBottomSheet, setShowPauseBottomSheet] = useState(false);
   const [pauseReason, setPauseReason] = useState('');
   const [propertyToPause, setPropertyToPause] = useState<HomeownerProperty | null>(null);
+  const [showEnableDisableBottomSheet, setShowEnableDisableBottomSheet] = useState(false);
+  const [propertyToToggle, setPropertyToToggle] = useState<HomeownerProperty | null>(null);
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -155,6 +158,32 @@ export default function PropertyManagementScreen() {
     setShowPauseBottomSheet(false);
     setPropertyToPause(null);
     setPauseReason('');
+  };
+
+  const handleToggleProperty = (property: HomeownerProperty) => {
+    setPropertyToToggle(property);
+    setShowEnableDisableBottomSheet(true);
+  };
+
+  const handleEnableProperty = async () => {
+    if (propertyToToggle) {
+      await updateProperty(propertyToToggle.id, { enabled: true });
+      setShowEnableDisableBottomSheet(false);
+      setPropertyToToggle(null);
+    }
+  };
+
+  const handleDisableProperty = async () => {
+    if (propertyToToggle) {
+      await updateProperty(propertyToToggle.id, { enabled: false });
+      setShowEnableDisableBottomSheet(false);
+      setPropertyToToggle(null);
+    }
+  };
+
+  const handleCancelToggle = () => {
+    setShowEnableDisableBottomSheet(false);
+    setPropertyToToggle(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -309,7 +338,7 @@ export default function PropertyManagementScreen() {
               </Typography>
             </TouchableOpacity>
             
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={() => handleDeleteProperty(property)}
               style={[styles.actionButton, styles.deleteButton]}
             >
@@ -317,6 +346,27 @@ export default function PropertyManagementScreen() {
               <Typography variant="caption" color="error">
                 Delete
               </Typography>
+            </TouchableOpacity> */}
+            
+            <TouchableOpacity
+              onPress={() => handleToggleProperty(property)}
+              style={[styles.actionButton, property.enabled ? styles.enableButton : styles.disableButton]}
+            >
+              {property.enabled ? (
+                <>
+                  <AlertTriangle size={16} color={colors.status.warning} />
+                  <Typography variant="caption" color="warning">
+                    Disable
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} color={colors.status.success} />
+                  <Typography variant="caption" color="success">
+                    Enable
+                  </Typography>
+                </>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -707,6 +757,82 @@ export default function PropertyManagementScreen() {
           </View>
         )}
       </BottomSheet>
+
+      {/* Enable/Disable Property Bottom Sheet */}
+      <BottomSheet
+        visible={showEnableDisableBottomSheet}
+        onClose={handleCancelToggle}
+        title={propertyToToggle?.enabled ? "Disable Property?" : "Enable Property?"}
+      >
+        {propertyToToggle && (
+          <View style={styles.bottomSheetContent}>
+            <Typography variant="body" color="secondary" style={styles.bottomSheetSubtitle}>
+              {propertyToToggle.enabled 
+                ? "This will disable the property and hide it from potential investors."
+                : "This will enable the property and make it visible to potential investors."
+              }
+            </Typography>
+            
+            {/* Property Details */}
+            <View style={styles.propertyDetailsSection}>
+              <View style={styles.propertyThumbnailContainer}>
+                <Image source={{ uri: propertyToToggle.image }} style={styles.propertyThumbnail} />
+                <View style={styles.propertyInfo}>
+                  <Typography variant="h5" numberOfLines={2}>
+                    {propertyToToggle.title}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {propertyToToggle.location}
+                  </Typography>
+                </View>
+              </View>
+              
+              {/* Current Status */}
+              <View style={styles.tokenDetailsContainer}>
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Current Status:
+                  </Typography>
+                  <View style={[styles.tokenStatusBadge, { backgroundColor: propertyToToggle.enabled ? colors.status.success : colors.status.error }]}>
+                    <Typography variant="caption" color="inverse">
+                      {propertyToToggle.enabled ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                  </View>
+                </View>
+              </View>
+              
+              {/* Action Buttons */}
+              <View style={styles.bottomSheetActions}>
+                {propertyToToggle.enabled ? (
+                  <Button
+                    title="Disable Property"
+                    onPress={handleDisableProperty}
+                    variant="secondary"
+                    size="medium"
+                    style={styles.confirmButton}
+                  />
+                ) : (
+                  <Button
+                    title="Enable Property"
+                    onPress={handleEnableProperty}
+                    variant="primary"
+                    size="medium"
+                    style={styles.confirmButton}
+                  />
+                )}
+                
+                <Button
+                  title="Cancel"
+                  onPress={handleCancelToggle}
+                  variant="secondary"
+                  size="medium"
+                  style={styles.cancelButton}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </BottomSheet>
     </View>
   );
 }
@@ -902,6 +1028,12 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: colors.background.tertiary,
   },
+  enableButton: {
+    backgroundColor: colors.status.success,
+  },
+  disableButton: {
+    backgroundColor: colors.status.warning,
+  },
   separator: {
     height: spacing.md,
   },
@@ -1049,13 +1181,15 @@ const styles = StyleSheet.create({
   },
   bottomSheetActions: {
     paddingVertical: spacing.lg,
-  },
-  cancelButton: {
-    flex: 1,
+    gap: spacing.sm,
   },
   confirmButton: {
     width: '100%',
-    marginBottom: 120,
+    marginBottom: spacing.sm,
+  },
+  cancelButton: {
+    flex: 1,
+    marginTop: spacing.sm,
   },
   floatingButton: {
     position: 'absolute',

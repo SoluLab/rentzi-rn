@@ -22,6 +22,7 @@ export interface HomeownerProperty {
   occupancyRate?: number;
   bookings?: number;
   data?: any; // Store the actual property form data
+  enabled?: boolean; // Property enable/disable status
   
   // Tokenization properties
   tokenSymbol?: string;
@@ -90,6 +91,7 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     totalTokensIssued: 10000,
     investorsCount: 37,
     totalInvestmentRaised: 125000,
+    enabled: true,
   },
   {
     id: 'approved-2',
@@ -109,6 +111,7 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     totalTokensIssued: 15000,
     investorsCount: 52,
     totalInvestmentRaised: 225000,
+    enabled: false,
   },
   {
     id: 'approved-3',
@@ -130,6 +133,7 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     totalTokensIssued: 12000,
     investorsCount: 28,
     totalInvestmentRaised: 180000,
+    enabled: true,
   },
   {
     id: 'approved-4',

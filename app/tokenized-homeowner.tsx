@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
 import { Modal } from '@/components/ui/Modal';
+import { BottomSheet } from '@/components/ui/BottomSheet';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
@@ -33,6 +34,7 @@ import {
   Coins,
   DollarSign,
   TrendingUp,
+  AlertTriangle,
 } from 'lucide-react-native';
 
 export default function TokenizedHomeownerScreen() {
@@ -44,6 +46,7 @@ export default function TokenizedHomeownerScreen() {
     isLoading, 
     fetchProperties, 
     deleteProperty, 
+    updateProperty,
     updatePropertyStatus,
     syncFromCommercialStore,
     syncFromResidentialStore
@@ -54,6 +57,8 @@ export default function TokenizedHomeownerScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [showPropertyModal, setShowPropertyModal] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<HomeownerProperty | null>(null);
+  const [showEnableDisableBottomSheet, setShowEnableDisableBottomSheet] = useState(false);
+  const [propertyToToggle, setPropertyToToggle] = useState<HomeownerProperty | null>(null);
 
   // Fetch properties on component mount
   useEffect(() => {
@@ -114,6 +119,32 @@ export default function TokenizedHomeownerScreen() {
         },
       ]
     );
+  };
+
+  const handleToggleProperty = (property: HomeownerProperty) => {
+    setPropertyToToggle(property);
+    setShowEnableDisableBottomSheet(true);
+  };
+
+  const handleEnableProperty = async () => {
+    if (propertyToToggle) {
+      await updateProperty(propertyToToggle.id, { enabled: true });
+      setShowEnableDisableBottomSheet(false);
+      setPropertyToToggle(null);
+    }
+  };
+
+  const handleDisableProperty = async () => {
+    if (propertyToToggle) {
+      await updateProperty(propertyToToggle.id, { enabled: false });
+      setShowEnableDisableBottomSheet(false);
+      setPropertyToToggle(null);
+    }
+  };
+
+  const handleCancelToggle = () => {
+    setShowEnableDisableBottomSheet(false);
+    setPropertyToToggle(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -278,7 +309,7 @@ export default function TokenizedHomeownerScreen() {
               </Typography>
             </TouchableOpacity>
             
-            <TouchableOpacity
+            {/* <TouchableOpacity
               onPress={() => handleDeleteProperty(property)}
               style={[styles.actionButton, styles.deleteButton]}
             >
@@ -286,6 +317,27 @@ export default function TokenizedHomeownerScreen() {
               <Typography variant="caption" color="error">
                 Delete
               </Typography>
+            </TouchableOpacity> */}
+            
+            <TouchableOpacity
+              onPress={() => handleToggleProperty(property)}
+              style={[styles.actionButton, property.enabled ? styles.enableButton : styles.disableButton]}
+            >
+              {property.enabled ? (
+                <>
+                  <AlertTriangle size={16} color={colors.status.warning} />
+                  <Typography variant="caption" color="warning">
+                    Disable
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={16} color={colors.status.success} />
+                  <Typography variant="caption" color="success">
+                    Enable
+                  </Typography>
+                </>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -447,6 +499,78 @@ export default function TokenizedHomeownerScreen() {
       </ScrollView>
       
       <PropertyTypeModal />
+      
+      <BottomSheet
+        visible={showEnableDisableBottomSheet}
+        onClose={handleCancelToggle}
+        title={propertyToToggle?.enabled ? "Disable Property?" : "Enable Property?"}
+      >
+        {propertyToToggle && (
+          <View style={styles.bottomSheetContent}>
+            <Typography variant="body" color="secondary" style={styles.bottomSheetSubtitle}>
+              {propertyToToggle.enabled 
+                ? "This will disable the property and hide it from potential investors."
+                : "This will enable the property and make it visible to potential investors."
+              }
+            </Typography>
+            
+            <View style={styles.propertyDetailsSection}>
+              <View style={styles.propertyThumbnailContainer}>
+                <Image source={{ uri: propertyToToggle.image }} style={styles.propertyThumbnail} />
+                <View style={styles.propertyInfo}>
+                  <Typography variant="h5" numberOfLines={2}>
+                    {propertyToToggle.title}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {propertyToToggle.location}
+                  </Typography>
+                </View>
+              </View>
+              
+              <View style={styles.tokenDetailsContainer}>
+                <View style={styles.tokenDetailRow}>
+                  <Typography variant="body" color="secondary">
+                    Current Status:
+                  </Typography>
+                  <View style={[styles.tokenStatusBadge, { backgroundColor: propertyToToggle.enabled ? colors.status.success : colors.status.error }]}>
+                    <Typography variant="caption" color="inverse">
+                      {propertyToToggle.enabled ? 'Enabled' : 'Disabled'}
+                    </Typography>
+                  </View>
+                </View>
+              </View>
+              
+              <View style={styles.bottomSheetActions}>
+                {propertyToToggle.enabled ? (
+                  <Button
+                    title="Disable Property"
+                    onPress={handleDisableProperty}
+                    variant="secondary"
+                    size="medium"
+                    style={styles.confirmButton}
+                  />
+                ) : (
+                  <Button
+                    title="Enable Property"
+                    onPress={handleEnableProperty}
+                    variant="primary"
+                    size="medium"
+                    style={styles.confirmButton}
+                  />
+                )}
+                
+                <Button
+                  title="Cancel"
+                  onPress={handleCancelToggle}
+                  variant="secondary"
+                  size="medium"
+                  style={styles.cancelButton}
+                />
+              </View>
+            </View>
+          </View>
+        )}
+      </BottomSheet>
     </View>
   );
 }
@@ -629,6 +753,12 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: colors.background.tertiary,
   },
+  enableButton: {
+    backgroundColor: colors.status.success,
+  },
+  disableButton: {
+    backgroundColor: colors.status.warning,
+  },
   separator: {
     height: spacing.md,
   },
@@ -695,5 +825,55 @@ const styles = StyleSheet.create({
   },
   propertyTypeDescription: {
     lineHeight: 16,
+  },
+  bottomSheetContent: {
+    padding: spacing.md,
+    gap: spacing.md,
+  },
+  bottomSheetSubtitle: {
+    marginBottom: spacing.md,
+    lineHeight: 20,
+  },
+  propertyDetailsSection: {
+    gap: spacing.md,
+  },
+  propertyThumbnailContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  propertyThumbnail: {
+    width: 60,
+    height: 60,
+    borderRadius: radius.md,
+  },
+  propertyInfo: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  tokenDetailsContainer: {
+    gap: spacing.sm,
+  },
+  tokenDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  tokenStatusBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  bottomSheetActions: {
+    paddingVertical: spacing.lg,
+    gap: spacing.sm,
+  },
+  confirmButton: {
+    width: '100%',
+    marginBottom: spacing.sm,
+  },
+  cancelButton: {
+    flex: 1,
+    marginTop: spacing.sm,
   },
 }); 
