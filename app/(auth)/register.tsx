@@ -115,13 +115,20 @@ export default function RegisterScreen() {
         if (response?.data?.token) {
           await AsyncStorage.setItem("token", response.data.token);
         }
-        toast.success("Registration successful! Please verify your account");
-        // Navigate directly to mobile verification
+        
+        // Store user data for later use
+        if (response?.data?.user) {
+          await AsyncStorage.setItem("userData", JSON.stringify(response.data.user));
+        }
+        
+        toast.success("Registration successful! Please verify your email");
+        // Navigate to OTP verification for email verification
         router.push({
-          pathname: "/(auth)/mobile-verification",
+          pathname: "/(auth)/otp-verification",
           params: {
             email: formData.email.toLowerCase().trim(),
             type: "register",
+            roleType: roleType,
           },
         });
       } else {

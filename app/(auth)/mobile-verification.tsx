@@ -19,10 +19,12 @@ export default function MobileVerificationScreen() {
     email,
     phone,
     type = "register",
+    roleType,
   } = useLocalSearchParams<{
     email: string;
     phone: string;
     type: "register" | "login";
+    roleType?: string;
   }>();
 
   const {
@@ -37,7 +39,9 @@ export default function MobileVerificationScreen() {
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
   const [canResend, setCanResend] = useState(false);
 
-  const verifyOtpMutation = useVerifyOtp();
+  // Determine userType for API call based on roleType
+  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
+  const verifyOtpMutation = useVerifyOtp(userType);
 
   // Timer for OTP expiry
   useEffect(() => {
@@ -90,10 +94,11 @@ export default function MobileVerificationScreen() {
             router.replace("/(tabs)");
           }
         } else {
-          if (user?.role === "homeowner") {
-            router.push("/kyc-verification");
+          // For registration flow, route based on roleType parameter
+          if (roleType === "homeowner") {
+            router.replace("/(homeowner-tabs)");
           } else {
-            router.push("/role-selection");
+            router.replace("/(tabs)");
           }
         }
       } else {

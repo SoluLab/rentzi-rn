@@ -22,6 +22,7 @@ import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
+import { useHomeownerCreateProperty } from '@/services/apiClient';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -78,7 +79,32 @@ export default function AddResidentialPropertyScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const { getPropertyById } = useHomeownerPropertyStore();
-  const { data, updatePropertyDetails, resetStore } = useResidentialPropertyStore();
+  const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
+  
+  // API mutation hook
+  const createPropertyMutation = useHomeownerCreateProperty({
+    onSuccess: (response) => {
+      console.log('Property created successfully:', response);
+      
+      // Store the property ID in the store
+      if (response.data?.id || response.id) {
+        const propertyId = response.data?.id || response.id;
+        setPropertyId(propertyId);
+        console.log('Property ID stored:', propertyId);
+      }
+      
+      // Navigate to pricing and valuation step
+      router.push('/add-residential-details/residential-property-pricing-valuation');
+    },
+    onError: (error) => {
+      console.error('Error creating property:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to create property. Please try again.',
+        [{ text: 'OK' }]
+      );
+    },
+  });
   
   // Reset store if property was already submitted
   React.useEffect(() => {
@@ -305,6 +331,50 @@ export default function AddResidentialPropertyScreen() {
     );
   };
 
+  // Transform form data to API format
+  const transformFormDataToApiFormat = () => {
+    const marketLocation = formData.market === 'Other' ? formData.otherMarket : formData.market;
+    const [city, state] = marketLocation.split(', ').map(s => s.trim());
+    
+    return {
+      name: formData.propertyTitle,
+      description: `${formData.propertyTitle} - ${formData.propertyType} with ${formData.bedrooms} bedrooms and ${formData.bathrooms} bathrooms`,
+      category: formData.propertyType.toLowerCase(),
+      location: {
+        address: formData.fullAddress,
+        city: city || marketLocation,
+        state: state || '',
+        country: "USA",
+        zipCode: formData.pincode,
+        coordinates: {
+          latitude: 25.7617, // Default coordinates - should be replaced with actual map integration
+          longitude: -80.1918
+        }
+      },
+      pricing: {
+        basePrice: 0, // Will be set in pricing step
+        currency: "USD",
+        cleaningFee: 0,
+        securityDeposit: 0
+      },
+      capacity: {
+        maxGuests: parseInt(formData.guestCapacity),
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: parseFloat(formData.bathrooms),
+        beds: parseInt(formData.bedrooms) // Assuming 1 bed per bedroom
+      },
+      amenities: ["wifi", "kitchen"], // Default amenities
+      features: ["airConditioning"], // Default features
+      rules: ["noSmoking", "noPets"], // Default rules
+      propertyDetails: {
+        yearBuilt: parseInt(formData.yearBuilt),
+        squareFootage: parseInt(formData.squareFootage),
+        propertyType: formData.propertyType,
+        guestCapacity: parseInt(formData.guestCapacity)
+      }
+    };
+  };
+
   const renderMarketItem = ({ item }: { item: string }) => (
     <TouchableOpacity
       style={styles.modalItem}
@@ -330,10 +400,18 @@ export default function AddResidentialPropertyScreen() {
     </TouchableOpacity>
   );
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to pricing and valuation step
-      router.push('/add-residential-details/residential-property-pricing-valuation');
+      try {
+        const apiData = transformFormDataToApiFormat();
+        console.log('Submitting property data:', apiData);
+        
+        // Call the API
+        await createPropertyMutation.mutateAsync(apiData);
+      } catch (error) {
+        console.error('Error in handleNext:', error);
+        // Error is already handled by the mutation's onError callback
+      }
     }
   };
 
@@ -510,9 +588,9 @@ export default function AddResidentialPropertyScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={createPropertyMutation.isPending ? "Creating..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || createPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>

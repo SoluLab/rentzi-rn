@@ -2,8 +2,8 @@
 export const BASE_URLS = {
     DEVELOPMENT: {
       PARCEL_API: 'https://parcel-data.landhacker.ai/api/v1',
-      AUTH_API_RENTER: 'http://35.223.240.93:5001/api',
-      AUTH_API_HOMEOWNER: 'http://35.223.240.93:5000/api',
+      AUTH_API_RENTER: 'http://35.223.240.93:5000/api',
+      AUTH_API_HOMEOWNER: 'http://35.223.240.93:5001/api',
       CAMPAIGN_API: 'https://campaign-api.landhacker.ai/api/v1',
       STRIPE_CHECKOUT: 'https://test-stripe-checkout.com',
       PARCEL_DATA_API: 'https://parcel-data.landhacker.ai/api/v1',
@@ -115,6 +115,22 @@ export const BASE_URLS = {
       FILE_UPLOAD_SINGLE: '/property/fileUpload/single',
       FILE_UPLOAD_MULTIPLE: '/property/fileUpload/multiple',
       GET_PROPERTY_TYPES: '/property-type',
+    },
+    HOMEOWNER_PROPERTY: {
+      // Create and manage properties
+      CREATE_PROPERTY: '/property', // Removed /api prefix since base URL already includes /api
+      SAVE_DRAFT: '/property/save',
+      SUBMIT_FOR_REVIEW: '/property/submit',
+      GET_ALL_PROPERTIES: '/property',
+      GET_PROPERTY_BY_ID: (id: string) => `/property/${id}`,
+      UPDATE_PROPERTY: (id: string) => `/property/${id}`,
+      DELETE_PROPERTY: (id: string) => `/property/${id}`,
+      
+      // Property media management
+      UPLOAD_IMAGES: (id: string) => `/property/${id}/images`,
+      DELETE_IMAGE: (id: string, imageName: string) => `/property/${id}/images/${imageName}`,
+      UPLOAD_FILES: (id: string) => `/property/${id}/files`,
+      DELETE_FILE: (id: string, fileName: string) => `/property/${id}/files/${fileName}`,
     },
     MAILING:{
       IS_EXIST:'/mailScheduling/is-exist'

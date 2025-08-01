@@ -60,13 +60,15 @@ export default function SplashScreen() {
         setHasNavigated(true);
         try {
           // Temporarily skip authentication and go directly to homeowner section
-          router.replace('/(homeowner-tabs)');
+         // router.replace('/(homeowner-tabs)');
           // Original logic (commented out for now):
-          // if (isAuthenticated) {
-          //   router.replace('/(tabs)');
-          // } else {
-          //   router.replace('/(auth)/login');
-          // }
+          if (isAuthenticated) {
+              //router.replace('/(tabs)');
+              router.replace('/(homeowner-tabs)');
+           } else {
+            //router.replace('/(auth)/login');
+            router.replace('/(homeowner-tabs)');
+          }
         } catch (error) {
           console.error('Navigation error:', error);
           // Fallback navigation

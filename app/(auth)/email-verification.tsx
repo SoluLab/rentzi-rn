@@ -22,12 +22,15 @@ import { staticText } from "@/constants/staticText";
 import { Ionicons } from "@expo/vector-icons";
 export default function EmailVerificationScreen() {
   const router = useRouter();
-  const { email, phone, type } = useLocalSearchParams<{
+  const { email, phone, type, roleType } = useLocalSearchParams<{
     email: string;
     phone: string;
     type: "register" | "login";
+    roleType?: string;
   }>();
-  const verifyOtpMutation = useVerifyOtp();
+  // Determine userType for API call based on roleType
+  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
+  const verifyOtpMutation = useVerifyOtp(userType);
   const isLoading = verifyOtpMutation.status === 'pending' || verifyOtpMutation.isPending;
   const [emailOTP, setEmailOTP] = useState("");
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
@@ -79,25 +82,26 @@ export default function EmailVerificationScreen() {
     try {
       const response = await verifyOtpMutation.mutateAsync({ email, otp: emailOTP });
       
-      // Check the new response format
-      if (response.success) {
-        toast.success("Email verification successful!");
-        // For login, complete authentication after email verification
-        // For registration, continue to mobile verification
-        if (type === "login") {
-          toast.success("Login successful! Welcome back.");
-          router.replace("/(tabs)");
-        } else {
-          // Navigate to mobile verification for registration
-          router.push({
-            pathname: "/(auth)/mobile-verification",
-            params: {
-              email: email,
-              phone: phone,
-              type: type,
-            },
-          });
-        }
+              // Check the new response format
+        if (response.success) {
+          toast.success("Email verification successful!");
+          // For login, complete authentication after email verification
+          // For registration, continue to mobile verification
+          if (type === "login") {
+            toast.success("Login successful! Welcome back.");
+            router.replace("/(tabs)");
+          } else {
+            // Navigate to mobile verification for registration
+            router.push({
+              pathname: "/(auth)/mobile-verification",
+              params: {
+                email: email,
+                phone: phone,
+                type: type,
+                roleType: roleType,
+              },
+            });
+          }
       } else {
         // Handle unsuccessful response
         const errorMessage = response.message || "Email verification failed. Please check your OTP code.";

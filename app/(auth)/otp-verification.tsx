@@ -15,8 +15,15 @@ import { spacing } from "@/constants/spacing";
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
-  const { email, phone } = useLocalSearchParams();
-  const verifyOtpMutation = useVerifyOtp();
+  const { email, phone, type, roleType } = useLocalSearchParams<{
+    email: string;
+    phone: string;
+    type: "register" | "login";
+    roleType: string;
+  }>();
+  // Determine userType for API call based on roleType
+  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
+  const verifyOtpMutation = useVerifyOtp(userType);
   const isLoading =
     verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending;
 
@@ -65,9 +72,22 @@ export default function OTPVerificationScreen() {
 
       // Check the new response format
       if (response.success) {
-        toast.success("Verification successful! Welcome to Renzi");
-        // Always navigate to home screen after successful verification
-        router.replace("/(tabs)");
+        toast.success("Verification successful! Welcome to Rentzi");
+        
+        // Handle navigation based on type and role
+        if (type === "register") {
+          // For registration flow, route based on roleType
+          if (roleType === "homeowner") {
+            router.replace("/(homeowner-tabs)");
+          } else {
+            // For renter/investor, go to main tabs
+            router.replace("/(tabs)");
+          }
+        } else {
+          // For login flow, check user data from storage or API response
+          // For now, default to main tabs
+          router.replace("/(tabs)");
+        }
       } else {
         // Handle unsuccessful response
         const errorMessage =
@@ -120,7 +140,7 @@ export default function OTPVerificationScreen() {
         </Typography>
 
         <Typography variant="body" style={styles.subtitle}>
-          We've sent a 6-digit code to {email || phone}
+          We've sent a 6-digit code to {email}
         </Typography>
 
         <View style={styles.otpContainer}>
