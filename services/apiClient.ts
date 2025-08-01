@@ -73,12 +73,16 @@ export const queryKeys = {
   tokens: () => [...queryKeys.all, "tokens"] as const,
   mailerOptions: () => [...queryKeys.all, "mailerOptions"] as const,
   profile: () => [...queryKeys.all, "profile"] as const,
-  
+
   // Homeowner Property Query Keys
-  homeownerProperties: () => [...queryKeys.all, "homeowner", "properties"] as const,
-  homeownerProperty: (id: string | number) => [...queryKeys.homeownerProperties(), id] as const,
-  homeownerPropertyImages: (propertyId: string | number) => [...queryKeys.homeownerProperty(propertyId), "images"] as const,
-  homeownerPropertyFiles: (propertyId: string | number) => [...queryKeys.homeownerProperty(propertyId), "files"] as const,
+  homeownerProperties: () =>
+    [...queryKeys.all, "homeowner", "properties"] as const,
+  homeownerProperty: (id: string | number) =>
+    [...queryKeys.homeownerProperties(), id] as const,
+  homeownerPropertyImages: (propertyId: string | number) =>
+    [...queryKeys.homeownerProperty(propertyId), "images"] as const,
+  homeownerPropertyFiles: (propertyId: string | number) =>
+    [...queryKeys.homeownerProperty(propertyId), "files"] as const,
 };
 
 // Main API call function
@@ -279,6 +283,7 @@ export const useSignup = (
         countryCode: string;
         mobile: string;
         userType: string[];
+        roleType?: string;
       }
     >,
     "mutationFn"
@@ -295,6 +300,7 @@ export const useSignup = (
       countryCode: string;
       mobile: string;
       userType: string[];
+      roleType?: string;
     }
   >({
     mutationFn: async ({
@@ -305,29 +311,56 @@ export const useSignup = (
       countryCode,
       mobile,
       userType,
+      roleType,
     }) => {
-      const payload = {
-        name: {
-          firstName,
-          lastName,
-        },
-        email,
-        password,
-        phone: {
-          countryCode,
-          mobile,
-        },
-        userType,
-      };
+      // Determine base URL and payload format based on role type
+      const isHomeowner = roleType === "homeowner";
+      const baseURL = isHomeowner
+        ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+        : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
+      let payload: any;
+
+      if (isHomeowner) {
+        // Homeowner format - no userType field
+        payload = {
+          name: {
+            firstName,
+            lastName,
+          },
+          email,
+          password,
+          phone: {
+            countryCode,
+            mobile,
+          },
+        };
+      } else {
+        // Renter/Investor format - includes userType
+        payload = {
+          name: {
+            firstName,
+            lastName,
+          },
+          email,
+          password,
+          phone: {
+            countryCode,
+            mobile,
+          },
+          userType,
+        };
+      }
 
       console.log("[API Client] Registration payload:", payload);
+      console.log("[API Client] Role type:", roleType);
       console.log(
         "[API Client] Registration URL:",
-        `${BASE_URLS.DEVELOPMENT.AUTH_API_RENTER}${ENDPOINTS.AUTH.SIGNUP}`
+        `${baseURL}${ENDPOINTS.AUTH.SIGNUP}`
       );
 
       const response = await apiPost({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_RENTER,
+        baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNUP,
         data: payload,
         auth: false,
@@ -352,8 +385,13 @@ export const useVerifyOtp = (
 ) => {
   return useMutation<any, ApiError, { email: string; otp: string }>({
     mutationFn: async ({ email, otp }) => {
-      console.log('useVerifyOtp called with:', { email, otp, userType });
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      console.log("useVerifyOtp called with:", { email, otp, userType });
+      
+      // Set base URL based on user type
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
 
       const response = await apiPost({
         baseURL,
@@ -361,7 +399,7 @@ export const useVerifyOtp = (
         data: { email, otp },
         auth: true, // Enable authentication to include Bearer token
       });
-      console.log('useVerifyOtp response:', response);
+      console.log("useVerifyOtp response:", response);
       return response;
     },
     ...options,
@@ -404,7 +442,7 @@ export const useLogout = (
     onSuccess: () => {
       queryClient.clear();
     },
-    
+
     ...options,
   });
 };
@@ -643,10 +681,6 @@ export const useMarketplaceDeleteProperty = (
   });
 };
 
-
-
-
-
 // ============================================================================
 // HOMEOWNER PROPERTY API HOOKS
 // ============================================================================
@@ -828,25 +862,35 @@ export const useHomeownerDeleteProperty = (
 // 8. Upload Property Images
 export const useHomeownerUploadPropertyImages = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, { propertyId: string | number; images: File[] }>,
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string | number; images: any[] }
+    >,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useMutation<any, ApiError, { propertyId: string | number; images: File[] }>({
+  return useMutation<
+    any,
+    ApiError,
+    { propertyId: string | number; images: any[] }
+  >({
     mutationFn: async ({ propertyId, images }) => {
       const formData = new FormData();
       images.forEach((image, index) => {
-        formData.append('images', image);
+        formData.append("images", image);
       });
 
       return apiPost({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_IMAGES(propertyId.toString()),
+        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_IMAGES(
+          propertyId.toString()
+        ),
         data: formData as any,
         auth: true,
         customHeaders: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
     },
@@ -865,16 +909,27 @@ export const useHomeownerUploadPropertyImages = (
 // 9. Delete Property Image
 export const useHomeownerDeletePropertyImage = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, { propertyId: string | number; imageName: string }>,
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string | number; imageName: string }
+    >,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useMutation<any, ApiError, { propertyId: string | number; imageName: string }>({
+  return useMutation<
+    any,
+    ApiError,
+    { propertyId: string | number; imageName: string }
+  >({
     mutationFn: ({ propertyId, imageName }) =>
       apiDelete({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.DELETE_IMAGE(propertyId.toString(), imageName),
+        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.DELETE_IMAGE(
+          propertyId.toString(),
+          imageName
+        ),
         auth: true,
       }),
     onSuccess: (_, { propertyId }) => {
@@ -892,26 +947,36 @@ export const useHomeownerDeletePropertyImage = (
 // 10. Upload Property Files
 export const useHomeownerUploadPropertyFiles = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, { propertyId: string | number; files: File[]; fileType: string }>,
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string | number; files: any[]; fileType: string }
+    >,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useMutation<any, ApiError, { propertyId: string | number; files: File[]; fileType: string }>({
+  return useMutation<
+    any,
+    ApiError,
+    { propertyId: string | number; files: any[]; fileType: string }
+  >({
     mutationFn: async ({ propertyId, files, fileType }) => {
       const formData = new FormData();
       files.forEach((file) => {
-        formData.append('files', file);
+        formData.append("files", file);
       });
-      formData.append('fileType', fileType);
+      formData.append("fileType", fileType);
 
       return apiPost({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId.toString()),
+        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(
+          propertyId.toString()
+        ),
         data: formData as any,
         auth: true,
         customHeaders: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
     },
@@ -930,16 +995,27 @@ export const useHomeownerUploadPropertyFiles = (
 // 11. Delete Property File
 export const useHomeownerDeletePropertyFile = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, { propertyId: string | number; fileName: string }>,
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string | number; fileName: string }
+    >,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useMutation<any, ApiError, { propertyId: string | number; fileName: string }>({
+  return useMutation<
+    any,
+    ApiError,
+    { propertyId: string | number; fileName: string }
+  >({
     mutationFn: ({ propertyId, fileName }) =>
       apiDelete({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.DELETE_FILE(propertyId.toString(), fileName),
+        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.DELETE_FILE(
+          propertyId.toString(),
+          fileName
+        ),
         auth: true,
       }),
     onSuccess: (_, { propertyId }) => {

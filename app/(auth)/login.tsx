@@ -103,12 +103,13 @@ export default function LoginScreen() {
           toast.info("Please verify your account");
           // Pass token and email/phone to OTP screen
           router.push({
-            pathname: "/(auth)/mobile-verification",
+            pathname: "/(auth)/otp-verification",
             params: {
               email: user.email,
               phone: user.phoneNumber,
               token,
               type: "login",
+              roleType: selectedUserType, // Pass the selected user type
             },
           });
           return;
@@ -166,7 +167,7 @@ export default function LoginScreen() {
     let email = "";
     switch (role) {
       case "renter":
-        email = "renter@solulab.co";
+        email = "vimal1@solulab.com";
         break;
       case "investor":
         email = "investor@solulab.co";
@@ -178,7 +179,7 @@ export default function LoginScreen() {
         email = "renter@solulab.co";
     }
     setEmailOrMobile(email);
-    setPassword("@Test12345");
+    setPassword("@Test123");
   };
 
   const selectedOption = userTypeOptions.find(option => option.value === selectedUserType);

@@ -23,6 +23,7 @@ import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 import { useHomeownerCreateProperty } from '@/services/apiClient';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -336,20 +337,38 @@ export default function AddResidentialPropertyScreen() {
     const marketLocation = formData.market === 'Other' ? formData.otherMarket : formData.market;
     const [city, state] = marketLocation.split(', ').map(s => s.trim());
     
+    // Dummy coordinates based on market location
+    const getDummyCoordinates = () => {
+      const locationCoordinates: { [key: string]: { latitude: number; longitude: number } } = {
+        'Miami, FL': { latitude: 25.7617, longitude: -80.1918 },
+        'Palm Springs, CA': { latitude: 33.8303, longitude: -116.5453 },
+        'Aspen, CO': { latitude: 39.1911, longitude: -106.8175 },
+        'Beverly Hills, CA': { latitude: 34.0736, longitude: -118.4004 },
+        'Manhattan, NY': { latitude: 40.7589, longitude: -73.9851 },
+        'Las Vegas, NV': { latitude: 36.1699, longitude: -115.1398 },
+        'Scottsdale, AZ': { latitude: 33.4942, longitude: -111.9261 },
+        'Lake Tahoe, CA': { latitude: 39.0968, longitude: -120.0324 },
+        'Vail, CO': { latitude: 39.6433, longitude: -106.3781 },
+        'Newport Beach, CA': { latitude: 33.6189, longitude: -117.9289 },
+      };
+      
+      return locationCoordinates[marketLocation] || { latitude: 25.7617, longitude: -80.1918 }; // Default to Miami
+    };
+    
+    const coordinates = getDummyCoordinates();
+    
     return {
-      name: formData.propertyTitle,
+      title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.propertyType} with ${formData.bedrooms} bedrooms and ${formData.bathrooms} bathrooms`,
       category: formData.propertyType.toLowerCase(),
+      type: "residential",
       location: {
         address: formData.fullAddress,
         city: city || marketLocation,
         state: state || '',
         country: "USA",
         zipCode: formData.pincode,
-        coordinates: {
-          latitude: 25.7617, // Default coordinates - should be replaced with actual map integration
-          longitude: -80.1918
-        }
+        coordinates: coordinates
       },
       pricing: {
         basePrice: 0, // Will be set in pricing step
@@ -365,13 +384,7 @@ export default function AddResidentialPropertyScreen() {
       },
       amenities: ["wifi", "kitchen"], // Default amenities
       features: ["airConditioning"], // Default features
-      rules: ["noSmoking", "noPets"], // Default rules
-      propertyDetails: {
-        yearBuilt: parseInt(formData.yearBuilt),
-        squareFootage: parseInt(formData.squareFootage),
-        propertyType: formData.propertyType,
-        guestCapacity: parseInt(formData.guestCapacity)
-      }
+      rules: ["noSmoking", "noPets"] // Default rules
     };
   };
 
@@ -418,10 +431,13 @@ export default function AddResidentialPropertyScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title={id ? "Edit Residential Property" : "Add Residential Property"} />
-      <ScrollView 
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Typography variant="h4" style={styles.sectionTitle}>
           Property Details
@@ -593,7 +609,7 @@ export default function AddResidentialPropertyScreen() {
           disabled={!isFormValid() || createPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Market Selection Modal */}
       <Modal

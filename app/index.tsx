@@ -63,11 +63,11 @@ export default function SplashScreen() {
          // router.replace('/(homeowner-tabs)');
           // Original logic (commented out for now):
           if (isAuthenticated) {
-              //router.replace('/(tabs)');
-              router.replace('/(homeowner-tabs)');
-           } else {
-            //router.replace('/(auth)/login');
-            router.replace('/(homeowner-tabs)');
+            // Check if user is homeowner and route accordingly
+            // For now, default to renter tabs - this will be handled by login flow
+            router.replace('/(tabs)');
+          } else {
+            router.replace('/(auth)/login');
           }
         } catch (error) {
           console.error('Navigation error:', error);
@@ -97,8 +97,6 @@ export default function SplashScreen() {
   return (
     <LinearGradient
       colors={['#0E2538', '#28679E']}
-      useAngle={true}
-      angle={45}
       style={styles.gradient}
     >
       <SafeAreaView style={styles.container}>

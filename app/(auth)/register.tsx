@@ -106,6 +106,7 @@ export default function RegisterScreen() {
         countryCode: countryCode,
         mobile: cleanMobile,
         userType: userType,
+        roleType: roleType,
       };
       console.log("[Register] Sending payload:", payload);
       const response = await signupMutation.mutateAsync(payload);
@@ -122,11 +123,12 @@ export default function RegisterScreen() {
         }
         
         toast.success("Registration successful! Please verify your email");
-        // Navigate to OTP verification for email verification
+        // Navigate to mobile verification for OTP verification
         router.push({
-          pathname: "/(auth)/otp-verification",
+          pathname: "/(auth)/mobile-verification",
           params: {
             email: formData.email.toLowerCase().trim(),
+            phone: cleanMobile,
             type: "register",
             roleType: roleType,
           },

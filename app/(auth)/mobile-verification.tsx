@@ -88,7 +88,8 @@ export default function MobileVerificationScreen() {
         // Navigation logic based on user type and role
         if (type === "login") {
           toast.success("Login successful! Welcome back.");
-          if (user?.role === "homeowner") {
+          // Route based on roleType parameter from login
+          if (roleType === "homeowner") {
             router.replace("/(homeowner-tabs)");
           } else {
             router.replace("/(tabs)");

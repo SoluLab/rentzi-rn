@@ -102,6 +102,7 @@ export interface ListingType {
 
 // Complete commercial property data interface
 export interface CommercialPropertyData {
+  propertyId?: string; // Add property ID field
   propertyDetails: PropertyDetails;
   financialDetails: FinancialDetails;
   featuresCompliance: FeaturesCompliance;
@@ -126,6 +127,7 @@ interface CommercialPropertyStore {
   updateDocuments: (documents: Partial<Documents>) => void;
   updateLegalConsents: (consents: Partial<LegalConsents>) => void;
   updateListingType: (listingType: Partial<ListingType>) => void;
+  setPropertyId: (propertyId: string) => void; // Add method to set property ID
   submitProperty: () => void;
   resetStore: () => void;
   
@@ -277,6 +279,15 @@ export const useCommercialPropertyStore = create<CommercialPropertyStore>()(
             listingType: { ...state.data.listingType, ...listingType },
           },
         })),
+
+      setPropertyId: (propertyId: string) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            propertyId,
+          },
+        }));
+      },
 
       submitProperty: () =>
         set((state) => ({

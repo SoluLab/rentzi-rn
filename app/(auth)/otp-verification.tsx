@@ -73,7 +73,7 @@ export default function OTPVerificationScreen() {
       // Check the new response format
       if (response.success) {
         toast.success("Verification successful! Welcome to Rentzi");
-        
+
         // Handle navigation based on type and role
         if (type === "register") {
           // For registration flow, route based on roleType
@@ -84,9 +84,12 @@ export default function OTPVerificationScreen() {
             router.replace("/(tabs)");
           }
         } else {
-          // For login flow, check user data from storage or API response
-          // For now, default to main tabs
-          router.replace("/(tabs)");
+          // For login flow, route based on roleType parameter
+          if (roleType === "homeowner") {
+            router.replace("/(homeowner-tabs)");
+          } else {
+            router.replace("/(tabs)");
+          }
         }
       } else {
         // Handle unsuccessful response

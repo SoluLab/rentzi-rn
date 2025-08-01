@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,19 +7,23 @@ import {
   Modal,
   Alert,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
-import { Ionicons } from '@expo/vector-icons';
+} from "react-native";
+import { useRouter } from "expo-router";
+import * as DocumentPicker from "expo-document-picker";
+import { Ionicons } from "@expo/vector-icons";
 
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { Typography } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { useResidentialPropertyStore, DocumentData } from '@/stores/residentialPropertyStore';
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { Typography } from "@/components/ui/Typography";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import {
+  useResidentialPropertyStore,
+  DocumentData,
+} from "@/stores/residentialPropertyStore";
+import { useHomeownerUploadPropertyFiles } from "@/services/apiClient";
 
 interface DocumentsUploadData {
   // Mandatory documents
@@ -30,11 +34,11 @@ interface DocumentsUploadData {
   utilityBill: DocumentData | null;
   appraisalReport: DocumentData | null;
   authorizationToSell: DocumentData | null;
-  
+
   // Conditional documents
   mortgageStatement: DocumentData | null;
   hoaDocuments: DocumentData | null;
-  
+
   // Conditional flags
   hasMortgage: boolean;
   hasHOA: boolean;
@@ -53,23 +57,36 @@ interface DocumentsUploadErrors {
 }
 
 const MANDATORY_DOCUMENTS = [
-  'propertyDeed',
-  'governmentId', 
-  'propertyTaxBill',
-  'proofOfInsurance',
-  'utilityBill',
-  'appraisalReport',
-  'authorizationToSell'
+  "propertyDeed",
+  "governmentId",
+  "propertyTaxBill",
+  "proofOfInsurance",
+  "utilityBill",
+  "appraisalReport",
+  "authorizationToSell",
 ] as const;
 
-const CONDITIONAL_DOCUMENTS = [
-  'mortgageStatement',
-  'hoaDocuments'
-] as const;
+const CONDITIONAL_DOCUMENTS = ["mortgageStatement", "hoaDocuments"] as const;
 
 export default function ResidentialPropertyDocumentsUploadScreen() {
   const router = useRouter();
-  const { data, updateDocumentsUpload, resetStore } = useResidentialPropertyStore();
+  const { data, updateDocumentsUpload, resetStore } =
+    useResidentialPropertyStore();
+
+  // API mutation hook for uploading files
+  const uploadFilesMutation = useHomeownerUploadPropertyFiles({
+    onSuccess: (response) => {
+      console.log("Files uploaded successfully:", response);
+      // Navigate to legal consents step
+      router.push(
+        "/add-residential-details/residential-property-legal-consents"
+      );
+    },
+    onError: (error) => {
+      console.error("Error uploading files:", error);
+      Alert.alert("Error", "Failed to upload files. Please try again.");
+    },
+  });
 
   // Reset store if property was already submitted
   React.useEffect(() => {
@@ -85,45 +102,56 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   }, [data.documentsUpload]);
 
-  const [formData, setFormData] = useState<DocumentsUploadData>(data.documentsUpload || {
-    propertyDeed: null,
-    governmentId: null,
-    propertyTaxBill: null,
-    proofOfInsurance: null,
-    utilityBill: null,
-    appraisalReport: null,
-    authorizationToSell: null,
-    mortgageStatement: null,
-    hoaDocuments: null,
-    hasMortgage: false,
-    hasHOA: false,
-  });
+  const [formData, setFormData] = useState<DocumentsUploadData>(
+    data.documentsUpload || {
+      propertyDeed: null,
+      governmentId: null,
+      propertyTaxBill: null,
+      proofOfInsurance: null,
+      utilityBill: null,
+      appraisalReport: null,
+      authorizationToSell: null,
+      mortgageStatement: null,
+      hoaDocuments: null,
+      hasMortgage: false,
+      hasHOA: false,
+    }
+  );
   const [errors, setErrors] = useState<DocumentsUploadErrors>({});
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
-  const [previewDocumentData, setPreviewDocumentData] = useState<DocumentData | null>(null);
+  const [previewDocumentData, setPreviewDocumentData] =
+    useState<DocumentData | null>(null);
 
   // Validation functions
-  const validateDocument = (document: DocumentData | null, documentName: string): string | undefined => {
+  const validateDocument = (
+    document: DocumentData | null,
+    documentName: string
+  ): string | undefined => {
     if (!document) {
       return `${documentName} is required`;
     }
-    
-    if (document.size > 10 * 1024 * 1024) { // 10MB limit
+
+    if (document.size > 10 * 1024 * 1024) {
+      // 10MB limit
       return `${documentName} must be less than 10MB`;
     }
-    
-    if (!document.name.toLowerCase().endsWith('.pdf')) {
+
+    if (!document.name.toLowerCase().endsWith(".pdf")) {
       return `${documentName} must be a PDF file`;
     }
-    
+
     return undefined;
   };
 
-  const validateConditionalDocument = (document: DocumentData | null, documentName: string, isRequired: boolean): string | undefined => {
+  const validateConditionalDocument = (
+    document: DocumentData | null,
+    documentName: string,
+    isRequired: boolean
+  ): string | undefined => {
     if (!isRequired) {
       return undefined; // Not required
     }
-    
+
     return validateDocument(document, documentName);
   };
 
@@ -131,42 +159,63 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     const newErrors: DocumentsUploadErrors = {};
 
     // Validate mandatory documents
-    newErrors.propertyDeed = validateDocument(formData.propertyDeed, 'Property Deed');
-    newErrors.governmentId = validateDocument(formData.governmentId, 'Government-issued ID');
-    newErrors.propertyTaxBill = validateDocument(formData.propertyTaxBill, 'Property Tax Bill');
-    newErrors.proofOfInsurance = validateDocument(formData.proofOfInsurance, 'Proof of Insurance');
-    newErrors.utilityBill = validateDocument(formData.utilityBill, 'Utility Bill');
-    newErrors.appraisalReport = validateDocument(formData.appraisalReport, 'Appraisal Report');
-    newErrors.authorizationToSell = validateDocument(formData.authorizationToSell, 'Authorization to Sell');
+    newErrors.propertyDeed = validateDocument(
+      formData.propertyDeed,
+      "Property Deed"
+    );
+    newErrors.governmentId = validateDocument(
+      formData.governmentId,
+      "Government-issued ID"
+    );
+    newErrors.propertyTaxBill = validateDocument(
+      formData.propertyTaxBill,
+      "Property Tax Bill"
+    );
+    newErrors.proofOfInsurance = validateDocument(
+      formData.proofOfInsurance,
+      "Proof of Insurance"
+    );
+    newErrors.utilityBill = validateDocument(
+      formData.utilityBill,
+      "Utility Bill"
+    );
+    newErrors.appraisalReport = validateDocument(
+      formData.appraisalReport,
+      "Appraisal Report"
+    );
+    newErrors.authorizationToSell = validateDocument(
+      formData.authorizationToSell,
+      "Authorization to Sell"
+    );
 
     // Validate conditional documents
     newErrors.mortgageStatement = validateConditionalDocument(
-      formData.mortgageStatement, 
-      'Mortgage Statement', 
+      formData.mortgageStatement,
+      "Mortgage Statement",
       formData.hasMortgage
     );
     newErrors.hoaDocuments = validateConditionalDocument(
-      formData.hoaDocuments, 
-      'HOA Documents', 
+      formData.hoaDocuments,
+      "HOA Documents",
       formData.hasHOA
     );
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== undefined);
+    return !Object.values(newErrors).some((error) => error !== undefined);
   };
 
   const updateFormData = (field: keyof DocumentsUploadData, value: any) => {
     console.log(`updateFormData called: ${field} = ${value}`);
-    
+
     const newFormData = { ...formData, [field]: value };
-    console.log('New form data:', newFormData);
-    
+    console.log("New form data:", newFormData);
+
     setFormData(newFormData);
     updateDocumentsUpload(newFormData);
-    
+
     // Clear error for this field if it's a document field
-    if (field !== 'hasMortgage' && field !== 'hasHOA') {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+    if (field !== "hasMortgage" && field !== "hasHOA") {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -175,39 +224,60 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     const newErrors: DocumentsUploadErrors = {};
 
     // Validate mandatory documents
-    newErrors.propertyDeed = validateDocument(formData.propertyDeed, 'Property Deed');
-    newErrors.governmentId = validateDocument(formData.governmentId, 'Government-issued ID');
-    newErrors.propertyTaxBill = validateDocument(formData.propertyTaxBill, 'Property Tax Bill');
-    newErrors.proofOfInsurance = validateDocument(formData.proofOfInsurance, 'Proof of Insurance');
-    newErrors.utilityBill = validateDocument(formData.utilityBill, 'Utility Bill');
-    newErrors.appraisalReport = validateDocument(formData.appraisalReport, 'Appraisal Report');
-    newErrors.authorizationToSell = validateDocument(formData.authorizationToSell, 'Authorization to Sell');
+    newErrors.propertyDeed = validateDocument(
+      formData.propertyDeed,
+      "Property Deed"
+    );
+    newErrors.governmentId = validateDocument(
+      formData.governmentId,
+      "Government-issued ID"
+    );
+    newErrors.propertyTaxBill = validateDocument(
+      formData.propertyTaxBill,
+      "Property Tax Bill"
+    );
+    newErrors.proofOfInsurance = validateDocument(
+      formData.proofOfInsurance,
+      "Proof of Insurance"
+    );
+    newErrors.utilityBill = validateDocument(
+      formData.utilityBill,
+      "Utility Bill"
+    );
+    newErrors.appraisalReport = validateDocument(
+      formData.appraisalReport,
+      "Appraisal Report"
+    );
+    newErrors.authorizationToSell = validateDocument(
+      formData.authorizationToSell,
+      "Authorization to Sell"
+    );
 
     // Validate conditional documents
     newErrors.mortgageStatement = validateConditionalDocument(
-      formData.mortgageStatement, 
-      'Mortgage Statement', 
+      formData.mortgageStatement,
+      "Mortgage Statement",
       formData.hasMortgage
     );
     newErrors.hoaDocuments = validateConditionalDocument(
-      formData.hoaDocuments, 
-      'HOA Documents', 
+      formData.hoaDocuments,
+      "HOA Documents",
       formData.hasHOA
     );
 
     // Check if all required fields are filled and no validation errors
-    const mandatoryDocumentsComplete = MANDATORY_DOCUMENTS.every(doc => 
-      formData[doc] !== null
+    const mandatoryDocumentsComplete = MANDATORY_DOCUMENTS.every(
+      (doc) => formData[doc] !== null
     );
-    
-    const conditionalDocumentsComplete = 
+
+    const conditionalDocumentsComplete =
       (!formData.hasMortgage || formData.mortgageStatement !== null) &&
       (!formData.hasHOA || formData.hoaDocuments !== null);
 
     return (
       mandatoryDocumentsComplete &&
       conditionalDocumentsComplete &&
-      Object.values(newErrors).every(error => !error)
+      Object.values(newErrors).every((error) => !error)
     );
   };
 
@@ -215,7 +285,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const pickDocument = async (documentField: keyof DocumentsUploadData) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
+        type: "application/pdf",
         copyToCacheDirectory: true,
       });
 
@@ -225,13 +295,13 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           uri: asset.uri,
           name: asset.name,
           size: asset.size || 0,
-          type: asset.mimeType || 'application/pdf',
+          type: asset.mimeType || "application/pdf",
         };
 
         updateFormData(documentField, newDocument);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick document. Please try again.');
+      Alert.alert("Error", "Failed to pick document. Please try again.");
     }
   };
 
@@ -244,19 +314,79 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     setShowDocumentPreview(true);
   };
 
-  const handleNext = () => {
+  const transformDocumentsToFiles = (): any[] => {
+    const allDocuments = [
+      formData.propertyDeed,
+      formData.governmentId,
+      formData.propertyTaxBill,
+      formData.proofOfInsurance,
+      formData.utilityBill,
+      formData.appraisalReport,
+      formData.authorizationToSell,
+      formData.hasMortgage ? formData.mortgageStatement : null,
+      formData.hasHOA ? formData.hoaDocuments : null,
+    ].filter(Boolean) as DocumentData[];
+
+    return allDocuments.map((doc) => {
+      // Create a file object compatible with React Native and FormData
+      const file = {
+        uri: doc.uri,
+        name: doc.name,
+        type: doc.type || "application/pdf",
+        size: doc.size,
+      };
+
+      return file;
+    });
+  };
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to legal consents step
-      router.push('/add-residential-details/residential-property-legal-consents');
+      try {
+        // Update store with form data
+        updateDocumentsUpload(formData);
+
+        // Get property ID from store
+        const propertyId = data.propertyId;
+        if (!propertyId) {
+          Alert.alert(
+            "Error",
+            "Property ID not found. Please go back and try again."
+          );
+          return;
+        }
+
+        // Transform documents to files for API
+        const documentFiles = transformDocumentsToFiles();
+
+        if (documentFiles.length > 0) {
+          console.log("Uploading documents to property:", propertyId);
+
+          // Call the API to upload files
+          await uploadFilesMutation.mutateAsync({
+            propertyId: propertyId,
+            files: documentFiles,
+            fileType: "document",
+          });
+        } else {
+          // No documents to upload, just proceed to next step
+          router.push(
+            "/add-residential-details/residential-property-legal-consents"
+          );
+        }
+      } catch (error) {
+        console.error("Error in handleNext:", error);
+        // Error is already handled by the mutation's onError callback
+      }
     }
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const renderDocumentField = (
@@ -266,13 +396,16 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     isRequired: boolean = true
   ) => {
     const document = formData[field] as DocumentData | null;
-    const error = errors[field];
+    const error =
+      field in errors
+        ? errors[field as keyof DocumentsUploadErrors]
+        : undefined;
 
     return (
       <View style={styles.fieldContainer}>
         <View style={styles.fieldHeader}>
           <Typography variant="body" style={styles.label}>
-            {label} {isRequired ? '*' : ''}
+            {label} {isRequired ? "*" : ""}
           </Typography>
           {!isRequired && (
             <Typography variant="caption" style={styles.optionalText}>
@@ -280,7 +413,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             </Typography>
           )}
         </View>
-        
+
         <Typography variant="caption" style={styles.helperText}>
           {description}
         </Typography>
@@ -291,7 +424,11 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               style={styles.documentInfo}
               onPress={() => previewDocument(document)}
             >
-              <Ionicons name="document-text" size={24} color={colors.primary.gold} />
+              <Ionicons
+                name="document-text"
+                size={24}
+                color={colors.primary.gold}
+              />
               <View style={styles.documentDetails}>
                 <Typography variant="body" style={styles.documentName}>
                   {document.name}
@@ -310,7 +447,11 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             style={styles.uploadButton}
             onPress={() => pickDocument(field)}
           >
-            <Ionicons name="cloud-upload" size={24} color={colors.primary.gold} />
+            <Ionicons
+              name="cloud-upload"
+              size={24}
+              color={colors.primary.gold}
+            />
             <Typography variant="body" style={styles.uploadButtonText}>
               Upload {label}
             </Typography>
@@ -327,19 +468,19 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   };
 
   const renderConditionalToggle = (
-    field: 'hasMortgage' | 'hasHOA',
+    field: "hasMortgage" | "hasHOA",
     label: string,
     description: string
   ) => {
     // Use store data directly to ensure we get the latest value
     const currentValue = data.documentsUpload?.[field] ?? formData[field];
-    
+
     console.log(`Toggle Debug - ${field}:`, {
       currentValue,
       formData: formData,
-      storeData: data.documentsUpload
+      storeData: data.documentsUpload,
     });
-    
+
     return (
       <View style={styles.fieldContainer}>
         <Typography variant="body" style={styles.label}>
@@ -348,33 +489,33 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         <Typography variant="caption" style={styles.helperText}>
           {description}
         </Typography>
-        
+
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={{
               ...styles.toggleButton,
-              ...(currentValue ? styles.toggleButtonActive : {})
+              ...(currentValue ? styles.toggleButtonActive : {}),
             }}
             onPress={() => {
               console.log(`Setting ${field} to true`);
               updateFormData(field, true);
             }}
           >
-            <Typography 
-              variant="body" 
+            <Typography
+              variant="body"
               style={{
                 ...styles.toggleButtonText,
-                ...(currentValue ? styles.toggleButtonTextActive : {})
+                ...(currentValue ? styles.toggleButtonTextActive : {}),
               }}
             >
               Yes
             </Typography>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={{
               ...styles.toggleButton,
-              ...(!currentValue ? styles.toggleButtonActive : {})
+              ...(!currentValue ? styles.toggleButtonActive : {}),
             }}
             onPress={() => {
               console.log(`Setting ${field} to false`);
@@ -383,24 +524,27 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               const newFormData = { ...formData, [field]: newValue };
               setFormData(newFormData);
               updateDocumentsUpload(newFormData);
-              
+
               // Clear the document if toggling to No
-              if (field === 'hasMortgage') {
-                const updatedFormData = { ...newFormData, mortgageStatement: null };
+              if (field === "hasMortgage") {
+                const updatedFormData = {
+                  ...newFormData,
+                  mortgageStatement: null,
+                };
                 setFormData(updatedFormData);
                 updateDocumentsUpload(updatedFormData);
-              } else if (field === 'hasHOA') {
+              } else if (field === "hasHOA") {
                 const updatedFormData = { ...newFormData, hoaDocuments: null };
                 setFormData(updatedFormData);
                 updateDocumentsUpload(updatedFormData);
               }
             }}
           >
-            <Typography 
-              variant="body" 
+            <Typography
+              variant="body"
               style={{
                 ...styles.toggleButtonText,
-                ...(!currentValue ? styles.toggleButtonTextActive : {})
+                ...(!currentValue ? styles.toggleButtonTextActive : {}),
               }}
             >
               No
@@ -415,14 +559,18 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <ScreenContainer>
         <Header title="Required Documents" />
-        
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.content}
+        >
           <Typography variant="h3" style={styles.sectionTitle}>
             Upload Required Documents
           </Typography>
 
           <Typography variant="body" style={styles.sectionDescription}>
-            Please upload all mandatory documents and any applicable conditional documents. All documents must be in PDF format and under 10MB.
+            Please upload all mandatory documents and any applicable conditional
+            documents. All documents must be in PDF format and under 10MB.
           </Typography>
 
           {/* Mandatory Documents Section */}
@@ -430,47 +578,47 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             <Typography variant="h4" style={styles.sectionSubtitle}>
               Mandatory Documents
             </Typography>
-            
+
             {renderDocumentField(
-              'propertyDeed',
-              'Property Deed',
-              'Official property deed showing ownership'
+              "propertyDeed",
+              "Property Deed",
+              "Official property deed showing ownership"
             )}
-            
+
             {renderDocumentField(
-              'governmentId',
-              'Government-issued ID',
-              'Valid USA-based government identification (Driver\'s License, Passport, etc.)'
+              "governmentId",
+              "Government-issued ID",
+              "Valid USA-based government identification (Driver's License, Passport, etc.)"
             )}
-            
+
             {renderDocumentField(
-              'propertyTaxBill',
-              'Property Tax Bill',
-              'Current property tax bill or statement'
+              "propertyTaxBill",
+              "Property Tax Bill",
+              "Current property tax bill or statement"
             )}
-            
+
             {renderDocumentField(
-              'proofOfInsurance',
-              'Proof of Insurance',
-              'Current property insurance policy or certificate'
+              "proofOfInsurance",
+              "Proof of Insurance",
+              "Current property insurance policy or certificate"
             )}
-            
+
             {renderDocumentField(
-              'utilityBill',
-              'Utility Bill or Statement',
-              'Recent utility bill (electricity, water, gas, etc.)'
+              "utilityBill",
+              "Utility Bill or Statement",
+              "Recent utility bill (electricity, water, gas, etc.)"
             )}
-            
+
             {renderDocumentField(
-              'appraisalReport',
-              'Appraisal Report',
-              'Recent property appraisal report'
+              "appraisalReport",
+              "Appraisal Report",
+              "Recent property appraisal report"
             )}
-            
+
             {renderDocumentField(
-              'authorizationToSell',
-              'Authorization to Sell or Tokenize',
-              'Digitally signed authorization document'
+              "authorizationToSell",
+              "Authorization to Sell or Tokenize",
+              "Digitally signed authorization document"
             )}
           </View>
 
@@ -479,36 +627,34 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
             <Typography variant="h4" style={styles.sectionSubtitle}>
               Conditional Documents
             </Typography>
-            
+
             {renderConditionalToggle(
-              'hasMortgage',
-              'Do you have a mortgage on this property?',
-              'If yes, please upload your current mortgage statement'
+              "hasMortgage",
+              "Do you have a mortgage on this property?",
+              "If yes, please upload your current mortgage statement"
             )}
-            
-            {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) && 
+
+            {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) &&
               renderDocumentField(
-                'mortgageStatement',
-                'Mortgage Statement',
-                'Current mortgage statement or loan document',
+                "mortgageStatement",
+                "Mortgage Statement",
+                "Current mortgage statement or loan document",
                 false
-              )
-            }
-            
+              )}
+
             {renderConditionalToggle(
-              'hasHOA',
-              'Is this property part of a Homeowner Association (HOA)?',
-              'If yes, please upload relevant HOA documents'
+              "hasHOA",
+              "Is this property part of a Homeowner Association (HOA)?",
+              "If yes, please upload relevant HOA documents"
             )}
-            
-            {(data.documentsUpload?.hasHOA ?? formData.hasHOA) && 
+
+            {(data.documentsUpload?.hasHOA ?? formData.hasHOA) &&
               renderDocumentField(
-                'hoaDocuments',
-                'HOA Documents',
-                'HOA bylaws, rules, or relevant documents',
+                "hoaDocuments",
+                "HOA Documents",
+                "HOA bylaws, rules, or relevant documents",
                 false
-              )
-            }
+              )}
           </View>
 
           <Button
@@ -532,11 +678,15 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                 <Typography variant="h4">✕</Typography>
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.modalContent}>
               {previewDocumentData && (
                 <View style={styles.previewContainer}>
-                  <Ionicons name="document-text" size={64} color={colors.primary.gold} />
+                  <Ionicons
+                    name="document-text"
+                    size={64}
+                    color={colors.primary.gold}
+                  />
                   <Typography variant="h4" style={styles.previewTitle}>
                     {previewDocumentData.name}
                   </Typography>
@@ -566,7 +716,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.md,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionDescription: {
     marginBottom: spacing.xl,
@@ -577,20 +727,20 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     marginBottom: spacing.lg,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.primary.gold,
   },
   fieldContainer: {
     marginBottom: spacing.lg,
   },
   fieldHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
   },
   optionalText: {
@@ -603,13 +753,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.neutral.white,
     borderWidth: 2,
     borderColor: colors.primary.gold,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderRadius: radius.input,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
@@ -617,12 +767,12 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     marginLeft: spacing.sm,
     color: colors.primary.gold,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   documentDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -630,8 +780,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   documentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   documentDetails: {
@@ -640,14 +790,14 @@ const styles = StyleSheet.create({
   },
   documentName: {
     color: colors.text.primary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   documentSize: {
     color: colors.text.secondary,
     marginTop: spacing.xs,
   },
   toggleContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     backgroundColor: colors.neutral.lightGray,
     borderRadius: radius.input,
     padding: spacing.xs,
@@ -658,8 +808,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.input,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     minHeight: 44,
   },
   toggleButtonActive: {
@@ -672,7 +822,7 @@ const styles = StyleSheet.create({
   },
   toggleButtonText: {
     color: colors.text.secondary,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   toggleButtonTextActive: {
     color: colors.neutral.white,
@@ -689,9 +839,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.white,
   },
   modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
@@ -699,20 +849,20 @@ const styles = StyleSheet.create({
   modalContent: {
     flex: 1,
     padding: spacing.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   previewContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: spacing.xl,
   },
   previewTitle: {
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
-    textAlign: 'center',
+    textAlign: "center",
   },
   previewDetails: {
     color: colors.text.secondary,
     marginBottom: spacing.sm,
   },
-}); 
+});

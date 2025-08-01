@@ -89,7 +89,12 @@ export default function EmailVerificationScreen() {
           // For registration, continue to mobile verification
           if (type === "login") {
             toast.success("Login successful! Welcome back.");
-            router.replace("/(tabs)");
+            // Route based on roleType parameter
+            if (roleType === "homeowner") {
+              router.replace("/(homeowner-tabs)");
+            } else {
+              router.replace("/(tabs)");
+            }
           } else {
             // Navigate to mobile verification for registration
             router.push({

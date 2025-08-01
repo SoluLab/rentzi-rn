@@ -27,6 +27,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerUploadPropertyImages } from '@/services/apiClient';
 
 interface MediaUploadData {
   photos: Array<{
@@ -55,6 +56,19 @@ const { width: screenWidth } = Dimensions.get('window');
 export default function ResidentialPropertyMediaUploadScreen() {
   const router = useRouter();
   const { data, updateMediaUpload, resetStore } = useResidentialPropertyStore();
+
+  // API mutation hook for uploading images
+  const uploadImagesMutation = useHomeownerUploadPropertyImages({
+    onSuccess: (response) => {
+      console.log('Images uploaded successfully:', response);
+      // Navigate to documents upload step
+      router.push('/add-residential-details/residential-property-documents-upload');
+    },
+    onError: (error) => {
+      console.error('Error uploading images:', error);
+      Alert.alert('Error', 'Failed to upload images. Please try again.');
+    },
+  });
 
   // Reset store if property was already submitted
   React.useEffect(() => {
@@ -164,6 +178,20 @@ export default function ResidentialPropertyMediaUploadScreen() {
     
     // Form is valid if we have minimum photos and no validation errors
     return hasMinimumPhotos && !photoError && !virtualTourError;
+  };
+
+  const transformPhotosToFiles = (): any[] => {
+    return formData.photos.map(photo => {
+      // Create a file object compatible with React Native and FormData
+      const file = {
+        uri: photo.uri,
+        name: photo.name,
+        type: photo.type || 'image/jpeg',
+        size: photo.size,
+      };
+      
+      return file;
+    });
   };
 
   // Photo upload functions
@@ -367,9 +395,38 @@ export default function ResidentialPropertyMediaUploadScreen() {
     updateFormData('virtualTour', newVirtualTour);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateForm()) {
-      router.push('/add-residential-details/residential-property-documents-upload');
+      try {
+        // Update store with form data
+        updateMediaUpload(formData);
+        
+        // Get property ID from store
+        const propertyId = data.propertyId;
+        if (!propertyId) {
+          Alert.alert('Error', 'Property ID not found. Please go back and try again.');
+          return;
+        }
+        
+        // Transform photos to files for API
+        const imageFiles = transformPhotosToFiles();
+        
+        if (imageFiles.length > 0) {
+          console.log('Uploading images to property:', propertyId);
+          
+          // Call the API to upload images
+          await uploadImagesMutation.mutateAsync({
+            propertyId: propertyId,
+            images: imageFiles
+          });
+        } else {
+          // No images to upload, just proceed to next step
+          router.push('/add-residential-details/residential-property-documents-upload');
+        }
+      } catch (error) {
+        console.error('Error in handleNext:', error);
+        // Error is already handled by the mutation's onError callback
+      }
     }
   };
 
