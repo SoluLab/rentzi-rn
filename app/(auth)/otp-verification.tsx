@@ -8,7 +8,7 @@ import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp } from "@/services/apiClient";
+import { useVerifyOtp, useVerifyLoginOtp } from "@/services/apiClient";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
@@ -24,8 +24,12 @@ export default function OTPVerificationScreen() {
   // Determine userType for API call based on roleType
   const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
   const verifyOtpMutation = useVerifyOtp(userType);
+  const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
   const isLoading =
-    verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending;
+    verifyOtpMutation.status === "pending" ||
+    verifyOtpMutation.isPending ||
+    verifyLoginOtpMutation.status === "pending" ||
+    verifyLoginOtpMutation.isPending;
 
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
@@ -65,10 +69,25 @@ export default function OTPVerificationScreen() {
     }
 
     try {
-      const response = await verifyOtpMutation.mutateAsync({
-        email: email as string,
-        otp,
-      });
+      let response;
+      if (phone) {
+        // Parse the phone object from JSON string
+        const phoneObj = JSON.parse(phone);
+        // If phone is present, use mobile verification
+        response = await verifyLoginOtpMutation.mutateAsync({
+          identifier: {
+            countryCode: phoneObj.countryCode,
+            mobile: phoneObj.mobile,
+          },
+          otp,
+        });
+      } else {
+        // Otherwise use email verification
+        response = await verifyOtpMutation.mutateAsync({
+          email: email as string,
+          otp,
+        });
+      }
 
       // Check the new response format
       if (response.success) {
@@ -139,11 +158,16 @@ export default function OTPVerificationScreen() {
           </Typography>
 
           <Typography variant="body" style={styles.subtitle}>
-            We've sent a 6-digit code to {email}
+            We've sent a 6-digit code to {phone ? `${JSON.parse(phone).countryCode} ${JSON.parse(phone).mobile}` : email}
           </Typography>
 
           <View style={styles.otpContainer}>
-            <OTPInput value={otp} onOTPChange={setOtp} length={6} error={error} />
+            <OTPInput
+              value={otp}
+              onOTPChange={setOtp}
+              length={6}
+              error={error}
+            />
           </View>
 
           <View style={styles.timerContainer}>

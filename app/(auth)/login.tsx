@@ -104,7 +104,7 @@ export default function LoginScreen() {
             pathname: "/(auth)/otp-verification",
             params: {
               email: user.email,
-              phone: user.phone.mobile,
+              phone: JSON.stringify(user.phone), // Pass the entire phone object
               type: "login",
               roleType: selectedUserType, // Pass the selected user type
             },
@@ -159,23 +159,32 @@ export default function LoginScreen() {
 
   const isLoading = loginMutation.isPending;
 
-  const quickAccessLogin = (role: string) => {
-    let email = "";
-    switch (role) {
-      case "renter":
-        email = "vimal1@solulab.com";
-        break;
-      case "investor":
-        email = "investor@solulab.co";
-        break;
-      case "homeowner":
-        email = "homeowner@solulab.co";
-        break;
-      default:
-        email = "renter@solulab.co";
+  const quickAccessLogin = async (role: string) => {
+    let email = "vimal@solulab.co";
+    const defaultPassword = "@Test123";
+    
+    // Set the user type based on role
+    if (role === "homeowner") {
+      setSelectedUserType("homeowner");
+    } else {
+      setSelectedUserType("renter_investor");
     }
+    
+    // Set credentials
     setEmailOrMobile(email);
-    setPassword("@Test123");
+    setPassword(defaultPassword);
+    
+    // Small delay to ensure state updates
+    setTimeout(() => {
+      // Create login payload
+      const payload: LoginRequest = {
+        identifier: email,
+        password: defaultPassword
+      };
+      
+      // Trigger login
+      loginMutation.mutate(payload);
+    }, 100);
   };
 
   return (

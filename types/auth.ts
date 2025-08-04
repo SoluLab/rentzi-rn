@@ -29,7 +29,7 @@ export interface AuthResponse {
 
 export interface LoginResponse extends AuthResponse {}
 export interface RegisterResponse extends AuthResponse {}
-export interface OTPResponse extends Omit<AuthResponse, 'data'> {
+export interface OTPResponse extends Omit<AuthResponse, "data"> {
   data: {
     user: User;
   } | null;

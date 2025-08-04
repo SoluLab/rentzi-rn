@@ -10,6 +10,8 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useGetProfile } from '@/services/apiClient';
+
 import {
   User,
   Settings,
@@ -31,8 +33,9 @@ import {
 } from 'lucide-react-native';
 export default function HomeownerProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
+  const { data: profileData, isLoading, error } = useGetProfile('homeowner');
 
   const handleLogout = () => {
     logout();
@@ -112,8 +115,7 @@ export default function HomeownerProfileScreen() {
                   <Image
                     source={{
                       uri:
-                        user?.profileDetails.avatar ||
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
+                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
                     }}
                     style={styles.avatar}
                   />
@@ -122,9 +124,12 @@ export default function HomeownerProfileScreen() {
                   </View>
                 </TouchableOpacity>
                 <View style={styles.profileInfo}>
-                  <Typography variant="h4">{user?.name}</Typography>
+                  <Typography variant="h4">{profileData?.data?.name || 'Loading...'}</Typography>
                   <Typography variant="body" color="secondary">
-                    {user?.email}
+                    {profileData?.data?.email || 'Loading...'}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {profileData?.data?.phone?.countryCode} {profileData?.data?.phone?.mobile}
                   </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>

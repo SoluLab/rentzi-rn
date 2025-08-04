@@ -12,8 +12,7 @@ import {
   UseQueryOptions,
   UseMutationOptions,
 } from "@tanstack/react-query";
-import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
-import { deviceTokenUtils } from "@/utils/deviceToken";
+import { BASE_URLS, ENDPOINTS } from "@/constants/urls"; 
 import { AuthResponse, LoginRequest, ApiErrorResponse } from "@/types";
 
 // Define supported methods as a union type
@@ -251,7 +250,6 @@ export const useLogin = (
         "[API Client] Login URL:",
         `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`
       );
-
       const response = await apiPost<AuthResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNIN,
@@ -406,6 +404,57 @@ export const useVerifyOtp = (
   });
 };
 
+// Verify Login OTP for Mobile
+export const useVerifyLoginOtp = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
+  options?: Omit<
+    UseMutationOptions<
+      any,
+      ApiError,
+      { identifier: { countryCode: string; mobile: string }; otp: string }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    any,
+    ApiError,
+    { identifier: { countryCode: string; mobile: string }; otp: string }
+  >({
+    mutationFn: async ({ identifier, otp }) => {
+      console.log("useVerifyLoginOtp called with:", { identifier, otp, userType });
+      
+      // Set base URL based on user type
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
+      const response = await apiPost({
+        baseURL,
+        endpoint: ENDPOINTS.AUTH.VERIFY_LOGIN_OTP,
+        data: { identifier, otp },
+        auth: false,
+      });
+      
+      // Store tokens on successful response
+      if (response?.data?.token) {
+        await AsyncStorage.setItem("token", response.data.token);
+      }
+
+      console.log("useVerifyLoginOtp response:", response);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.user() });
+    },
+    ...options,
+  });
+};
+
 // Logout
 
 export const useLogout = (
@@ -435,7 +484,6 @@ export const useLogout = (
       }
       await AsyncStorage.removeItem("token");
       await AsyncStorage.removeItem("refreshToken");
-      await deviceTokenUtils.clearDeviceToken();
 
       return { success: true };
     },
@@ -530,7 +578,7 @@ export const useGetProfile = (
     [...queryKeys.all, "profile"],
     {
       baseURL,
-      endpoint: "/api/profile",
+      endpoint: ENDPOINTS.AUTH.PROFILE,
       auth: true,
     },
     options
@@ -570,7 +618,7 @@ export const useMarketplaceGetProperties = (
   return useApiQuery(
     ["marketplace", "properties", params],
     {
-      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
       endpoint: "/api/marketplace/properties",
       params,
       auth: true,
@@ -587,7 +635,7 @@ export const useMarketplaceGetProperty = (
   return useApiQuery(
     ["marketplace", "property", id],
     {
-      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
       endpoint: `/api/marketplace/properties/${id}`,
       auth: true,
     },
@@ -606,7 +654,7 @@ export const useMarketplaceCreateProperty = (
   return useApiMutation(
     {
       method: "post",
-      baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
       endpoint: "/api/marketplace/properties",
       auth: true,
     },
@@ -640,7 +688,7 @@ export const useMarketplaceUpdateProperty = (
   >({
     mutationFn: ({ id, data }) =>
       apiPut({
-        baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
         endpoint: `/api/marketplace/properties/${id}`,
         data,
         auth: true,
@@ -668,7 +716,7 @@ export const useMarketplaceDeleteProperty = (
   return useMutation<any, ApiError, string | number>({
     mutationFn: (id) =>
       apiDelete({
-        baseURL: BASE_URLS.DEVELOPMENT.BALANCE_API,
+        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
         endpoint: `/api/marketplace/properties/${id}`,
         auth: true,
       }),

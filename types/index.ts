@@ -2,14 +2,14 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: 'renter' | 'investor' | 'homeowner';
+  role: "renter" | "investor" | "homeowner";
   profileDetails: {
     avatar?: string;
     phone?: string;
     bio?: string;
   };
   investmentStatus: boolean;
-  kycStatus: 'incomplete' | 'pending' | 'complete';
+  kycStatus: "incomplete" | "pending" | "complete";
   paymentMethods: PaymentMethod[];
   notificationPreferences: {
     bookings: boolean;
@@ -37,7 +37,7 @@ export interface Property {
     investment: number;
     currency: string;
   };
-  propertyType: 'villa' | 'penthouse' | 'mansion' | 'estate' | 'yacht';
+  propertyType: "villa" | "penthouse" | "mansion" | "estate" | "yacht";
   bedrooms: number;
   bathrooms: number;
   mediaGallery: {
@@ -62,7 +62,7 @@ export interface Property {
   };
   rating: number;
   reviews: number;
-  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvalStatus: "pending" | "approved" | "rejected";
 }
 export interface Booking {
   id: string;
@@ -71,8 +71,8 @@ export interface Booking {
   startDate: string;
   endDate: string;
   guestsCount: number;
-  paymentStatus: 'pending' | 'confirmed' | 'failed';
-  bookingStatus: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  paymentStatus: "pending" | "confirmed" | "failed";
+  bookingStatus: "upcoming" | "active" | "completed" | "cancelled";
   totalAmount: number;
   currency: string;
   paymentMethod: string;
@@ -82,29 +82,33 @@ export interface Investment {
   propertyId: string;
   userId: string;
   amount: number;
-  currency: 'USD' | 'BTC' | 'ETH';
+  currency: "USD" | "BTC" | "ETH";
   investmentDate: string;
   roiEstimate: number;
-  investmentStatus: 'active' | 'completed' | 'pending';
+  investmentStatus: "active" | "completed" | "pending";
   shares: number;
   currentValue: number;
   payoutDetails?: {
     claimableAmount: number;
     lastClaimDate?: string;
-    payoutStatus: 'eligible' | 'pending_approval' | 'claimed' | 'insufficient_yield';
+    payoutStatus:
+      | "eligible"
+      | "pending_approval"
+      | "claimed"
+      | "insufficient_yield";
   };
   claimHistory?: {
     date: string;
     amount: number;
     txHash: string;
-    status: 'Pending' | 'Completed';
+    status: "Pending" | "Completed";
     totalPassiveIncome?: number;
   }[];
 }
 export interface Notification {
   id: string;
   userId: string;
-  type: 'booking' | 'investment' | 'listing' | 'system';
+  type: "booking" | "investment" | "listing" | "system";
   title: string;
   message: string;
   readStatus: boolean;
@@ -113,7 +117,7 @@ export interface Notification {
 }
 export interface PaymentMethod {
   id: string;
-  type: 'card' | 'crypto' | 'bank';
+  type: "card" | "crypto" | "bank";
   name: string;
   details: string;
   isDefault: boolean;
@@ -126,7 +130,7 @@ export interface PaymentTransaction {
   amount: number;
   currency: string;
   paymentMethod: string;
-  transactionStatus: 'pending' | 'completed' | 'failed';
+  transactionStatus: "pending" | "completed" | "failed";
   timestamp: string;
 }
 
@@ -139,13 +143,13 @@ export interface AuthUser {
   phoneNumber: string;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;
-  status: 'active' | 'inactive' | 'suspended';
+  status: "active" | "inactive" | "suspended";
   profileImage?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-export * from './auth';
+export * from "./auth";
 
 export interface LoginRequest {
   identifier: string;
@@ -159,13 +163,41 @@ export interface ApiErrorResponse {
 }
 
 // Property Types and Enums
-export type PropertyType = 'villa' | 'penthouse' | 'mansion' | 'estate' | 'yacht' | 'apartment' | 'farmhouse' | 'cabin' | 'treehouse' | 'loft' | 'office' | 'retail' | 'warehouse' | 'commercial';
-export type PropertyCategory = 'residential' | 'commercial';
-export type PropertyStatus = 'draft' | 'pending' | 'approved' | 'rejected' | 'active' | 'inactive';
-export type BlockchainStatus = 'not_tokenized' | 'tokenized' | 'tokenizing' | 'failed';
-export type RoomType = 'master' | 'guest' | 'kids' | 'study' | 'other';
-export type BedType = 'single' | 'double' | 'queen' | 'king' | 'twin' | 'bunk';
-export type OwnershipType = 'freehold' | 'leasehold' | 'cooperative' | 'condominium';
+export type PropertyType =
+  | "villa"
+  | "penthouse"
+  | "mansion"
+  | "estate"
+  | "yacht"
+  | "apartment"
+  | "farmhouse"
+  | "cabin"
+  | "treehouse"
+  | "loft"
+  | "office"
+  | "retail"
+  | "warehouse"
+  | "commercial";
+export type PropertyCategory = "residential" | "commercial";
+export type PropertyStatus =
+  | "draft"
+  | "pending"
+  | "approved"
+  | "rejected"
+  | "active"
+  | "inactive";
+export type BlockchainStatus =
+  | "not_tokenized"
+  | "tokenized"
+  | "tokenizing"
+  | "failed";
+export type RoomType = "master" | "guest" | "kids" | "study" | "other";
+export type BedType = "single" | "double" | "queen" | "king" | "twin" | "bunk";
+export type OwnershipType =
+  | "freehold"
+  | "leasehold"
+  | "cooperative"
+  | "condominium";
 
 // IProperty Interface based on the provided schema
 export interface IProperty {
@@ -239,28 +271,28 @@ export interface IProperty {
     url: string;
   }[];
   documents?: {
-    propertyDeed?: { key: string; url: string; }[];
-    zoningCertificate?: { key: string; url: string; }[];
-    occupancyCertificate?: { key: string; url: string; }[];
-    governmentIssuedId?: { key: string; url: string; }[];
-    propertyTaxBill?: { key: string; url: string; }[];
-    titleReportOrInsurance?: { key: string; url: string; }[];
-    rentRoll?: { key: string; url: string; }[];
-    incomeandExpenseStatement?: { key: string; url: string; }[];
-    camAgreement?: { key: string; url: string; }[];
-    propertyConditionAssessment?: { key: string; url: string; }[];
-    proofOfInsurance?: { key: string; url: string; }[];
-    utilityBill?: { key: string; url: string; }[];
-    propertyAppraisal?: { key: string; url: string; }[];
-    authorizationToTokenize?: { key: string; url: string; }[];
-    conditional?: { key: string; url: string; }[];
-    mortgageStatement?: { key: string; url: string; }[];
-    hoaDocument?: { key: string; url: string; }[];
-    granchiseAgreement?: { key: string; url: string; }[];
-    businessLicense?: { key: string; url: string; }[];
-    adaComplianceReport?: { key: string; url: string; }[];
-    safetyReport?: { key: string; url: string; }[];
-    appraisalReport?: { key: string; url: string; }[];
+    propertyDeed?: { key: string; url: string }[];
+    zoningCertificate?: { key: string; url: string }[];
+    occupancyCertificate?: { key: string; url: string }[];
+    governmentIssuedId?: { key: string; url: string }[];
+    propertyTaxBill?: { key: string; url: string }[];
+    titleReportOrInsurance?: { key: string; url: string }[];
+    rentRoll?: { key: string; url: string }[];
+    incomeandExpenseStatement?: { key: string; url: string }[];
+    camAgreement?: { key: string; url: string }[];
+    propertyConditionAssessment?: { key: string; url: string }[];
+    proofOfInsurance?: { key: string; url: string }[];
+    utilityBill?: { key: string; url: string }[];
+    propertyAppraisal?: { key: string; url: string }[];
+    authorizationToTokenize?: { key: string; url: string }[];
+    conditional?: { key: string; url: string }[];
+    mortgageStatement?: { key: string; url: string }[];
+    hoaDocument?: { key: string; url: string }[];
+    granchiseAgreement?: { key: string; url: string }[];
+    businessLicense?: { key: string; url: string }[];
+    adaComplianceReport?: { key: string; url: string }[];
+    safetyReport?: { key: string; url: string }[];
+    appraisalReport?: { key: string; url: string }[];
   };
   checkInCheckOutTimes?: {
     checkIn: string; // e.g., "3:00 PM"
