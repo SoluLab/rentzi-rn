@@ -22,7 +22,7 @@ import { radius } from "@/constants/radius";
 import { ChevronDown, MapPin, Search, Building } from "lucide-react-native";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
-import { useHomeownerCreateProperty } from "@/services/apiClient";
+import { useHomeownerCreateProperty } from "@/services/homeownerAddProperty";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 // Pre-approved Rentzy locations
@@ -397,7 +397,7 @@ export default function AddCommercialPropertyScreen() {
         title={id ? "Edit Commercial Property" : "Add Commercial Property"}
       />
       <KeyboardAwareScrollView
-      style={styles.container}
+        style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"

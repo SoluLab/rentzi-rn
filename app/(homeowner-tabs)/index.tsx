@@ -22,7 +22,7 @@ import { useNotificationStore } from "@/stores/notificationStore";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
-import { useHomeownerGetAllProperties } from "@/services/apiClient";
+import { useHomeownerGetAllProperties } from "@/services/homeownerDashboard";
 import {
   Bell,
   Plus,

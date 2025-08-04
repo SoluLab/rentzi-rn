@@ -27,7 +27,7 @@ import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerUploadPropertyImages } from '@/services/apiClient';
+import { useHomeownerUploadPropertyImages } from '@/services/homeownerAddProperty';
 
 interface MediaUploadData {
   photos: Array<{

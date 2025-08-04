@@ -10,7 +10,6 @@ import {
 import { ERROR_MESSAGES, AUTH } from "@/constants/strings";
 
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { Typography } from "@/components/ui/Typography";
@@ -20,7 +19,7 @@ import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { validateEmail, validateMobileNumber } from "@/utils/validation";
-import { useLogin } from "@/services/apiClient";
+import { useLogin } from "@/services/auth";
 import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AuthResponse, LoginRequest } from "@/types";
@@ -93,9 +92,8 @@ export default function LoginScreen() {
     onSuccess: async (response: AuthResponse) => {
       console.log("Login API success:", response);
       if (response.success && response.data) {
-        const {  user } = response.data;
-        
-      
+        const { user } = response.data;
+
         // Check verification status
         if (!user.isEmailVerified || !user.isPhoneVerified) {
           toast.info("Please verify your account");
@@ -162,26 +160,26 @@ export default function LoginScreen() {
   const quickAccessLogin = async (role: string) => {
     let email = "vimal@solulab.co";
     const defaultPassword = "@Test123";
-    
+
     // Set the user type based on role
     if (role === "homeowner") {
       setSelectedUserType("homeowner");
     } else {
       setSelectedUserType("renter_investor");
     }
-    
+
     // Set credentials
     setEmailOrMobile(email);
     setPassword(defaultPassword);
-    
+
     // Small delay to ensure state updates
     setTimeout(() => {
       // Create login payload
       const payload: LoginRequest = {
         identifier: email,
-        password: defaultPassword
+        password: defaultPassword,
       };
-      
+
       // Trigger login
       loginMutation.mutate(payload);
     }, 100);

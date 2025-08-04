@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, spacing } from "@/constants";
 import { Header } from "@/components/ui/Header";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useVerifyOtp } from '@/services/apiClient';
+import { useVerifyOtp } from '@/services/auth';
 
 export default function MobileVerificationScreen() {
   const router = useRouter();

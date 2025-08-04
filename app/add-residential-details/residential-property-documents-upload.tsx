@@ -5,8 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert,
-  Platform,
+  Alert, 
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
@@ -23,7 +22,7 @@ import {
   useResidentialPropertyStore,
   DocumentData,
 } from "@/stores/residentialPropertyStore";
-import { useHomeownerUploadPropertyFiles } from "@/services/apiClient";
+import { useHomeownerUploadPropertyFiles } from "@/services/homeownerAddProperty";
 
 interface DocumentsUploadData {
   // Mandatory documents

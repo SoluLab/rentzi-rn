@@ -22,7 +22,7 @@ import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerSavePropertyDraft } from '@/services/apiClient';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Pre-approved Rentzy locations

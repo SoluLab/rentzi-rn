@@ -22,7 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, Check, Plus, X } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerUpdateProperty } from '@/services/apiClient';
+import { useHomeownerUpdateProperty } from '@/services/homeownerAddProperty';
 
 // Furnishing options
 const FURNISHING_OPTIONS = [

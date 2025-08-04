@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  View,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-} from "react-native";
+import { View, StyleSheet, TouchableOpacity, Linking } from "react-native";
 import { router } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
@@ -13,7 +8,7 @@ import { Header } from "@/components/ui/Header";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import { toast } from "@/components/ui/Toast";
-import { useSignup } from "@/services/apiClient";
+import { useSignup } from "@/services/auth";
 import { validateRegistrationForm } from "@/utils/validation";
 import { spacing, colors, radius, shadow } from "@/constants";
 import { staticText } from "@/constants/staticText";
@@ -87,7 +82,7 @@ export default function RegisterScreen() {
     try {
       const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
       const countryCode = selectedCountryCode?.phoneCode || "+1";
-      
+
       // Determine user type based on roleType parameter
       // API only accepts "renter" or "investor" as valid user types
       let userType = ["renter"];
@@ -97,7 +92,7 @@ export default function RegisterScreen() {
       } else if (roleType === "renter_investor") {
         userType = ["renter"];
       }
-      
+
       const payload = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -116,12 +111,15 @@ export default function RegisterScreen() {
         if (response?.data?.token) {
           await AsyncStorage.setItem("token", response.data.token);
         }
-        
+
         // Store user data for later use
         if (response?.data?.user) {
-          await AsyncStorage.setItem("userData", JSON.stringify(response.data.user));
+          await AsyncStorage.setItem(
+            "userData",
+            JSON.stringify(response.data.user)
+          );
         }
-        
+
         toast.success("Registration successful! Please verify your email");
         // Navigate to mobile verification for OTP verification
         router.push({
@@ -137,7 +135,10 @@ export default function RegisterScreen() {
         const errorMsg =
           response?.message || "Registration failed. Please try again.";
         toast.error(errorMsg);
-        console.error("[Register] Registration error (API response):", response);
+        console.error(
+          "[Register] Registration error (API response):",
+          response
+        );
       }
     } catch (error: any) {
       const errorMsg =
@@ -171,7 +172,10 @@ export default function RegisterScreen() {
   React.useEffect(() => {
     if (!selectedCountryCode) {
       const locales = Localization.getLocales();
-      let countryCode = (locales && locales.length > 0 && locales[0].regionCode) ? locales[0].regionCode : "US";
+      let countryCode =
+        locales && locales.length > 0 && locales[0].regionCode
+          ? locales[0].regionCode
+          : "US";
       let found = countryCodes.find((c) => c.code === countryCode);
       if (!found) found = countryCodes.find((c) => c.code === "US");
       if (found) setSelectedCountryCode(found);

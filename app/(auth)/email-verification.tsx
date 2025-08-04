@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/Card";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
-import { useVerifyOtp } from '@/services/apiClient';
+import { useVerifyOtp } from '@/services/auth';
 import { validateOTP } from "@/utils/validation";
 import { staticText } from "@/constants/staticText";
 import { Ionicons } from "@expo/vector-icons";

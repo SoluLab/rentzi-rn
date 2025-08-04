@@ -10,7 +10,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useGetProfile } from '@/services/apiClient';
+import { useGetProfile } from '@/services/auth';
 
 import {
   User,

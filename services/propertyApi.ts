@@ -1,7 +1,7 @@
-import { Property } from '@/types';
+import { IMarketplaceProperty } from '@/types/marketplace';
 import { View } from 'react-native';
 // Mock approved properties data - in real app this would come from your backend
-const mockApprovedProperties: Property[] = [
+const mockApprovedProperties: IMarketplaceProperty[] = [
   {
     id: '1',
     ownerId: 'owner1',

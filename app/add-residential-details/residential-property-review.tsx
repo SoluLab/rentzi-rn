@@ -45,7 +45,7 @@ import {
 } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerSubmitPropertyForReview } from '@/services/apiClient';
+import { useHomeownerSubmitPropertyForReview } from '@/services/homeownerAddProperty';
 
 interface ReviewSection {
   id: string;

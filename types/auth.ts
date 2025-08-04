@@ -26,6 +26,24 @@ export interface AuthResponse {
     user: User;
   } | null;
 }
+ 
+export interface ApiError {
+  status: number | null;
+  message: string;
+  originalError: Error;
+  data?: any;
+}
+
+export interface ApiErrorResponse {
+  success: boolean;
+  message: string;
+  data: any;
+}
+
+export interface LoginRequest {
+  identifier: string;
+  password: string;
+}
 
 export interface LoginResponse extends AuthResponse {}
 export interface RegisterResponse extends AuthResponse {}

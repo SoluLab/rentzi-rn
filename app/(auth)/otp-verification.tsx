@@ -8,7 +8,7 @@ import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp, useVerifyLoginOtp } from "@/services/apiClient";
+import { useVerifyOtp, useVerifyLoginOtp } from "@/services/auth";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";

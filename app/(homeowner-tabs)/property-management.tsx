@@ -27,7 +27,7 @@ import {
   useHomeownerPropertyStore,
   HomeownerProperty,
 } from "@/stores/homeownerPropertyStore";
-import { useMarketplaceGetProperties } from "@/services/apiClient";
+import { useMarketplaceGetProperties } from "@/services/renterMarketplace";
 import {
   Plus,
   Building2,
