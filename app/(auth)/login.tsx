@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from "react";
 import {
   View,
-  StyleSheet, 
+  StyleSheet,
   TouchableOpacity,
-  Image, 
-  Platform, 
+  Image,
+  Platform,
   StatusBar,
 } from "react-native";
 import { ERROR_MESSAGES, AUTH } from "@/constants/strings";
@@ -20,7 +20,7 @@ import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { validateEmail, validateMobileNumber } from "@/utils/validation";
-import { useLogin } from "@/services/apiClient"; 
+import { useLogin } from "@/services/apiClient";
 import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AuthResponse, LoginRequest } from "@/types";
@@ -30,13 +30,9 @@ export default function LoginScreen() {
   const [emailOrMobile, setEmailOrMobile] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [selectedUserType, setSelectedUserType] = useState<"renter_investor" | "homeowner">("renter_investor");
-  const [showDropdown, setShowDropdown] = useState(false);
-
-  const userTypeOptions = [
-    { value: "renter_investor", label: "Sign in as Renter/Investor", icon: "person-outline" },
-    { value: "homeowner", label: "Sign in as Homeowner", icon: "home-outline" },
-  ];
+  const [selectedUserType, setSelectedUserType] = useState<
+    "renter_investor" | "homeowner"
+  >("renter_investor");
 
   useFocusEffect(
     React.useCallback(() => {
@@ -97,25 +93,25 @@ export default function LoginScreen() {
     onSuccess: async (response: AuthResponse) => {
       console.log("Login API success:", response);
       if (response.success && response.data) {
-        const { token, user } = response.data;
+        const {  user } = response.data;
+        
+      
         // Check verification status
         if (!user.isEmailVerified || !user.isPhoneVerified) {
           toast.info("Please verify your account");
-          // Pass token and email/phone to OTP screen
+          // Pass email/phone to OTP screen (token is now stored in AsyncStorage)
           router.push({
             pathname: "/(auth)/otp-verification",
             params: {
               email: user.email,
-              phone: user.phoneNumber,
-              token,
+              phone: user.phone.mobile,
               type: "login",
               roleType: selectedUserType, // Pass the selected user type
             },
           });
           return;
         }
-        // Store token and proceed
-        await AsyncStorage.setItem("token", token);
+        // User is already verified, proceed to main app
         toast.success(AUTH.LOGIN.SUCCESS);
         router.replace("/(tabs)");
       } else {
@@ -147,11 +143,11 @@ export default function LoginScreen() {
     if (!validateForm()) return;
     const isEmail = emailOrMobile.includes("@");
     const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
-    let payload: LoginRequest = { email: "", password };
+    let payload: LoginRequest = { identifier: "", password };
     if (isEmail) {
-      payload.email = emailOrMobile;
+      payload.identifier = emailOrMobile;
     } else if (isMobile) {
-      payload.email = emailOrMobile; // API expects email field for both
+      payload.identifier = emailOrMobile; // API expects identifier field for both
     } else {
       toast.error("Please enter a valid email address or mobile number");
       toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
@@ -181,8 +177,6 @@ export default function LoginScreen() {
     setEmailOrMobile(email);
     setPassword("@Test123");
   };
-
-  const selectedOption = userTypeOptions.find(option => option.value === selectedUserType);
 
   return (
     <View style={styles.container}>
@@ -229,86 +223,65 @@ export default function LoginScreen() {
                   Sign In
                 </Typography>
 
-                {/* User Type Dropdown */}
-                <View style={styles.dropdownContainer}>
+                {/* User Type Tabs */}
+                <View style={styles.tabContainer}>
                   <TouchableOpacity
-                    style={styles.dropdownButton}
-                    onPress={() => {
-                      console.log("Dropdown pressed, current state:", showDropdown);
-                      setShowDropdown(!showDropdown);
-                    }}
-                    activeOpacity={0.7}
+                    style={[
+                      styles.tabButton,
+                      selectedUserType === "renter_investor" &&
+                        styles.activeTabButton,
+                    ]}
+                    onPress={() => setSelectedUserType("renter_investor")}
                   >
-                    <View style={styles.dropdownContent}>
-                      <Ionicons
-                        name={selectedOption?.icon as any}
-                        size={20}
-                        color={colors.primary.gold}
-                      />
-                      <Typography variant="body" color="primary" style={styles.dropdownText}>
-                        {selectedOption?.label}
-                      </Typography>
-                    </View>
                     <Ionicons
-                      name={showDropdown ? "chevron-up" : "chevron-down"}
+                      name="person-outline"
                       size={20}
-                      color={colors.primary.gold}
+                      color={
+                        selectedUserType === "renter_investor"
+                          ? colors.neutral.white
+                          : colors.text.secondary
+                      }
                     />
+                    <Typography
+                      variant="body"
+                      color={
+                        selectedUserType === "renter_investor"
+                          ? "white"
+                          : "secondary"
+                      }
+                      style={styles.tabText}
+                    >
+                      Renter/Investor
+                    </Typography>
                   </TouchableOpacity>
-                  
-                  {showDropdown && (
-                    <View style={styles.dropdownMenu}>
-                      <TouchableOpacity
-                        style={[
-                          styles.dropdownItem,
-                          selectedUserType === "renter_investor" && styles.dropdownItemSelected
-                        ]}
-                        onPress={() => {
-                          setSelectedUserType("renter_investor");
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="person-outline"
-                          size={20}
-                          color={selectedUserType === "renter_investor" ? colors.background.primary : colors.primary.gold}
-                        />
-                        <Typography 
-                          variant="body" 
-                          color={selectedUserType === "renter_investor" ? "white" : "primary"}
-                          style={styles.dropdownItemText}
-                        >
-                          Sign in as Renter/Investor
-                        </Typography>
-                      </TouchableOpacity>
-                      
-                      <TouchableOpacity
-                        style={[
-                          styles.dropdownItem,
-                          selectedUserType === "homeowner" && styles.dropdownItemSelected
-                        ]}
-                        onPress={() => {
-                          setSelectedUserType("homeowner");
-                          setShowDropdown(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="home-outline"
-                          size={20}
-                          color={selectedUserType === "homeowner" ? colors.background.primary : colors.primary.gold}
-                        />
-                        <Typography 
-                          variant="body" 
-                          color={selectedUserType === "homeowner" ? "white" : "primary"}
-                          style={styles.dropdownItemText}
-                        >
-                          Sign in as Homeowner
-                        </Typography>
-                      </TouchableOpacity>
-                    </View>
-                  )}
+
+                  <TouchableOpacity
+                    style={[
+                      styles.tabButton,
+                      selectedUserType === "homeowner" &&
+                        styles.activeTabButton,
+                    ]}
+                    onPress={() => setSelectedUserType("homeowner")}
+                  >
+                    <Ionicons
+                      name="home-outline"
+                      size={20}
+                      color={
+                        selectedUserType === "homeowner"
+                          ? colors.neutral.white
+                          : colors.text.secondary
+                      }
+                    />
+                    <Typography
+                      variant="body"
+                      color={
+                        selectedUserType === "homeowner" ? "white" : "secondary"
+                      }
+                      style={styles.tabText}
+                    >
+                      Homeowner
+                    </Typography>
+                  </TouchableOpacity>
                 </View>
 
                 <Input
@@ -500,53 +473,30 @@ const styles = StyleSheet.create({
   buttonSection: {
     paddingHorizontal: spacing.md,
   },
-  dropdownContainer: {
-    marginBottom: spacing.md,
-    borderRadius: 8,
-    overflow: "hidden",
-    backgroundColor: colors.background.secondary,
-  },
-  dropdownButton: {
+  tabContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.light,
-  },
-  dropdownContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  dropdownText: {
-    fontWeight: "600",
-  },
-  dropdownMenu: {
-    backgroundColor: colors.background.primary,
-    borderRadius: 8,
+    backgroundColor: colors.neutral.white,
+    borderRadius: 100,
+    padding: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border.light,
-    marginTop: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    zIndex: 1000,
+    marginBottom: spacing.md,
+    shadowColor: colors.text.primary,
   },
-  dropdownItem: {
+  tabButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    gap: spacing.xs,
+    borderRadius: 100,
   },
-  dropdownItemSelected: {
+  activeTabButton: {
     backgroundColor: colors.primary.gold,
   },
-  dropdownItemText: {
-    fontWeight: "500",
+  tabText: {
+    fontWeight: "600",
   },
 });

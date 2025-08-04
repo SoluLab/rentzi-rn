@@ -65,9 +65,11 @@ export default function SplashScreen() {
           if (isAuthenticated) {
             // Check if user is homeowner and route accordingly
             // For now, default to renter tabs - this will be handled by login flow
-            router.replace('/(tabs)');
+            //router.replace('/(tabs)');
+            router.replace('/(homeowner-tabs)');
           } else {
-            router.replace('/(auth)/login');
+            //router.replace('/(auth)/login');
+            router.replace('/(homeowner-tabs)');
           }
         } catch (error) {
           console.error('Navigation error:', error);
@@ -105,7 +107,7 @@ export default function SplashScreen() {
           <View style={styles.logoContainer}>
             <Animated.View style={logoAnimatedStyle}>
               <Image
-                source={require('../assets/images/logo.png')}
+                source={require('../assets/images/logo/rentzi-logo-verti-white.png')}
                 style={styles.logo}
                 resizeMode="cover"
               />

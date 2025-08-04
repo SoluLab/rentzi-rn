@@ -233,9 +233,9 @@ export const useLogin = (
   const queryClient = useQueryClient();
 
   return useMutation<AuthResponse, ApiError, LoginRequest>({
-    mutationFn: async ({ email, password }) => {
+    mutationFn: async ({ identifier, password }) => {
       const payload: LoginRequest = {
-        email,
+        identifier,
         password,
       };
 

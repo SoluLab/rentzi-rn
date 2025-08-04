@@ -14,6 +14,7 @@ import { shadow } from '@/constants/shadow';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore, HomeownerProperty } from '@/stores/homeownerPropertyStore';
+import { useMarketplaceGetProperties } from '@/services/apiClient';
 import {
   Plus,
   Building2,
@@ -42,15 +43,42 @@ export default function TokenizedHomeownerScreen() {
   const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
   const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
   const { 
-    properties, 
-    isLoading, 
-    fetchProperties, 
     deleteProperty, 
     updateProperty,
     updatePropertyStatus,
     syncFromCommercialStore,
     syncFromResidentialStore
   } = useHomeownerPropertyStore();
+  
+  // Use the marketplace API to fetch properties
+  const { data: marketplaceData, isLoading, refetch } = useMarketplaceGetProperties();
+
+  // Transform API data to match the expected format
+  const properties: HomeownerProperty[] = React.useMemo(() => {
+    if (!marketplaceData?.data) return [];
+    
+    return marketplaceData.data.map((property: any) => ({
+      id: property._id,
+      title: property.name,
+      description: property.description,
+      location: `${property.location?.address}, ${property.location?.city}, ${property.location?.state}`,
+      price: property.pricing?.basePrice?.toString() || "0",
+      type: property.category === "villa" ? "residential" : "commercial",
+      status: property.status === "active" ? "approved" : "pending",
+      enabled: property.isActive,
+      image: "https://via.placeholder.com/300x200?text=Property", // Default placeholder
+      bedrooms: property.capacity?.bedrooms,
+      bathrooms: property.capacity?.bathrooms,
+      squareFootage: property.capacity?.maxGuests ? `${property.capacity.maxGuests * 100}` : undefined,
+      createdAt: new Date(property.createdAt),
+      rejectionReason: null,
+      tokenSymbol: null,
+      tokenStatus: null,
+      totalTokensIssued: null,
+      investorsCount: null,
+      totalInvestmentRaised: null,
+    }));
+  }, [marketplaceData]);
   
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,10 +88,8 @@ export default function TokenizedHomeownerScreen() {
   const [showEnableDisableBottomSheet, setShowEnableDisableBottomSheet] = useState(false);
   const [propertyToToggle, setPropertyToToggle] = useState<HomeownerProperty | null>(null);
 
-  // Fetch properties on component mount
+  // Sync with property stores on component mount
   useEffect(() => {
-    fetchProperties();
-    // Sync with property stores
     syncFromCommercialStore();
     syncFromResidentialStore();
   }, []);
@@ -115,6 +141,7 @@ export default function TokenizedHomeownerScreen() {
           style: 'destructive',
           onPress: () => {
             deleteProperty(property.id);
+            refetch(); // Refresh the list after deletion
           },
         },
       ]
@@ -131,6 +158,7 @@ export default function TokenizedHomeownerScreen() {
       await updateProperty(propertyToToggle.id, { enabled: true });
       setShowEnableDisableBottomSheet(false);
       setPropertyToToggle(null);
+      refetch(); // Refresh the list after enabling
     }
   };
 
@@ -139,6 +167,7 @@ export default function TokenizedHomeownerScreen() {
       await updateProperty(propertyToToggle.id, { enabled: false });
       setShowEnableDisableBottomSheet(false);
       setPropertyToToggle(null);
+      refetch(); // Refresh the list after disabling
     }
   };
 
@@ -504,6 +533,14 @@ export default function TokenizedHomeownerScreen() {
       </ScrollView>
       
       <PropertyTypeModal />
+      
+      {/* Floating Add Property Button */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={handleAddProperty}
+      >
+        <Plus size={24} color={colors.neutral.white} />
+      </TouchableOpacity>
       
       <BottomSheet
         visible={showEnableDisableBottomSheet}
@@ -880,5 +917,19 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     marginTop: spacing.sm,
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: spacing.md,
+    right: spacing.md,
+    width: 52,
+    height: 52,
+    borderRadius: 28,
+    backgroundColor: colors.primary.gold,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow.large,
+    elevation: 8,
+    zIndex: 1000,
   },
 }); 

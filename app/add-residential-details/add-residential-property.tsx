@@ -22,7 +22,7 @@ import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerCreateProperty } from '@/services/apiClient';
+import { useHomeownerSavePropertyDraft } from '@/services/apiClient';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Pre-approved Rentzy locations
@@ -83,7 +83,7 @@ export default function AddResidentialPropertyScreen() {
   const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
   
   // API mutation hook
-  const createPropertyMutation = useHomeownerCreateProperty({
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
     onSuccess: (response) => {
       console.log('Property created successfully:', response);
       
@@ -420,7 +420,7 @@ export default function AddResidentialPropertyScreen() {
         console.log('Submitting property data:', apiData);
         
         // Call the API
-        await createPropertyMutation.mutateAsync(apiData);
+        await saveDraftPropertyMutation.mutateAsync(apiData);
       } catch (error) {
         console.error('Error in handleNext:', error);
         // Error is already handled by the mutation's onError callback
@@ -604,9 +604,9 @@ export default function AddResidentialPropertyScreen() {
 
         {/* Next Button */}
         <Button
-          title={createPropertyMutation.isPending ? "Creating..." : "Next"}
+          title={saveDraftPropertyMutation.isPending ? "Creating..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid() || createPropertyMutation.isPending}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </KeyboardAwareScrollView>

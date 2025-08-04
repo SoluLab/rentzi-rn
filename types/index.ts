@@ -145,17 +145,10 @@ export interface AuthUser {
   updatedAt: string;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  message: string;
-  data: {
-    token: string;
-    user: AuthUser;
-  } | null;
-}
+export * from './auth';
 
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 

@@ -51,7 +51,7 @@ import {
   Trash2,
   Calendar,
 } from "lucide-react-native";
-import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
+import { useMarketplaceGetProperty } from '@/services/apiClient';
 
 interface PropertyDetails {
   id: string;
@@ -85,7 +85,6 @@ export default function PropertyDetailsScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const [property, setProperty] = useState<PropertyDetails | null>(null);
-  const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedSections, setExpandedSections] = useState({
@@ -94,41 +93,44 @@ export default function PropertyDetailsScreen() {
   });
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
-  const { getPropertyById, isLoading: storeLoading } = useHomeownerPropertyStore();
+  
+  // Use the new API hook
+  const { data: apiResponse, isLoading, error } = useMarketplaceGetProperty(id as string);
 
   useEffect(() => {
-    setLoading(true);
-    const propertyData = getPropertyById(id as string);
-    if (propertyData) {
-      // Map HomeownerProperty to PropertyDetails
+    if (apiResponse?.data) {
+      const propertyData = apiResponse.data;
+      
+      // Map API response to PropertyDetails interface
       setProperty({
-        id: propertyData.id,
-        title: propertyData.title,
-        description: propertyData.data?.propertyDetails?.description || 'No description available.',
-        price: Number(propertyData.price) || 0,
-        address: propertyData.location,
-        bedrooms: Number(propertyData.bedrooms) || 0,
-        bathrooms: Number(propertyData.bathrooms) || 0,
-        area: Number(propertyData.squareFootage) || 0,
-        type: propertyData.type === 'residential' ? 'Residential' : 'Commercial',
-        status:
-          propertyData.status === 'approved' ? 'Available' :
-          propertyData.status === 'pending' ? 'Pending' :
-          propertyData.status === 'rejected' ? 'Under Maintenance' :
-          propertyData.status === 'draft' ? 'Under Maintenance' :
-          'Available',
-        furnishing: 'Unfurnished', // You can map this if available in data
-        images: propertyData.data?.mediaUpload?.photos?.map((p: any) => p.uri) || [propertyData.image],
-        amenities: propertyData.data?.features?.amenities || [],
-        rating: 4.8, // Placeholder, update if available
-        reviews: 127, // Placeholder, update if available
-        yearBuilt: propertyData.data?.propertyDetails?.yearBuilt || 0,
+        id: propertyData._id,
+        title: propertyData.name,
+        description: propertyData.description || 'No description available.',
+        price: propertyData.pricing?.basePrice || 0,
+        address: `${propertyData.location?.address || ''}, ${propertyData.location?.city || ''}, ${propertyData.location?.state || ''}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').replace(/,\s*$/, '') || 'Address not available',
+        bedrooms: propertyData.capacity?.bedrooms || 0,
+        bathrooms: propertyData.capacity?.bathrooms || 0,
+        area: 0, // Not available in new API response, keeping as 0
+        type: propertyData.category === 'villa' ? 'Villa' : 
+              propertyData.category === 'apartment' ? 'Apartment' : 
+              propertyData.category === 'house' ? 'House' : 
+              propertyData.category === 'condo' ? 'Condo' :
+              propertyData.category === 'townhouse' ? 'Townhouse' :
+              propertyData.category === 'studio' ? 'Studio' : 'Property',
+        status: propertyData.status === 'active' ? 'Available' : 
+                propertyData.status === 'inactive' ? 'Under Maintenance' : 
+                propertyData.status === 'pending' ? 'Pending' : 'Available',
+        furnishing: 'Unfurnished', // Not available in new API response
+        images: propertyData.images && propertyData.images.length > 0 ? propertyData.images : [],
+        amenities: propertyData.amenities || [],
+        rating: 4.8, // Placeholder, not available in new API response
+        reviews: 127, // Placeholder, not available in new API response
+        yearBuilt: 0, // Not available in new API response
       });
-    } else {
+    } else if (error) {
       setProperty(null);
     }
-    setLoading(false);
-  }, [id, getPropertyById]);
+  }, [apiResponse, error]);
 
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite);
@@ -142,10 +144,12 @@ export default function PropertyDetailsScreen() {
   };
 
   const handleEdit = () => {
-    router.push({
-      pathname: "/add-residential-details/add-residential-property",
-      params: { id: property.id },
-    });
+    if (property) {
+      router.push({
+        pathname: "/add-residential-details/add-residential-property",
+        params: { id: property.id },
+      });
+    }
   };
 
   const handleDelete = () => {
@@ -244,6 +248,16 @@ export default function PropertyDetailsScreen() {
         return <Car size={20} color={colors.text.secondary} />;
       case "coffee":
         return <Coffee size={20} color={colors.text.secondary} />;
+      case "pool":
+        return <CheckCircle size={20} color={colors.text.secondary} />;
+      case "kitchen":
+        return <CheckCircle size={20} color={colors.text.secondary} />;
+      case "oceanview":
+        return <CheckCircle size={20} color={colors.text.secondary} />;
+      case "balcony":
+        return <CheckCircle size={20} color={colors.text.secondary} />;
+      case "airconditioning":
+        return <Zap size={20} color={colors.text.secondary} />;
       default:
         return <CheckCircle size={20} color={colors.text.secondary} />;
     }
@@ -255,7 +269,7 @@ export default function PropertyDetailsScreen() {
     { id: "3", name: "Aadhar.pdf", type: "PDF", size: "856 KB" },
   ];
 
-  const amenitiesList = [
+  const amenitiesList = property?.amenities && property.amenities.length > 0 ? property.amenities : [
     "Lift",
     "Gym",
     "Power Backup",
@@ -266,7 +280,7 @@ export default function PropertyDetailsScreen() {
     "Coffee Shop",
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={{ flex: 1 }}>
         <View style={styles.loadingContainer}>
@@ -318,23 +332,25 @@ export default function PropertyDetailsScreen() {
 
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Property Images Carousel */}
-        <View style={styles.carouselContainer}>
-          <FlatList
-            data={property.images}
-            renderItem={renderImageItem}
-            keyExtractor={(item, index) => index.toString()}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={(event) => {
-              const index = Math.round(
-                event.nativeEvent.contentOffset.x / screenWidth
-              );
-              setCurrentImageIndex(index);
-            }}
-          />
-          {renderImageIndicator()}
-        </View>
+        {property.images && property.images.length > 0 && (
+          <View style={styles.carouselContainer}>
+            <FlatList
+              data={property.images}
+              renderItem={renderImageItem}
+              keyExtractor={(item, index) => index.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(event) => {
+                const index = Math.round(
+                  event.nativeEvent.contentOffset.x / screenWidth
+                );
+                setCurrentImageIndex(index);
+              }}
+            />
+            {renderImageIndicator()}
+          </View>
+        )}
 
         {/* Property Basic Info */}
         <View style={styles.content}>

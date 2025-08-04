@@ -135,48 +135,44 @@ export default function OTPVerificationScreen() {
 
   return (
     <ScreenContainer>
-      <Header title="Verify OTP" showBackButton />
+      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+        <Header title="Verify OTP" showBackButton />
 
-      <View style={styles.container}>
-        <Typography variant="h2" style={styles.title}>
-          Enter Verification Code
-        </Typography>
-
-        <Typography variant="body" style={styles.subtitle}>
-          We've sent a 6-digit code to {email}
-        </Typography>
-
-        <View style={styles.otpContainer}>
-          <OTPInput value={otp} onOTPChange={setOtp} length={6} error={error} />
-        </View>
-
-        {error ? (
-          <Typography variant="body2" style={styles.errorText}>
-            {error}
+        <View style={styles.container}>
+          <Typography variant="h4" style={styles.title}>
+            Enter Verification Code
           </Typography>
-        ) : null}
 
-        <View style={styles.timerContainer}>
-          <Typography variant="body2" style={styles.timerText}>
-            Time remaining: {formatTime(timeLeft)}
+          <Typography variant="body" style={styles.subtitle}>
+            We've sent a 6-digit code to {email}
           </Typography>
+
+          <View style={styles.otpContainer}>
+            <OTPInput value={otp} onOTPChange={setOtp} length={6} error={error} />
+          </View>
+
+          <View style={styles.timerContainer}>
+            <Typography variant="body2" style={styles.timerText}>
+              Time remaining: {formatTime(timeLeft)}
+            </Typography>
+          </View>
+
+          <Button
+            title="Verify OTP"
+            onPress={handleVerifyOTP}
+            disabled={otp.length !== 6 || isLoading}
+            loading={isLoading}
+            style={styles.verifyButton}
+          />
+
+          <Button
+            title="Resend OTP"
+            onPress={handleResendOTP}
+            variant="outline"
+            disabled={timeLeft > 0}
+            style={styles.resendButton}
+          />
         </View>
-
-        <Button
-          title="Verify OTP"
-          onPress={handleVerifyOTP}
-          disabled={otp.length !== 6 || isLoading}
-          loading={isLoading}
-          style={styles.verifyButton}
-        />
-
-        <Button
-          title="Resend OTP"
-          onPress={handleResendOTP}
-          variant="outline"
-          disabled={timeLeft > 0}
-          style={styles.resendButton}
-        />
       </View>
     </ScreenContainer>
   );
