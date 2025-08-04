@@ -95,12 +95,9 @@ export default function MobileVerificationScreen() {
             router.replace("/(tabs)");
           }
         } else {
-          // For registration flow, route based on roleType parameter
-          if (roleType === "homeowner") {
-            router.replace("/(homeowner-tabs)");
-          } else {
-            router.replace("/(tabs)");
-          }
+          // For registration flow, redirect to login
+          toast.success("Registration completed! Please login to continue.");
+          router.replace("/(auth)/login");
         }
       } else {
         // Handle unsuccessful response

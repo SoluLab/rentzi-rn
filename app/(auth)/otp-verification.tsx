@@ -72,17 +72,12 @@ export default function OTPVerificationScreen() {
 
       // Check the new response format
       if (response.success) {
-        toast.success("Verification successful! Welcome to Rentzi");
+        toast.success("Verification successful!");
 
         // Handle navigation based on type and role
         if (type === "register") {
-          // For registration flow, route based on roleType
-          if (roleType === "homeowner") {
-            router.replace("/(homeowner-tabs)");
-          } else {
-            // For renter/investor, go to main tabs
-            router.replace("/(tabs)");
-          }
+          // For registration flow, redirect to login
+          router.replace("/(auth)/login");
         } else {
           // For login flow, route based on roleType parameter
           if (roleType === "homeowner") {
