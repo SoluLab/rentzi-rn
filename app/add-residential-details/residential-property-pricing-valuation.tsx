@@ -22,7 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, Check, Plus, X } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerUpdateProperty } from '@/services/homeownerAddProperty';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 // Furnishing options
 const FURNISHING_OPTIONS = [
@@ -82,15 +82,15 @@ export default function ResidentialPropertyPricingValuationScreen() {
   const { data, updatePricingValuation } = useResidentialPropertyStore();
   
   // API mutation hook for updating property
-  const updatePropertyMutation = useHomeownerUpdateProperty({
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
     onSuccess: (response) => {
-      console.log('Property updated successfully with pricing details:', response);
+      console.log('Property draft saved successfully with pricing details:', response);
       // Navigate to media upload step
       router.push('/add-residential-details/residential-property-media-upload');
     },
     onError: (error) => {
-      console.error('Error updating property with pricing details:', error);
-      Alert.alert('Error', 'Failed to update property details. Please try again.');
+      console.error('Error saving property draft with pricing details:', error);
+      Alert.alert('Error', 'Failed to save property draft. Please try again.');
     },
   });
   
@@ -258,20 +258,17 @@ export default function ResidentialPropertyPricingValuationScreen() {
     );
   };
 
-  const transformFormDataToApiFormat = () => {
-    return {
-      amenities: [...formData.featuredAmenities, ...formData.customAmenities],
-      features: formData.smartHomeFeatures ? ['smartHome'] : [],
-      rules: formData.houseRules,
-      propertyDetails: {
-        furnishingDescription: formData.furnishingDescription,
-        conciergeServices: formData.conciergeServices,
-        checkInTime: `${formData.checkInTime.hour}:${formData.checkInTime.minute.toString().padStart(2, '0')} ${formData.checkInTime.period}`,
-        checkOutTime: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute.toString().padStart(2, '0')} ${formData.checkOutTime.period}`,
-        localHighlights: formData.localHighlights,
-      }
-    };
-  };
+  const transformFormDataToApiFormat = () => ({
+    title: data.propertyDetails?.propertyTitle || '',
+    furnishingDescription: formData.furnishingDescription,
+    checkInCheckOutTimes: {
+      checkIn: `${formData.checkInTime.hour}:${formData.checkInTime.minute.toString().padStart(2, '0')} ${formData.checkInTime.period}`,
+      checkOut: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute.toString().padStart(2, '0')} ${formData.checkOutTime.period}`,
+    },
+    localHighlights: formData.localHighlights,
+    isFurnished: formData.furnishingDescription === 'Fully Furnished' || formData.furnishingDescription === 'Partially Furnished',
+    conciergeServicesIncluded: formData.conciergeServices,
+  });
 
   const renderFurnishingItem = ({ item }: { item: string }) => (
     <TouchableOpacity
@@ -324,29 +321,19 @@ export default function ResidentialPropertyPricingValuationScreen() {
   const handleNext = async () => {
     if (validateForm()) {
       try {
-        // Update store with form data
         updatePricingValuation(formData);
-        
-        // Transform data for API
         const apiData = transformFormDataToApiFormat();
-        
-        // Get property ID from store
         const propertyId = data.propertyId;
+        console.log('Property ID from store before draft API:', propertyId);
         if (!propertyId) {
           Alert.alert('Error', 'Property ID not found. Please go back and try again.');
           return;
         }
-        
-        console.log('Updating property with pricing data:', apiData);
-        
-        // Call the API to update property
-        await updatePropertyMutation.mutateAsync({
-          id: propertyId,
-          data: apiData
-        });
+        console.log('Saving property draft with pricing data:', { propertyId, ...apiData });
+        console.log('API data being sent:', apiData);
+        await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
       } catch (error) {
         console.error('Error in handleNext:', error);
-        // Error is already handled by the mutation's onError callback
       }
     }
   };
@@ -539,9 +526,9 @@ export default function ResidentialPropertyPricingValuationScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>

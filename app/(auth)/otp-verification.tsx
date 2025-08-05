@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { View, StyleSheet, Alert } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
@@ -22,19 +22,28 @@ export default function OTPVerificationScreen() {
     type: "register" | "login";
     roleType: string;
   }>();
+  
   // Determine userType for API call based on roleType
   const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
-  const verifyOtpMutation = useVerifyOtp(userType);
-  const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
-  const isLoading =
-    verifyOtpMutation.status === "pending" ||
-    verifyOtpMutation.isPending ||
-    verifyLoginOtpMutation.status === "pending" ||
-    verifyLoginOtpMutation.isPending;
-
+  
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
   const [timeLeft, setTimeLeft] = useState(60); // 1 minute for resend OTP
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Initialize mutations with proper error handling
+  const verifyOtpMutation = useVerifyOtp(userType, {
+    onError: (error: any) => {
+      console.error("Verify OTP error:", error);
+    }
+  });
+  
+  const verifyLoginOtpMutation = useVerifyLoginOtp(userType, {
+    onError: (error: any) => {
+      console.error("Verify Login OTP error:", error);
+    }
+  });
+
   const resendOtpMutation = useResendOtp(userType, {
     onSuccess: (response) => {
       if (response.success) {
@@ -51,32 +60,52 @@ export default function OTPVerificationScreen() {
       toast.error(errorMessage);
     }
   });
+
+  const isLoading =
+    verifyOtpMutation.status === "pending" ||
+    verifyOtpMutation.isPending ||
+    verifyLoginOtpMutation.status === "pending" ||
+    verifyLoginOtpMutation.isPending ||
+    isNavigating;
+
   const isResending = resendOtpMutation.isPending;
 
+  // Improved timer with proper cleanup
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    let timer: ReturnType<typeof setInterval>;
+    
+    if (timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => {
+      if (timer) {
+        clearInterval(timer);
+      }
+    };
+  }, [timeLeft]);
 
-  const formatTime = (seconds: number) => {
+  const formatTime = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
+  }, []);
 
-  const handleVerifyOTP = async () => {
+  const handleVerifyOTP = useCallback(async () => {
+    // Prevent multiple submissions
+    if (isLoading || isNavigating) {
+      return;
+    }
+
     // Clear any previous errors
     setOtpError("");
-    
 
     // Validate OTP
     const otpValidation = validateOTP(otp);
@@ -91,10 +120,20 @@ export default function OTPVerificationScreen() {
     }
 
     try {
+      setIsNavigating(true);
       let response;
+      
       if (phone) {
-        // Parse the phone object from JSON string
-        const phoneObj = JSON.parse(phone);
+        // Parse the phone object from JSON string with error handling
+        let phoneObj;
+        try {
+          phoneObj = JSON.parse(phone);
+        } catch (parseError) {
+          console.error("Error parsing phone object:", parseError);
+          setOtpError("Invalid phone number format");
+          return;
+        }
+        
         // If phone is present, use mobile verification
         response = await verifyLoginOtpMutation.mutateAsync({
           identifier: {
@@ -111,8 +150,8 @@ export default function OTPVerificationScreen() {
         });
       }
 
-      // Check the new response format
-      if (response.success) {
+      // Check the response format
+      if (response?.success) {
         toast.success("Verification successful!");
 
         // Handle navigation based on type and role
@@ -130,12 +169,14 @@ export default function OTPVerificationScreen() {
       } else {
         // Handle unsuccessful response
         const errorMessage =
-          response.message ||
+          response?.message ||
           "Verification failed. Please check your OTP code.";
         toast.error(errorMessage);
         setOtpError(errorMessage);
       }
     } catch (error: any) {
+      console.error("OTP verification error:", error);
+      
       let errorMessage = "Verification failed. Please check your OTP code.";
 
       // Handle different error formats
@@ -156,10 +197,12 @@ export default function OTPVerificationScreen() {
 
       toast.error(errorMessage);
       setOtpError(errorMessage);
+    } finally {
+      setIsNavigating(false);
     }
-  };
+  }, [otp, timeLeft, phone, email, type, roleType, isLoading, isNavigating, verifyOtpMutation, verifyLoginOtpMutation, router]);
 
-  const handleResendOTP = async () => {
+  const handleResendOTP = useCallback(async () => {
     // Don't allow resend if timer is active or already resending
     if (timeLeft > 0 || isResending) {
       return;
@@ -177,7 +220,19 @@ export default function OTPVerificationScreen() {
       // Error handling is done via mutation callbacks
       console.error("Resend OTP failed:", error);
     }
-  };
+  }, [timeLeft, isResending, resendOtpMutation, email]);
+
+  // Safe phone parsing
+  const getDisplayPhone = useCallback(() => {
+    if (!phone) return "";
+    try {
+      const phoneObj = JSON.parse(phone);
+      return `${phoneObj.countryCode} ${phoneObj.mobile}`;
+    } catch (error) {
+      console.error("Error parsing phone for display:", error);
+      return phone;
+    }
+  }, [phone]);
 
   return (
     <ScreenContainer>
@@ -200,9 +255,7 @@ export default function OTPVerificationScreen() {
 
           <Typography variant="body" style={styles.subtitle}>
             We've sent a 6-digit code to{" "}
-            {phone
-              ? `${JSON.parse(phone).countryCode} ${JSON.parse(phone).mobile}`
-              : email}
+            {phone ? getDisplayPhone() : email}
           </Typography>
 
           <View style={styles.otpContainer}>
@@ -211,6 +264,7 @@ export default function OTPVerificationScreen() {
               onOTPChange={setOtp}
               length={6}
               error={otpError}
+              isLoading={isLoading}
             />
           </View>
 

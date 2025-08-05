@@ -19,6 +19,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, Check } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 // Building amenities options
 const BUILDING_AMENITIES = [
@@ -54,6 +55,19 @@ interface FeaturesValidationErrors {
 export default function CommercialPropertyFeaturesComplianceScreen() {
   const router = useRouter();
   const { data, updateFeaturesCompliance } = useCommercialPropertyStore();
+  
+  // API mutation hook for updating property
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log('Commercial property draft saved successfully with features and compliance details:', response);
+      // Navigate to media upload step
+      router.push('/add-commercial-details/commercial-property-media-upload');
+    },
+    onError: (error) => {
+      console.error('Error saving commercial property draft with features and compliance details:', error);
+      Alert.alert('Error', 'Failed to save property draft. Please try again.');
+    },
+  });
   
   const [formData, setFormData] = useState<FeaturesFormData>(data.featuresCompliance);
   const [errors, setErrors] = useState<FeaturesValidationErrors>({});
@@ -122,10 +136,27 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     updateFormData('buildingAmenities', currentAmenities);
   };
 
-  const handleNext = () => {
+  const transformFormDataToApiFormat = () => ({
+    title: data.propertyDetails?.propertyTitle || '',
+    type: "commercial",
+  });
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to media upload step
-      router.push('/add-commercial-details/commercial-property-media-upload');
+      try {
+        updateFeaturesCompliance(formData);
+        const apiData = transformFormDataToApiFormat();
+        const propertyId = data.propertyId;
+        console.log('Commercial Property ID from store before draft API:', propertyId);
+        if (!propertyId) {
+          Alert.alert('Error', 'Property ID not found. Please go back and try again.');
+          return;
+        }
+        console.log('Saving commercial property draft with features and compliance data:', { propertyId, ...apiData });
+        await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+      } catch (error) {
+        console.error('Error in handleNext:', error);
+      }
     }
   };
 
@@ -274,9 +305,9 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>

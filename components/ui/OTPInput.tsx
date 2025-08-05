@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Typography } from './Typography';
+
 interface OTPInputProps {
   length?: number;
   onOTPChange: (otp: string) => void;
@@ -12,6 +13,7 @@ interface OTPInputProps {
   value?: string;
   timeLeft?: string;
 }
+
 export const OTPInput: React.FC<OTPInputProps> = ({
   length = 6,
   onOTPChange,
@@ -19,14 +21,12 @@ export const OTPInput: React.FC<OTPInputProps> = ({
   isLoading = false,
   value = '',
 }) => {
-  const [otp, setOTP] = useState<string[]>(
-    value
-      ? value.split('').concat(new Array(Math.max(0, length - value.length)).fill(''))
-      : new Array(length).fill('')
-  );
+  const [otp, setOTP] = useState<string[]>(new Array(length).fill(''));
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRefs = useRef<TextInput[]>([]);
-  React.useEffect(() => {
+
+  // Update OTP when value prop changes
+  useEffect(() => {
     if (value) {
       const newOTP = value.split('').concat(new Array(Math.max(0, length - value.length)).fill(''));
       setOTP(newOTP);
@@ -34,35 +34,49 @@ export const OTPInput: React.FC<OTPInputProps> = ({
       setOTP(new Array(length).fill(''));
     }
   }, [value, length]);
-  const handleChange = (inputValue: string, index: number) => {
+
+  const handleChange = useCallback((inputValue: string, index: number) => {
     const newOTP = [...otp];
     newOTP[index] = inputValue;
     setOTP(newOTP);
+    
     // Safely call onOTPChange if it exists and is a function
     if (onOTPChange && typeof onOTPChange === 'function') {
       onOTPChange(newOTP.join(''));
     }
+    
     // Auto-focus next input
     if (inputValue && index < length - 1) {
-      inputRefs.current[index + 1]?.focus();
-      setActiveIndex(index + 1);
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+        setActiveIndex(index + 1);
+      }, 0);
     }
-  };
-  const handleKeyPress = (key: string, index: number) => {
+  }, [otp, onOTPChange, length]);
+
+  const handleKeyPress = useCallback((key: string, index: number) => {
     if (key === 'Backspace' && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-      setActiveIndex(index - 1);
+      setTimeout(() => {
+        inputRefs.current[index - 1]?.focus();
+        setActiveIndex(index - 1);
+      }, 0);
     }
-  };
-  const handleFocus = (index: number) => {
+  }, [otp]);
+
+  const handleFocus = useCallback((index: number) => {
     setActiveIndex(index);
-  };
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setActiveIndex(-1);
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.inputContainer}>
         {otp.map((digit, index) => (
           <TextInput
-            key={index}
+            key={`otp-input-${index}`}
             ref={(ref) => {
               if (ref) inputRefs.current[index] = ref;
             }}
@@ -75,10 +89,13 @@ export const OTPInput: React.FC<OTPInputProps> = ({
             onChangeText={(inputValue) => handleChange(inputValue.slice(-1), index)}
             onKeyPress={({ nativeEvent }) => handleKeyPress(nativeEvent.key, index)}
             onFocus={() => handleFocus(index)}
+            onBlur={handleBlur}
             keyboardType="numeric"
             maxLength={1}
             selectTextOnFocus
             editable={!isLoading}
+            autoComplete="one-time-code"
+            textContentType="oneTimeCode"
           />
         ))}
       </View>

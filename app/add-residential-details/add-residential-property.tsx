@@ -14,15 +14,14 @@ import { useLocalSearchParams } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { Header } from '@/components/ui/Header'; 
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
+import { useHomeownerCreateProperty } from '@/services/homeownerAddProperty';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Pre-approved Rentzy locations
@@ -43,9 +42,8 @@ const APPROVED_LOCATIONS = [
 // Property types
 const PROPERTY_TYPES = [
   'Apartment',
-  'Condo',
   'Villa',
-  'Townhouse',
+  'Bungalow',
 ];
 
 interface FormData {
@@ -83,15 +81,17 @@ export default function AddResidentialPropertyScreen() {
   const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
   
   // API mutation hook
-  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+  const createPropertyMutation = useHomeownerCreateProperty({
     onSuccess: (response) => {
       console.log('Property created successfully:', response);
       
       // Store the property ID in the store
-      if (response.data?.id || response.id) {
-        const propertyId = response.data?.id || response.id;
+      const propertyId = response._id || response.id || response.data?._id || response.data?.id;
+      if (propertyId) {
         setPropertyId(propertyId);
-        console.log('Property ID stored:', propertyId);
+        console.log('Property ID stored in store:', propertyId);
+      } else {
+        console.log('No propertyId found in response:', response);
       }
       
       // Navigate to pricing and valuation step
@@ -336,7 +336,7 @@ export default function AddResidentialPropertyScreen() {
   const transformFormDataToApiFormat = () => {
     const marketLocation = formData.market === 'Other' ? formData.otherMarket : formData.market;
     const [city, state] = marketLocation.split(', ').map(s => s.trim());
-    
+
     // Dummy coordinates based on market location
     const getDummyCoordinates = () => {
       const locationCoordinates: { [key: string]: { latitude: number; longitude: number } } = {
@@ -351,40 +351,60 @@ export default function AddResidentialPropertyScreen() {
         'Vail, CO': { latitude: 39.6433, longitude: -106.3781 },
         'Newport Beach, CA': { latitude: 33.6189, longitude: -117.9289 },
       };
-      
       return locationCoordinates[marketLocation] || { latitude: 25.7617, longitude: -80.1918 }; // Default to Miami
     };
-    
+
     const coordinates = getDummyCoordinates();
-    
+
+    // Map property type to API category
+    const getCategoryFromPropertyType = (propertyType: string): string => {
+      switch (propertyType.toLowerCase()) {
+        case 'apartment':
+          return 'apartment';
+        case 'villa':
+          return 'villa';
+        case 'bungalow':
+          return 'bungalow';
+        default:
+          return 'apartment'; // fallback
+      }
+    };
+
+    // Create bedrooms array based on the number of bedrooms
+    const createBedroomsArray = () => {
+      const numBedrooms = parseInt(formData.bedrooms);
+      const bedrooms = [];
+      
+      for (let i = 0; i < numBedrooms; i++) {
+        bedrooms.push({
+          roomType: 'master', // Default room type
+          bedType: 'king', // Default bed type
+          attachedBathroom: i === 0, // First bedroom has attached bathroom
+          walkInCloset: i === 0, // First bedroom has walk-in closet
+          roomSizeInSqft: Math.floor(parseInt(formData.squareFootage) / numBedrooms), // Distribute area
+          hasBalcony: false, // Default no balcony
+        });
+      }
+      
+      return bedrooms;
+    };
+
     return {
       title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.propertyType} with ${formData.bedrooms} bedrooms and ${formData.bathrooms} bathrooms`,
-      category: formData.propertyType.toLowerCase(),
       type: "residential",
-      location: {
-        address: formData.fullAddress,
-        city: city || marketLocation,
-        state: state || '',
-        country: "USA",
+      category: getCategoryFromPropertyType(formData.propertyType),
+      address: {
+        street: formData.fullAddress,
         zipCode: formData.pincode,
-        coordinates: coordinates
+        coordinates: coordinates,
       },
-      pricing: {
-        basePrice: 0, // Will be set in pricing step
-        currency: "USD",
-        cleaningFee: 0,
-        securityDeposit: 0
+      bathrooms: parseFloat(formData.bathrooms),
+      area: {
+        value: parseInt(formData.squareFootage),
       },
-      capacity: {
-        maxGuests: parseInt(formData.guestCapacity),
-        bedrooms: parseInt(formData.bedrooms),
-        bathrooms: parseFloat(formData.bathrooms),
-        beds: parseInt(formData.bedrooms) // Assuming 1 bed per bedroom
-      },
-      amenities: ["wifi", "kitchen"], // Default amenities
-      features: ["airConditioning"], // Default features
-      rules: ["noSmoking", "noPets"] // Default rules
+      yearOfBuilt: parseInt(formData.yearBuilt),
+      bedrooms: createBedroomsArray(),
     };
   };
 
@@ -417,10 +437,12 @@ export default function AddResidentialPropertyScreen() {
     if (validateForm()) {
       try {
         const apiData = transformFormDataToApiFormat();
+        console.log('Property type selected:', formData.propertyType);
+        console.log('Category being sent:', apiData.category);
         console.log('Submitting property data:', apiData);
         
         // Call the API
-        await saveDraftPropertyMutation.mutateAsync(apiData);
+        await createPropertyMutation.mutateAsync(apiData);
       } catch (error) {
         console.error('Error in handleNext:', error);
         // Error is already handled by the mutation's onError callback
@@ -604,9 +626,9 @@ export default function AddResidentialPropertyScreen() {
 
         {/* Next Button */}
         <Button
-          title={saveDraftPropertyMutation.isPending ? "Creating..." : "Next"}
+          title={createPropertyMutation.isPending ? "Creating..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
+          disabled={!isFormValid() || createPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </KeyboardAwareScrollView>

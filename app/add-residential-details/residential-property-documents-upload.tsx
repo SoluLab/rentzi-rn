@@ -22,7 +22,8 @@ import {
   useResidentialPropertyStore,
   DocumentData,
 } from "@/stores/residentialPropertyStore";
-import { useHomeownerUploadPropertyFiles } from "@/services/homeownerAddProperty";
+import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyFiles } from "@/services/homeownerAddProperty";
+import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
 
 interface DocumentsUploadData {
   // Mandatory documents
@@ -41,6 +42,12 @@ interface DocumentsUploadData {
   // Conditional flags
   hasMortgage: boolean;
   hasHOA: boolean;
+}
+
+// Extend DocumentData to include upload status
+interface ExtendedDocumentData extends DocumentData {
+  uploadedUrl?: string;
+  uploadedKey?: string;
 }
 
 interface DocumentsUploadErrors {
@@ -72,14 +79,32 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const { data, updateDocumentsUpload, resetStore } =
     useResidentialPropertyStore();
 
-  // API mutation hook for uploading files
-  const uploadFilesMutation = useHomeownerUploadPropertyFiles({
+  // API mutation hook for updating property draft
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
     onSuccess: (response) => {
-      console.log("Files uploaded successfully:", response);
+      console.log(
+        "Residential property draft saved successfully with documents:",
+        response
+      );
       // Navigate to legal consents step
       router.push(
         "/add-residential-details/residential-property-legal-consents"
       );
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving residential property draft with documents:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
+
+  // API mutation hook for uploading files
+  const uploadFilesMutation = useHomeownerUploadPropertyFiles({
+    onSuccess: (response) => {
+      console.log("Files uploaded successfully:", response);
+      // The uploaded URLs will be handled in the upload function
     },
     onError: (error) => {
       console.error("Error uploading files:", error);
@@ -298,6 +323,9 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         };
 
         updateFormData(documentField, newDocument);
+
+        // Upload document immediately
+        await uploadDocumentToServer(newDocument, documentField);
       }
     } catch (error) {
       Alert.alert("Error", "Failed to pick document. Please try again.");
@@ -306,6 +334,14 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
   const removeDocument = (documentField: keyof DocumentsUploadData) => {
     updateFormData(documentField, null);
+  };
+
+  const retryUpload = async (documentField: keyof DocumentsUploadData) => {
+    const document = formData[documentField] as ExtendedDocumentData | null;
+    if (document && !document.uploadedUrl) {
+      console.log(`Retrying upload for document ${documentField}:`, document.name);
+      await uploadDocumentToServer(document, documentField);
+    }
   };
 
   const previewDocument = (document: DocumentData) => {
@@ -339,44 +375,216 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     });
   };
 
+  const uploadDocumentToServer = async (document: DocumentData, documentField: keyof DocumentsUploadData) => {
+    try {
+      const propertyId = data.propertyId;
+      if (!propertyId) {
+        console.error("Property ID not found for document upload");
+        Alert.alert("Error", "Property ID not found. Please go back and try again.");
+        return;
+      }
+
+      // Create file object for upload - ensure proper format for React Native
+      const file = {
+        uri: document.uri,
+        type: document.type || "application/pdf",
+        name: document.name || `document_${Date.now()}.pdf`,
+      };
+
+      console.log("Uploading document:", file);
+      console.log("Property ID:", propertyId);
+      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId));
+      
+      const response = await uploadFilesMutation.mutateAsync({
+        propertyId,
+        files: [file],
+        fileType: "document",
+      });
+
+      console.log("Document upload response:", response);
+
+      // Update the document with uploaded URL and key
+      if (response.data?.uploadedFiles?.[0]) {
+        const uploadedDocument = response.data.uploadedFiles[0];
+        const updatedDocument: ExtendedDocumentData = {
+          ...document,
+          uploadedUrl: uploadedDocument.url,
+          uploadedKey: uploadedDocument.key,
+        };
+        updateFormData(documentField, updatedDocument);
+        console.log("Updated document with uploaded URL:", uploadedDocument.url);
+      } else {
+        console.warn("No uploaded documents in response:", response);
+      }
+    } catch (error: any) {
+      console.error("Error uploading document to server:", error);
+      
+      // Show a more specific error message
+      if (error?.message === "Network Error") {
+        Alert.alert(
+          "Upload Failed", 
+          "Network error occurred. Please check your internet connection and try again."
+        );
+      } else if (error?.status === 401) {
+        Alert.alert(
+          "Authentication Error", 
+          "Please log in again to continue."
+        );
+      } else if (error?.status === 413) {
+        Alert.alert(
+          "File Too Large", 
+          "The document file is too large. Please select a smaller file."
+        );
+      } else if (error?.status === 422) {
+        Alert.alert(
+          "Upload Failed", 
+          "Invalid document format. Please try again with a different file."
+        );
+      } else {
+        Alert.alert(
+          "Upload Failed", 
+          "Failed to upload document. Please try again."
+        );
+      }
+    }
+  };
+
+  const transformFormDataToApiFormat = () => {
+    const apiData: any = {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "residential",
+    };
+
+    // Transform documents to match schema format based on schema.txt
+    const documents: any = {};
+
+    // Mandatory documents
+    if (formData.propertyDeed) {
+      documents.propertyDeed = [{
+        key: (formData.propertyDeed as ExtendedDocumentData).uploadedKey || 'propertyDeed',
+        url: (formData.propertyDeed as ExtendedDocumentData).uploadedUrl || formData.propertyDeed.uri,
+      }];
+    }
+
+    if (formData.governmentId) {
+      documents.governmentIssuedId = [{
+        key: (formData.governmentId as ExtendedDocumentData).uploadedKey || 'governmentId',
+        url: (formData.governmentId as ExtendedDocumentData).uploadedUrl || formData.governmentId.uri,
+      }];
+    }
+
+    if (formData.propertyTaxBill) {
+      documents.propertyTaxBill = [{
+        key: (formData.propertyTaxBill as ExtendedDocumentData).uploadedKey || 'propertyTaxBill',
+        url: (formData.propertyTaxBill as ExtendedDocumentData).uploadedUrl || formData.propertyTaxBill.uri,
+      }];
+    }
+
+    if (formData.proofOfInsurance) {
+      documents.proofOfInsurance = [{
+        key: (formData.proofOfInsurance as ExtendedDocumentData).uploadedKey || 'proofOfInsurance',
+        url: (formData.proofOfInsurance as ExtendedDocumentData).uploadedUrl || formData.proofOfInsurance.uri,
+      }];
+    }
+
+    if (formData.utilityBill) {
+      documents.utilityBill = [{
+        key: (formData.utilityBill as ExtendedDocumentData).uploadedKey || 'utilityBill',
+        url: (formData.utilityBill as ExtendedDocumentData).uploadedUrl || formData.utilityBill.uri,
+      }];
+    }
+
+    if (formData.appraisalReport) {
+      documents.appraisalReport = [{
+        key: (formData.appraisalReport as ExtendedDocumentData).uploadedKey || 'appraisalReport',
+        url: (formData.appraisalReport as ExtendedDocumentData).uploadedUrl || formData.appraisalReport.uri,
+      }];
+    }
+
+    if (formData.authorizationToSell) {
+      documents.authorizationToTokenize = [{
+        key: (formData.authorizationToSell as ExtendedDocumentData).uploadedKey || 'authorizationToSell',
+        url: (formData.authorizationToSell as ExtendedDocumentData).uploadedUrl || formData.authorizationToSell.uri,
+      }];
+    }
+
+    // Conditional documents
+    if (formData.hasMortgage && formData.mortgageStatement) {
+      documents.mortgageStatement = [{
+        key: (formData.mortgageStatement as ExtendedDocumentData).uploadedKey || 'mortgageStatement',
+        url: (formData.mortgageStatement as ExtendedDocumentData).uploadedUrl || formData.mortgageStatement.uri,
+      }];
+    }
+
+    if (formData.hasHOA && formData.hoaDocuments) {
+      documents.hoaDocument = [{
+        key: (formData.hoaDocuments as ExtendedDocumentData).uploadedKey || 'hoaDocuments',
+        url: (formData.hoaDocuments as ExtendedDocumentData).uploadedUrl || formData.hoaDocuments.uri,
+      }];
+    }
+
+    if (Object.keys(documents).length > 0) {
+      apiData.documents = documents;
+    }
+
+    return apiData;
+  };
+
   const handleNext = async () => {
     if (validateForm()) {
-      try {
-        // Update store with form data
-        updateDocumentsUpload(formData);
+      // Check if there are unuploaded documents
+      const allDocuments = [
+        formData.propertyDeed,
+        formData.governmentId,
+        formData.propertyTaxBill,
+        formData.proofOfInsurance,
+        formData.utilityBill,
+        formData.appraisalReport,
+        formData.authorizationToSell,
+        formData.hasMortgage ? formData.mortgageStatement : null,
+        formData.hasHOA ? formData.hoaDocuments : null,
+      ].filter(Boolean) as ExtendedDocumentData[];
 
-        // Get property ID from store
-        const propertyId = data.propertyId;
-        if (!propertyId) {
-          Alert.alert(
-            "Error",
-            "Property ID not found. Please go back and try again."
-          );
-          return;
-        }
-
-        // Transform documents to files for API
-        const documentFiles = transformDocumentsToFiles();
-
-        if (documentFiles.length > 0) {
-          console.log("Uploading documents to property:", propertyId);
-
-          // Call the API to upload files
-          await uploadFilesMutation.mutateAsync({
-            propertyId: propertyId,
-            files: documentFiles,
-            fileType: "document",
-          });
-        } else {
-          // No documents to upload, just proceed to next step
-          router.push(
-            "/add-residential-details/residential-property-legal-consents"
-          );
-        }
-      } catch (error) {
-        console.error("Error in handleNext:", error);
-        // Error is already handled by the mutation's onError callback
+      const unuploadedDocuments = allDocuments.filter(doc => !doc.uploadedUrl);
+      
+      if (unuploadedDocuments.length > 0) {
+        Alert.alert(
+          "Unuploaded Documents",
+          `${unuploadedDocuments.length} documents are not yet uploaded to the server. You can continue, but the documents may not be saved properly.`,
+          [
+            { text: "Continue Anyway", onPress: () => proceedWithDraft() },
+            { text: "Upload First", style: "cancel" }
+          ]
+        );
+      } else {
+        await proceedWithDraft();
       }
+    }
+  };
+
+  const proceedWithDraft = async () => {
+    try {
+      updateDocumentsUpload(formData);
+      const apiData = transformFormDataToApiFormat();
+      const propertyId = data.propertyId;
+      console.log(
+        "Residential Property ID from store before draft API:",
+        propertyId
+      );
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      console.log("Saving residential property draft with documents data:", {
+        propertyId,
+        ...apiData,
+      });
+      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+    } catch (error) {
+      console.error("Error in proceedWithDraft:", error);
     }
   };
 
@@ -435,6 +643,17 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                 <Typography variant="caption" style={styles.documentSize}>
                   {formatFileSize(document.size)}
                 </Typography>
+                {(document as ExtendedDocumentData).uploadedUrl ? (
+                  <Typography variant="caption" style={styles.uploadStatus}>
+                    ✓ Uploaded
+                  </Typography>
+                ) : (
+                  <TouchableOpacity onPress={() => retryUpload(field)}>
+                    <Typography variant="caption" style={styles.retryStatus}>
+                      ↻ Retry
+                    </Typography>
+                  </TouchableOpacity>
+                )}
               </View>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => removeDocument(field)}>
@@ -445,6 +664,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           <TouchableOpacity
             style={styles.uploadButton}
             onPress={() => pickDocument(field)}
+            disabled={uploadFilesMutation.isPending}
           >
             <Ionicons
               name="cloud-upload"
@@ -452,7 +672,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               color={colors.primary.gold}
             />
             <Typography variant="body" style={styles.uploadButtonText}>
-              Upload {label}
+              {uploadFilesMutation.isPending ? "Uploading..." : `Upload ${label}`}
             </Typography>
           </TouchableOpacity>
         )}
@@ -657,9 +877,9 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           </View>
 
           <Button
-            title="Next"
+            title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
             onPress={handleNext}
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
             style={styles.nextButton}
           />
         </ScrollView>
@@ -829,6 +1049,16 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.status.error,
     marginTop: spacing.sm,
+  },
+  uploadStatus: {
+    color: colors.status.success,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  retryStatus: {
+    color: colors.primary.gold,
+    fontSize: 9,
+    fontWeight: '600',
   },
   nextButton: {
     marginTop: spacing.xl,

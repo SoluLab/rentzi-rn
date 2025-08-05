@@ -84,16 +84,19 @@ export default function AddCommercialPropertyScreen() {
       console.log("Commercial property created successfully:", response);
 
       // Store the property ID in the store
-      if (response.data?.id || response.id) {
-        const propertyId = response.data?.id || response.id;
+      const propertyId = response.data?._id;
+      if (propertyId) {
         setPropertyId(propertyId);
         console.log("Commercial property ID stored:", propertyId);
+      } else {
+        console.log("No propertyId found in response:", response);
       }
 
-      // Navigate to financial details step
-      router.push(
-        "/add-commercial-details/commercial-property-financial-details"
-      );
+      // Navigate to financial details step, passing id and title as params
+      router.push({
+        pathname: "/add-commercial-details/commercial-property-financial-details",
+        params: { id: propertyId, title: formData.propertyTitle },
+      });
     },
     onError: (error) => {
       console.error("Error creating commercial property:", error);
@@ -295,9 +298,7 @@ export default function AddCommercialPropertyScreen() {
 
     // Dummy coordinates based on market location
     const getDummyCoordinates = () => {
-      const locationCoordinates: {
-        [key: string]: { latitude: number; longitude: number };
-      } = {
+      const locationCoordinates = {
         "Miami Beach, FL": { latitude: 25.7907, longitude: -80.13 },
         "Palm Springs, CA": { latitude: 33.8303, longitude: -116.5453 },
         "Aspen, CO": { latitude: 39.1911, longitude: -106.8175 },
@@ -309,9 +310,8 @@ export default function AddCommercialPropertyScreen() {
         "Vail, CO": { latitude: 39.6433, longitude: -106.3781 },
         "Newport Beach, CA": { latitude: 33.6189, longitude: -117.9289 },
       };
-
       return (
-        locationCoordinates[marketLocation] || {
+        (locationCoordinates as Record<string, { latitude: number; longitude: number }>)[marketLocation] || {
           latitude: 25.7907,
           longitude: -80.13,
         }
@@ -320,34 +320,46 @@ export default function AddCommercialPropertyScreen() {
 
     const coordinates = getDummyCoordinates();
 
+    // Map zoning type to API category
+    const getCategoryFromZoningType = (zoningType: string): string => {
+      const categoryMapping: { [key: string]: string } = {
+        'Retail': 'apartment',
+        'Office': 'apartment', 
+        'Mixed-Use': 'apartment',
+        'Industrial': 'bungalow',
+        'Hospitality': 'villa',
+      };
+      return categoryMapping[zoningType] || 'apartment'; // Default to apartment
+    };
+
+    // Create bedrooms array for commercial properties (required by schema)
+    const createCommercialBedroomsArray = () => {
+      // For commercial properties, create a single "office" type bedroom
+      return [{
+        roomType: 'master', // Default room type
+        bedType: 'king', // Default bed type
+        attachedBathroom: true, // Commercial properties typically have bathrooms
+        walkInCloset: false, // Commercial properties don't typically have walk-in closets
+        roomSizeInSqft: parseInt(formData.squareFootage), // Use full area for commercial
+        hasBalcony: false, // Default no balcony for commercial
+      }];
+    };
+
     return {
       title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.zoningType} commercial property`,
-      category: formData.zoningType.toLowerCase(),
       type: "commercial",
-      location: {
-        address: formData.fullAddress,
-        city: city || marketLocation,
-        state: state || "",
-        country: "USA",
+      category: getCategoryFromZoningType(formData.zoningType),
+      address: {
+        street: formData.fullAddress,
         zipCode: formData.pincode,
         coordinates: coordinates,
       },
-      pricing: {
-        basePrice: 0, // Will be set in financial details step
-        currency: "USD",
-        cleaningFee: 0,
-        securityDeposit: 0,
+      area: {
+        value: parseInt(formData.squareFootage),
       },
-      capacity: {
-        maxGuests: 0, // Commercial properties don't have guests
-        bedrooms: 0, // Commercial properties don't have bedrooms
-        bathrooms: 0, // Commercial properties don't have bathrooms
-        beds: 0, // Commercial properties don't have beds
-      },
-      amenities: ["wifi", "parking"], // Default commercial amenities
-      features: ["airConditioning", "security"], // Default commercial features
-      rules: ["noSmoking", "businessHours"], // Default commercial rules
+      yearOfBuilt: parseInt(formData.yearBuilt),
+      bedrooms: createCommercialBedroomsArray(),
     };
   };
 

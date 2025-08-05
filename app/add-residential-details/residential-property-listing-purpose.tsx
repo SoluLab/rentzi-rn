@@ -16,6 +16,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Check, Home, Users, DollarSign, Calendar } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 interface ListingPurposeData {
   selectedPurpose: string | null;
@@ -73,6 +74,25 @@ const LISTING_PURPOSES = [
 export default function ResidentialPropertyListingPurposeScreen() {
   const router = useRouter();
   const { data, updateListingPurpose } = useResidentialPropertyStore();
+
+  // API mutation hook for updating property draft
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log(
+        "Residential property draft saved successfully with listing purpose:",
+        response
+      );
+      // Navigate to review details step
+      router.push('/add-residential-details/residential-property-review');
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving residential property draft with listing purpose:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
   
   const [formData, setFormData] = useState<ListingPurposeData>(data.listingPurpose);
   const [errors, setErrors] = useState<ListingPurposeValidationErrors>({});
@@ -114,10 +134,57 @@ export default function ResidentialPropertyListingPurposeScreen() {
     setExpandedPurpose(expandedPurpose === purposeId ? null : purposeId);
   };
 
-  const handleNext = () => {
+  const transformFormDataToApiFormat = () => {
+    const apiData: any = {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "residential",
+    };
+
+    // Add listing purpose based on schema requirements
+    // Map the selected listing purpose to appropriate schema fields
+    if (formData.selectedPurpose === 'rental-only') {
+      apiData.listingType = 'rental';
+      apiData.allowsFractionalization = false;
+    } else if (formData.selectedPurpose === 'fractional-ownership-only') {
+      apiData.listingType = 'fractional';
+      apiData.allowsFractionalization = true;
+    } else if (formData.selectedPurpose === 'both') {
+      apiData.listingType = 'both';
+      apiData.allowsFractionalization = true;
+    }
+
+    return apiData;
+  };
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to review details step
-      router.push('/add-residential-details/residential-property-review');
+      await proceedWithDraft();
+    }
+  };
+
+  const proceedWithDraft = async () => {
+    try {
+      updateListingPurpose(formData);
+      const apiData = transformFormDataToApiFormat();
+      const propertyId = data.propertyId;
+      console.log(
+        "Residential Property ID from store before draft API:",
+        propertyId
+      );
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      console.log("Saving residential property draft with listing purpose data:", {
+        propertyId,
+        ...apiData,
+      });
+      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+    } catch (error) {
+      console.error("Error in proceedWithDraft:", error);
     }
   };
 
@@ -250,9 +317,9 @@ export default function ResidentialPropertyListingPurposeScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>

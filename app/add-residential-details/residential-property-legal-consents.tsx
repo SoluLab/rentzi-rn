@@ -16,6 +16,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Check, AlertTriangle } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 interface ConsentData {
   investmentRisks: boolean;
@@ -85,6 +86,25 @@ const CONSENT_ITEMS = [
 export default function ResidentialPropertyLegalConsentsScreen() {
   const router = useRouter();
   const { data, updateLegalConsents } = useResidentialPropertyStore();
+
+  // API mutation hook for updating property draft
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log(
+        "Residential property draft saved successfully with legal consents:",
+        response
+      );
+      // Navigate to listing purpose step
+      router.push('/add-residential-details/residential-property-listing-purpose');
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving residential property draft with legal consents:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
   
   const [consents, setConsents] = useState<ConsentData>(data.legalConsents);
   const [errors, setErrors] = useState<ConsentValidationErrors>({});
@@ -128,10 +148,56 @@ export default function ResidentialPropertyLegalConsentsScreen() {
     setExpandedItem(expandedItem === key ? null : key);
   };
 
-  const handleNext = () => {
+  const transformFormDataToApiFormat = () => {
+    const apiData: any = {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "residential",
+    };
+
+    // Add legal consents based on schema requirements
+    // These are boolean flags indicating user consent
+    apiData.legalConsents = {
+      investmentRisks: consents.investmentRisks,
+      platformTerms: consents.platformTerms,
+      variableIncome: consents.variableIncome,
+      tokenizationConsent: consents.tokenizationConsent,
+      usageRights: consents.usageRights,
+      liquidityLimitations: consents.liquidityLimitations,
+      governanceRights: consents.governanceRights,
+    };
+
+    return apiData;
+  };
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to listing purpose step
-      router.push('/add-residential-details/residential-property-listing-purpose');
+      await proceedWithDraft();
+    }
+  };
+
+  const proceedWithDraft = async () => {
+    try {
+      updateLegalConsents(consents);
+      const apiData = transformFormDataToApiFormat();
+      const propertyId = data.propertyId;
+      console.log(
+        "Residential Property ID from store before draft API:",
+        propertyId
+      );
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      console.log("Saving residential property draft with legal consents data:", {
+        propertyId,
+        ...apiData,
+      });
+      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+    } catch (error) {
+      console.error("Error in proceedWithDraft:", error);
     }
   };
 
@@ -248,9 +314,9 @@ export default function ResidentialPropertyLegalConsentsScreen() {
 
           {/* Next Button */}
           <Button
-            title="Next"
+            title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
             onPress={handleNext}
-            disabled={!isFormValid()}
+            disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
             style={styles.nextButton}
           />
         </ScrollView>
