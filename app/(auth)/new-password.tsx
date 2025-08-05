@@ -22,6 +22,9 @@ export default function NewPasswordScreen() {
   const { email, code, verificationId, roleType } = useLocalSearchParams(); // Assume these are passed
   const resetPasswordMutation = useResetPassword();
   const renterInvestorResetPasswordMutation = useRenterInvestorResetPassword();
+  
+  // Determine which mutation to use based on roleType
+  const activeMutation = roleType === "renter_investor" ? renterInvestorResetPasswordMutation : resetPasswordMutation;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -178,11 +181,12 @@ export default function NewPasswordScreen() {
             <Button
               title="Reset Password"
               onPress={handleResetPassword}
-              loading={resetPasswordMutation.status === "pending"}
+              loading={activeMutation.status === "pending" || activeMutation.isPending}
               disabled={
                 !password ||
                 !confirmPassword ||
-                resetPasswordMutation.status === "pending" ||
+                activeMutation.status === "pending" ||
+                activeMutation.isPending ||
                 hasSpaceInPassword ||
                 Object.values(errors).some((error) => error)
               }

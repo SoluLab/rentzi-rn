@@ -51,7 +51,11 @@ export default function OTPVerificationScreen() {
     verifyOtpMutation.status === "pending" ||
     verifyOtpMutation.isPending ||
     verifyLoginOtpMutation.status === "pending" ||
-    verifyLoginOtpMutation.isPending;
+    verifyLoginOtpMutation.isPending ||
+    renterInvestorVerifyLoginOtpMutation.status === "pending" ||
+    renterInvestorVerifyLoginOtpMutation.isPending ||
+    renterInvestorResendOtpMutation.status === "pending" ||
+    renterInvestorResendOtpMutation.isPending;
 
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");

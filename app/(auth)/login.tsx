@@ -23,7 +23,6 @@ import { useLogin } from "@/services/auth";
 import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AuthResponse, LoginRequest } from "@/types";
-import { NetworkTest } from "@/components/ui/NetworkTest";
 import { useRenterInvestorLogin } from "@/services/renterInvestorAuth";
 import { RenterInvestorLoginRequest, RenterInvestorLoginResponse } from "@/types/renterInvestorAuth";
 
@@ -408,9 +407,6 @@ export default function LoginScreen() {
                 </View>
 
                 {/* Quick Access Buttons at Bottom End */}
-
-                {/* Network Test Component for Debugging */}
-                <NetworkTest />
 
                 <Typography
                   variant="body2"
