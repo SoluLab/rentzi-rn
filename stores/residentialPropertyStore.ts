@@ -101,6 +101,7 @@ export interface ListingPurposeData {
 
 // Complete residential property data interface
 export interface ResidentialPropertyData {
+  propertyId?: string; // Add property ID field
   propertyDetails: PropertyDetails;
   pricingValuation: PricingValuationData;
   mediaUpload: MediaUploadData;
@@ -120,6 +121,7 @@ interface ResidentialPropertyStore {
   updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => void;
   updateLegalConsents: (legalConsents: Partial<LegalConsentsData>) => void;
   updateListingPurpose: (listingPurpose: Partial<ListingPurposeData>) => void;
+  setPropertyId: (propertyId: string) => void; // Add method to set property ID
   submitProperty: () => void;
   resetStore: () => void;
   isPropertyDetailsComplete: () => boolean;
@@ -141,6 +143,7 @@ interface ResidentialPropertyStore {
 
 // Initial data
 const initialData: ResidentialPropertyData = {
+  propertyId: undefined, // Add property ID to initial data
   propertyDetails: {
     propertyTitle: '',
     market: '',
@@ -281,6 +284,15 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
               ...state.data.listingPurpose,
               ...listingPurpose,
             },
+          },
+        }));
+      },
+
+      setPropertyId: (propertyId: string) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            propertyId,
           },
         }));
       },

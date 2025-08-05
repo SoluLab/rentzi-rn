@@ -662,7 +662,10 @@ export default function PortfolioScreen() {
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tabItem, selectedTab === "Investments" && styles.tabItemActive]}
+          style={[
+            styles.tabItem,
+            selectedTab === "Investments" && styles.tabItemActive,
+          ]}
           onPress={() => setSelectedTab("Investments")}
           activeOpacity={0.8}
         >
@@ -671,12 +674,20 @@ export default function PortfolioScreen() {
             color={selectedTab === "Investments" ? "#fff" : "#222"}
             style={{ marginRight: 8 }}
           />
-          <Text style={[styles.tabText, selectedTab === "Investments" && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "Investments" && styles.tabTextActive,
+            ]}
+          >
             Investments
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tabItem, selectedTab === "Secondary Marketplace" && styles.tabItemActive]}
+          style={[
+            styles.tabItem,
+            selectedTab === "Secondary Marketplace" && styles.tabItemActive,
+          ]}
           onPress={() => setSelectedTab("Secondary Marketplace")}
           activeOpacity={0.8}
         >
@@ -685,7 +696,12 @@ export default function PortfolioScreen() {
             color={selectedTab === "Secondary Marketplace" ? "#fff" : "#222"}
             style={{ marginRight: 8 }}
           />
-          <Text style={[styles.tabText, selectedTab === "Secondary Marketplace" && styles.tabTextActive]}>
+          <Text
+            style={[
+              styles.tabText,
+              selectedTab === "Secondary Marketplace" && styles.tabTextActive,
+            ]}
+          >
             Marketplace
           </Text>
         </TouchableOpacity>

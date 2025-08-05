@@ -5,7 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { 
-  CheckCircle2, 
+  House, 
   User, 
   Building2, 
   Calendar, 
@@ -37,7 +37,7 @@ export default function HomeownerTabLayout() {
           name="index"
           options={{
             title: 'Dashboard',
-            tabBarIcon: ({ color, size }) => <CheckCircle2 size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => <House size={size} color={color} />,
           }}
         />
         <Tabs.Screen

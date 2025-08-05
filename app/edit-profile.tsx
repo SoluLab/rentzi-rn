@@ -22,24 +22,29 @@ import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
+import { useUpdateProfile } from '@/services/apiClient';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuthStore();
-  const [name, setName] = useState(user?.name || ' ');
+  const { user } = useAuthStore();
+  const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
+  const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
+  const [phoneNumber, setPhoneNumber] = useState(user?.profileDetails?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [address, setAddress] = useState('');
   const [originalEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [profileImage, setProfileImage] = useState(user?.profileDetails.avatar || '');
+  const [profileImage, setProfileImage] = useState(user?.profileDetails?.avatar || '');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { mutateAsync: updateProfile } = useUpdateProfile();
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
     // Name validation
-    const nameValidation = validateFullName(name);
+    const nameValidation = validateFullName(firstName + ' ' + lastName);
     if (!nameValidation.isValid) {
       newErrors.name = nameValidation.error!;
     }
@@ -75,41 +80,31 @@ export default function EditProfileScreen() {
       toast.error('Please fix the errors below');
       return;
     }
-    // If email is changed, trigger OTP verification
     if (email !== originalEmail) {
-      // Navigate to email verification screen, pass new email and a callback
       router.push({
         pathname: '/(auth)/email-verification',
-        params: {
-          email: email,
-          type: 'change',
-          // Optionally pass other params if needed
-        },
+        params: { email: email, type: 'change' },
       });
-      // Do not proceed with saving until OTP is verified
       return;
     }
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Update user data
-      if (user) {
-        const updatedUser = {
-          ...user,
-          name,
-          email,
-          profileDetails: {
-            ...user.profileDetails,
-            avatar: profileImage,
-          },
-        };
-        setUser(updatedUser);
+      const payload: any = {
+        firstName,
+        lastName,
+        phoneNumber,
+        email,
+      };
+      if (profileImage) payload.profileImage = profileImage;
+      if (newPassword) {
+        payload.currentPassword = currentPassword;
+        payload.newPassword = newPassword;
       }
+      await updateProfile(payload);
       toast.success('Profile updated successfully!');
       router.back();
     } catch (error: any) {
-      toast.error('Failed to update profile. Please try again.');
+      toast.error(error?.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -154,8 +149,11 @@ export default function EditProfileScreen() {
     }
   };
   const updateField = (field: string, value: string) => {
-    if (field === 'name') setName(value);
+    if (field === 'firstName') setFirstName(value);
+    if (field === 'lastName') setLastName(value);
+    if (field === 'phoneNumber') setPhoneNumber(value);
     if (field === 'email') setEmail(value);
+    if (field === 'address') setAddress(value);
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
     if (field === 'confirmPassword') setConfirmPassword(value);
@@ -203,11 +201,26 @@ export default function EditProfileScreen() {
               Personal Information
             </Typography>
             <Input
-              label="Full Name"
-              value={name}
-              onChangeText={(value) => updateField('name', value)}
-              placeholder="Enter your full name"
-              error={errors.name}
+              label="First Name"
+              value={firstName}
+              onChangeText={(value) => updateField('firstName', value)}
+              placeholder="Enter your first name"
+              error={errors.firstName}
+            />
+            <Input
+              label="Last Name"
+              value={lastName}
+              onChangeText={(value) => updateField('lastName', value)}
+              placeholder="Enter your last name"
+              error={errors.lastName}
+            />
+            <Input
+              label="Phone Number"
+              value={phoneNumber}
+              onChangeText={(value) => updateField('phoneNumber', value)}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              error={errors.phoneNumber}
             />
             <Input
               label="Email Address"
@@ -223,6 +236,15 @@ export default function EditProfileScreen() {
                 You will need to verify your new email address.
               </Typography>
             )}
+            <Input
+              label="Address"
+              value={address}
+              onChangeText={(value) => updateField('address', value)}
+              placeholder="Enter your address"
+              multiline
+              numberOfLines={3}
+              error={errors.address}
+            />
           </View>
           {/* Change Password */}
           <View style={styles.section}>
@@ -263,6 +285,7 @@ export default function EditProfileScreen() {
               error={errors.confirmPassword}
             />
           </View>
+          
           {/* Save Button */}
           <View style={styles.buttonContainer}>
             <Button

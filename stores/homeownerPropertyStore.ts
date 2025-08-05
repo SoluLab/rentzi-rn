@@ -22,6 +22,14 @@ export interface HomeownerProperty {
   occupancyRate?: number;
   bookings?: number;
   data?: any; // Store the actual property form data
+  enabled?: boolean; // Property enable/disable status
+  
+  // Tokenization properties
+  tokenSymbol?: string;
+  tokenStatus?: 'active' | 'paused';
+  totalTokensIssued?: number;
+  investorsCount?: number;
+  totalInvestmentRaised?: number;
 }
 
 // Dashboard metrics interface
@@ -47,6 +55,7 @@ interface HomeownerPropertyStore {
   updateProperty: (id: string, updates: Partial<HomeownerProperty>) => Promise<void>;
   deleteProperty: (id: string) => Promise<void>;
   updatePropertyStatus: (id: string, status: HomeownerProperty['status'], rejectionReason?: string) => Promise<void>;
+  pauseFractionalization: (id: string, reason?: string) => Promise<void>;
   resetStore: () => void;
   
   // Integration with property flows
@@ -77,6 +86,12 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     monthlyEarnings: 15000,
     occupancyRate: 85,
     bookings: 5,
+    tokenSymbol: 'RTZ-101',
+    tokenStatus: 'active',
+    totalTokensIssued: 10000,
+    investorsCount: 37,
+    totalInvestmentRaised: 125000,
+    enabled: true,
   },
   {
     id: 'approved-2',
@@ -91,6 +106,12 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     monthlyEarnings: 45000,
     occupancyRate: 92,
     bookings: 12,
+    tokenSymbol: 'RTZ-102',
+    tokenStatus: 'active',
+    totalTokensIssued: 15000,
+    investorsCount: 52,
+    totalInvestmentRaised: 225000,
+    enabled: false,
   },
   {
     id: 'approved-3',
@@ -107,6 +128,12 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     monthlyEarnings: 22000,
     occupancyRate: 92,
     bookings: 3,
+    tokenSymbol: 'RTZ-103',
+    tokenStatus: 'active',
+    totalTokensIssued: 12000,
+    investorsCount: 28,
+    totalInvestmentRaised: 180000,
+    enabled: true,
   },
   {
     id: 'approved-4',
@@ -123,6 +150,11 @@ const initialHomeownerProperties: HomeownerProperty[] = [
     monthlyEarnings: 12000,
     occupancyRate: 78,
     bookings: 8,
+    tokenSymbol: 'RTZ-104',
+    tokenStatus: 'paused',
+    totalTokensIssued: 8000,
+    investorsCount: 15,
+    totalInvestmentRaised: 95000,
   },
   {
     id: 'approved-5',
@@ -420,6 +452,29 @@ export const useHomeownerPropertyStore = create<HomeownerPropertyStore>()(
           }));
         } catch (error) {
           set({ isLoading: false, error: 'Failed to update property status' });
+        }
+      },
+
+      // Pause fractionalization
+      pauseFractionalization: async (id, reason) => {
+        set({ isLoading: true, error: null });
+        try {
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 800));
+          
+          set(state => ({
+            properties: state.properties.map(property =>
+              property.id === id 
+                ? { 
+                    ...property, 
+                    tokenStatus: 'paused',
+                  }
+                : property
+            ),
+            isLoading: false,
+          }));
+        } catch (error) {
+          set({ isLoading: false, error: 'Failed to pause fractionalization' });
         }
       },
 

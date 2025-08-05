@@ -155,9 +155,7 @@ export default function CommercialPropertyReviewScreen() {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      // Submit property to store
       submitProperty();
       
       // Sync with homeowner property store
@@ -165,6 +163,7 @@ export default function CommercialPropertyReviewScreen() {
       
       setShowSuccessPopup(true);
     } catch (error) {
+      console.error('Error submitting commercial property:', error);
       Alert.alert('Submission Failed', 'Please try again later.');
     } finally {
       setIsSubmitting(false);

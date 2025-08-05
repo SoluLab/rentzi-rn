@@ -1,35 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
-  Image,
-} from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Header } from '@/components/ui/Header';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
-import { BackButton } from '@/components/ui/BackButton';
-import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
-import { toast } from '@/components/ui/Toast';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { useAuthStore } from '@/stores/authStore';
-import { validatePassword } from '@/utils/validation';
+} from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { Header } from "@/components/ui/Header";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
+import { toast } from "@/components/ui/Toast";
+import { spacing } from "@/constants/spacing";
+import { validatePassword } from "@/utils/validation";
+import { useResetPassword } from "@/services/auth";
+import { useRenterInvestorResetPassword } from '@/services/renterInvestorAuth';
 export default function NewPasswordScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams();
-  const { resetPassword, isLoading } = useAuthStore();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const { email, code, verificationId, roleType } = useLocalSearchParams(); // Assume these are passed
+  const resetPasswordMutation = useResetPassword();
+  const renterInvestorResetPasswordMutation = useRenterInvestorResetPassword();
+  
+  // Determine which mutation to use based on roleType
+  const activeMutation = roleType === "renter_investor" ? renterInvestorResetPasswordMutation : resetPasswordMutation;
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [hasSpaceInPassword, setHasSpaceInPassword] = useState(false);
   const validateForm = () => {
@@ -41,25 +38,45 @@ export default function NewPasswordScreen() {
     }
     // Confirm password validation
     if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
+      newErrors.confirmPassword = "Please confirm your password";
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = "Passwords do not match";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   const handleResetPassword = async () => {
     if (!validateForm()) {
-      toast.error('Please fix the errors below');
+      toast.error("Please fix the errors below");
       return;
     }
     try {
-      await resetPassword(email as string, password);
-      toast.success('Password reset successfully! Please login with your new password.');
-      // Navigate back to login screen
-      router.replace('/(auth)/login');
+      if (roleType === "renter_investor") {
+        await renterInvestorResetPasswordMutation.mutateAsync({
+          email: email as string,
+          password,
+          otp: code as string,
+        });
+        toast.success(
+          "Password reset successfully! Please login with your new password."
+        );
+        router.replace("/(auth)/login");
+        return;
+      }
+      // Homeowner logic (default)
+      await resetPasswordMutation.mutateAsync({
+        email: email as string,
+        code: code as string, // Should be passed from previous step
+        newPassword: password,
+        verificationId: Number(verificationId), // Should be passed from previous step
+      });
+      toast.success(
+        "Password reset successfully! Please login with your new password."
+      );
+      router.replace("/(auth)/login");
     } catch (error: any) {
-      const errorMessage = error.message || 'Failed to reset password. Please try again.';
+      const errorMessage =
+        error.message || "Failed to reset password. Please try again.";
       toast.error(errorMessage);
     }
   };
@@ -69,33 +86,39 @@ export default function NewPasswordScreen() {
     const hasSpaces = /\s/.test(value);
     setHasSpaceInPassword(hasSpaces);
     if (hasSpaces) {
-      setErrors((prev) => ({ ...prev, password: 'Password must not contain spaces' }));
-    } else if (errors.password === 'Password must not contain spaces') {
-      setErrors((prev) => ({ ...prev, password: '' }));
+      setErrors((prev) => ({
+        ...prev,
+        password: "Password must not contain spaces",
+      }));
+    } else if (errors.password === "Password must not contain spaces") {
+      setErrors((prev) => ({ ...prev, password: "" }));
     }
     // Clear other password errors when user starts typing
     if (errors.password && !hasSpaces) {
-      setErrors((prev) => ({ ...prev, password: '' }));
+      setErrors((prev) => ({ ...prev, password: "" }));
     }
   };
   const updateConfirmPassword = (value: string) => {
     setConfirmPassword(value);
     // Clear confirm password error when user starts typing
     if (errors.confirmPassword) {
-      setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
     // Real-time password match validation
     if (value && password && value !== password) {
-      setErrors((prev) => ({ ...prev, confirmPassword: 'Passwords do not match' }));
+      setErrors((prev) => ({
+        ...prev,
+        confirmPassword: "Passwords do not match",
+      }));
     } else if (value && password && value === password) {
-      setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
   };
   const handleBack = () => {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/(auth)/login');
+      router.replace("/(auth)/login");
     }
   };
 
@@ -104,17 +127,21 @@ export default function NewPasswordScreen() {
       <Header title="New Password" onBackPress={handleBack} />
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-
           {/* Form */}
 
           <View style={styles.form}>
-            <Typography variant="h3" color="primary" align="center" style={styles.formTitle}>
+            <Typography
+              variant="h3"
+              color="primary"
+              align="center"
+              style={styles.formTitle}
+            >
               Set New Password
             </Typography>
             <Typography
@@ -136,7 +163,10 @@ export default function NewPasswordScreen() {
                 showPasswordToggle
                 textContentType="newPassword"
               />
-              <PasswordStrengthMeter password={password} hideWhenSpaces={true} />
+              <PasswordStrengthMeter
+                password={password}
+                hideWhenSpaces={true}
+              />
             </View>
             <Input
               label="Confirm New Password"
@@ -151,11 +181,12 @@ export default function NewPasswordScreen() {
             <Button
               title="Reset Password"
               onPress={handleResetPassword}
-              loading={isLoading}
+              loading={activeMutation.status === "pending" || activeMutation.isPending}
               disabled={
                 !password ||
                 !confirmPassword ||
-                isLoading ||
+                activeMutation.status === "pending" ||
+                activeMutation.isPending ||
                 hasSpaceInPassword ||
                 Object.values(errors).some((error) => error)
               }
@@ -163,11 +194,9 @@ export default function NewPasswordScreen() {
               variant="primary"
             />
           </View>
-
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
-
   );
 }
 const styles = StyleSheet.create({
@@ -184,20 +213,13 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     marginHorizontal: spacing.lg,
     paddingVertical: spacing.xl,
-
   },
-  title: {
-
-  },
+  title: {},
   form: {
     gap: spacing.lg,
   },
-  formTitle: {
-
-  },
-  description: {
-
-  },
+  formTitle: {},
+  description: {},
   resetButton: {
     marginTop: spacing.md,
   },

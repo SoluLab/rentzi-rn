@@ -1,26 +1,28 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Dimensions, Image, Platform, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { StatusBar } from 'expo-status-bar';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useEffect, useState, useRef } from "react";
+import { Dimensions, Image, Platform, StyleSheet, View } from "react-native";
+import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
   withDelay,
   Easing,
-} from 'react-native-reanimated';
-import { Typography } from '@/components/ui/Typography';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { useAuthStore } from '@/stores/authStore';
-const { width, height } = Dimensions.get('window');
+} from "react-native-reanimated";
+import { Typography } from "@/components/ui/Typography";
+
+import { spacing } from "@/constants/spacing";
+import { useAuthStore } from "@/stores/authStore";
+
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
   const [hasNavigated, setHasNavigated] = useState(false);
-  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   // Animation values
   const logoOpacity = useSharedValue(0);
   const logoScale = useSharedValue(0.5);
@@ -59,18 +61,34 @@ export default function SplashScreen() {
       if (!hasNavigated) {
         setHasNavigated(true);
         try {
-          if (isAuthenticated) {
-            router.replace('/(tabs)');
+          if (isAuthenticated && user) {
+            // Navigate based on user role
+            switch (user.role) {
+              case 'homeowner':
+                router.replace('/(homeowner-tabs)');
+                
+                break;
+              case 'investor':
+                router.replace('/(tabs)/portfolio');
+                break;
+              case 'renter':
+              default:
+                router.replace('/(tabs)');
+                break;
+            }
           } else {
+            // Not authenticated, redirect to login
             router.replace('/(auth)/login');
+            //router.replace('/(tabs)');
           }
         } catch (error) {
-          console.error('Navigation error:', error);
-          // Fallback navigation
+          console.error("Navigation error:", error);
+          // Fallback to login page on error
           router.replace('/(auth)/login');
         }
       }
     }, 2500);
+    
     return () => {
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
@@ -90,33 +108,37 @@ export default function SplashScreen() {
     };
   });
   return (
-    <LinearGradient
-      colors={['#0E2538', '#28679E']}
-      useAngle={true}
-      angle={45}
-      style={styles.gradient}
-    >
+    <LinearGradient colors={["#0E2538", "#28679E"]} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <StatusBar style="light" />
         <View style={styles.content}>
           <View style={styles.logoContainer}>
             <Animated.View style={logoAnimatedStyle}>
               <Image
-                source={{
-                  uri: 'https://raw.githubusercontent.com/vimalcvs/room/refs/heads/main/logo-removebg-preview.png',
-                }}
+                source={require("../assets/images/logo/rentzi-logo-verti-white.png")}
                 style={styles.logo}
                 resizeMode="cover"
               />
             </Animated.View>
-            <Animated.View style={titleAnimatedStyle}>
-              <Typography variant="h1" color="white" align="center" style={styles.title}>
+            {/*  <Animated.View style={titleAnimatedStyle}>
+              <Typography
+                variant="h1"
+                color="white"
+                align="center"
+                style={styles.title}
+              >
                 Rentzi
               </Typography>
-              <Typography variant="body" color="gold" align="center" style={styles.subtitle}>
+              <Typography
+                variant="body"
+                color="gold"
+                align="center"
+                style={styles.subtitle}
+              >
                 Welcome to Luxury Living
               </Typography>
             </Animated.View>
+          */}
           </View>
         </View>
       </SafeAreaView>
@@ -132,35 +154,33 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.xl,
   },
   logoContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   logo: {
-    width: 80,
-    height: 80,
- 
+    width: 120,
+    height: 120,
   },
   title: {
     fontSize: 32,
-    fontWeight: '700', 
+    fontWeight: "700",
   },
   subtitle: {
-  
     fontSize: 16,
   },
   taglineContainer: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   tagline: {
     opacity: 0.7,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    textTransform: "uppercase",
   },
 });

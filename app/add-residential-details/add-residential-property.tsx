@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +21,9 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, MapPin, Search, Home, Building, Users } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -74,7 +78,34 @@ interface ValidationErrors {
 
 export default function AddResidentialPropertyScreen() {
   const router = useRouter();
-  const { data, updatePropertyDetails, resetStore } = useResidentialPropertyStore();
+  const { id } = useLocalSearchParams();
+  const { getPropertyById } = useHomeownerPropertyStore();
+  const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
+  
+  // API mutation hook
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log('Property created successfully:', response);
+      
+      // Store the property ID in the store
+      if (response.data?.id || response.id) {
+        const propertyId = response.data?.id || response.id;
+        setPropertyId(propertyId);
+        console.log('Property ID stored:', propertyId);
+      }
+      
+      // Navigate to pricing and valuation step
+      router.push('/add-residential-details/residential-property-pricing-valuation');
+    },
+    onError: (error) => {
+      console.error('Error creating property:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to create property. Please try again.',
+        [{ text: 'OK' }]
+      );
+    },
+  });
   
   // Reset store if property was already submitted
   React.useEffect(() => {
@@ -82,8 +113,30 @@ export default function AddResidentialPropertyScreen() {
       resetStore();
     }
   }, []);
-  
+
+  // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>(data.propertyDetails);
+  useEffect(() => {
+    if (id) {
+      const property = getPropertyById(id as string);
+      if (property) {
+        setFormData({
+          propertyTitle: property.title || '',
+          market: property.location || '',
+          otherMarket: '',
+          pincode: '',
+          fullAddress: property.location || '',
+          propertyType: property.data?.propertyDetails?.propertyType || '',
+          yearBuilt: property.data?.propertyDetails?.yearBuilt?.toString() || '',
+          bedrooms: property.bedrooms?.toString() || '',
+          bathrooms: property.bathrooms?.toString() || '',
+          guestCapacity: property.data?.propertyDetails?.guestCapacity?.toString() || '',
+          squareFootage: property.squareFootage?.toString() || '',
+        });
+      }
+    }
+  }, [id, getPropertyById]);
+  
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [showMarketModal, setShowMarketModal] = useState(false);
   const [showPropertyTypeModal, setShowPropertyTypeModal] = useState(false);
@@ -279,6 +332,62 @@ export default function AddResidentialPropertyScreen() {
     );
   };
 
+  // Transform form data to API format
+  const transformFormDataToApiFormat = () => {
+    const marketLocation = formData.market === 'Other' ? formData.otherMarket : formData.market;
+    const [city, state] = marketLocation.split(', ').map(s => s.trim());
+    
+    // Dummy coordinates based on market location
+    const getDummyCoordinates = () => {
+      const locationCoordinates: { [key: string]: { latitude: number; longitude: number } } = {
+        'Miami, FL': { latitude: 25.7617, longitude: -80.1918 },
+        'Palm Springs, CA': { latitude: 33.8303, longitude: -116.5453 },
+        'Aspen, CO': { latitude: 39.1911, longitude: -106.8175 },
+        'Beverly Hills, CA': { latitude: 34.0736, longitude: -118.4004 },
+        'Manhattan, NY': { latitude: 40.7589, longitude: -73.9851 },
+        'Las Vegas, NV': { latitude: 36.1699, longitude: -115.1398 },
+        'Scottsdale, AZ': { latitude: 33.4942, longitude: -111.9261 },
+        'Lake Tahoe, CA': { latitude: 39.0968, longitude: -120.0324 },
+        'Vail, CO': { latitude: 39.6433, longitude: -106.3781 },
+        'Newport Beach, CA': { latitude: 33.6189, longitude: -117.9289 },
+      };
+      
+      return locationCoordinates[marketLocation] || { latitude: 25.7617, longitude: -80.1918 }; // Default to Miami
+    };
+    
+    const coordinates = getDummyCoordinates();
+    
+    return {
+      title: formData.propertyTitle,
+      description: `${formData.propertyTitle} - ${formData.propertyType} with ${formData.bedrooms} bedrooms and ${formData.bathrooms} bathrooms`,
+      category: formData.propertyType.toLowerCase(),
+      type: "residential",
+      location: {
+        address: formData.fullAddress,
+        city: city || marketLocation,
+        state: state || '',
+        country: "USA",
+        zipCode: formData.pincode,
+        coordinates: coordinates
+      },
+      pricing: {
+        basePrice: 0, // Will be set in pricing step
+        currency: "USD",
+        cleaningFee: 0,
+        securityDeposit: 0
+      },
+      capacity: {
+        maxGuests: parseInt(formData.guestCapacity),
+        bedrooms: parseInt(formData.bedrooms),
+        bathrooms: parseFloat(formData.bathrooms),
+        beds: parseInt(formData.bedrooms) // Assuming 1 bed per bedroom
+      },
+      amenities: ["wifi", "kitchen"], // Default amenities
+      features: ["airConditioning"], // Default features
+      rules: ["noSmoking", "noPets"] // Default rules
+    };
+  };
+
   const renderMarketItem = ({ item }: { item: string }) => (
     <TouchableOpacity
       style={styles.modalItem}
@@ -304,20 +413,31 @@ export default function AddResidentialPropertyScreen() {
     </TouchableOpacity>
   );
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to pricing and valuation step
-      router.push('/add-residential-details/residential-property-pricing-valuation');
+      try {
+        const apiData = transformFormDataToApiFormat();
+        console.log('Submitting property data:', apiData);
+        
+        // Call the API
+        await saveDraftPropertyMutation.mutateAsync(apiData);
+      } catch (error) {
+        console.error('Error in handleNext:', error);
+        // Error is already handled by the mutation's onError callback
+      }
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-      <Header title="Add Residential Property" />
-      <ScrollView 
+      <Header title={id ? "Edit Residential Property" : "Add Residential Property"} />
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Typography variant="h4" style={styles.sectionTitle}>
           Property Details
@@ -484,12 +604,12 @@ export default function AddResidentialPropertyScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Creating..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Market Selection Modal */}
       <Modal

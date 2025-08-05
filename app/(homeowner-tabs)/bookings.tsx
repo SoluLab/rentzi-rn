@@ -1,23 +1,26 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, FlatList, TextInput, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { Header } from '@/components/ui/Header';
+import { Modal } from '@/components/ui/Modal';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
+import { shadow } from '@/constants/shadow';
 import {
   Calendar,
   User,
   MapPin,
   Phone,
-  Mail,
-  CheckCircle2,
-  CheckCircle,
-  Clock,
-  XCircle,
-  AArrowDown,
+  Mail, 
+  CheckCircle, 
+  XCircle, 
+  Search,
+  Filter,
+  X,
 } from 'lucide-react-native';
 // Mock data for bookings
 const mockBookings = [
@@ -35,21 +38,6 @@ const mockBookings = [
     totalAmount: 12500,
     status: 'confirmed',
     bookingDate: '2024-02-28',
-  },
-  {
-    id: '2',
-    propertyTitle: 'Swiss Alpine Chalet',
-    propertyImage:
-      'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=400&h=300&fit=crop&quality=40',
-    guestName: 'Victoria Blackwood',
-    guestEmail: 'victoria@example.com',
-    guestPhone: '+1 (555) 987-6543',
-    checkIn: '2024-03-25',
-    checkOut: '2024-03-30',
-    guests: 6,
-    totalAmount: 20000,
-    status: 'pending',
-    bookingDate: '2024-03-01',
   },
   {
     id: '3',
@@ -85,16 +73,17 @@ const mockBookings = [
 export default function BookingsScreen() {
   const router = useRouter();
   const [selectedFilter, setSelectedFilter] = useState<
-    'all' | 'confirmed' | 'pending' | 'completed' | 'cancelled'
+    'all' | 'confirmed' | 'cancelled'
   >('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [dateFilterType, setDateFilterType] = useState<'checkIn' | 'checkOut' | 'bookingDate'>('checkIn');
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
         return colors.status.success;
-      case 'pending':
-        return colors.primary.gold;
-      case 'completed':
-        return colors.primary.navy;
       case 'cancelled':
         return colors.status.error;
       default:
@@ -105,26 +94,75 @@ export default function BookingsScreen() {
     switch (status) {
       case 'confirmed':
         return CheckCircle;
-      case 'pending':
-        return Clock;
-      case 'completed':
-        return CheckCircle;
       case 'cancelled':
         return XCircle;
       default:
-        return Clock;
+        return CheckCircle;
     }
   };
-  const filteredBookings =
-    selectedFilter === 'all'
-      ? mockBookings
-      : mockBookings.filter((booking) => booking.status === selectedFilter);
+  const filteredBookings = mockBookings.filter((booking) => {
+    // Search filter
+    const matchesSearch = 
+      booking.propertyTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.guestEmail.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = selectedFilter === 'all' || booking.status === selectedFilter;
+    
+    // Date filter
+    let matchesDate = true;
+    if (selectedDate) {
+      const filterDate = new Date(selectedDate);
+      filterDate.setHours(0, 0, 0, 0);
+      
+      if (dateFilterType === 'checkIn') {
+        const checkInDate = new Date(booking.checkIn);
+        checkInDate.setHours(0, 0, 0, 0);
+        matchesDate = checkInDate.getTime() === filterDate.getTime();
+      } else if (dateFilterType === 'checkOut') {
+        const checkOutDate = new Date(booking.checkOut);
+        checkOutDate.setHours(0, 0, 0, 0);
+        matchesDate = checkOutDate.getTime() === filterDate.getTime();
+      } else if (dateFilterType === 'bookingDate') {
+        const bookingDate = new Date(booking.bookingDate);
+        bookingDate.setHours(0, 0, 0, 0);
+        matchesDate = bookingDate.getTime() === filterDate.getTime();
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
   const getFilterCount = (filter: string) => {
     if (filter === 'all') return mockBookings.length;
     return mockBookings.filter((booking) => booking.status === filter).length;
   };
   const handleBookingPress = (bookingId: string) => {
-    router.push(`/booking/detail/${bookingId}`);
+    router.push('/booking-homeowner-detail');
+  };
+  const handleDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    setShowDatePicker(false);
+  };
+
+  const handleClearDateFilter = () => {
+    setSelectedDate(null);
+  };
+
+  const handleDateFilterTypeSelect = (type: 'checkIn' | 'checkOut' | 'bookingDate') => {
+    setDateFilterType(type);
+    setShowDatePicker(true);
+  };
+
+  const getDateFilterLabel = () => {
+    if (!selectedDate) return 'Select Date';
+    const dateStr = selectedDate.toLocaleDateString();
+    const typeLabels = {
+      checkIn: 'Check-in',
+      checkOut: 'Check-out',
+      bookingDate: 'Booking'
+    };
+    return `${typeLabels[dateFilterType]}: ${dateStr}`;
   };
   const renderBookingCard = ({ item: booking }: { item: any }) => {
     const StatusIcon = getStatusIcon(booking.status);
@@ -195,6 +233,110 @@ export default function BookingsScreen() {
     <View style={styles.container}>
       <Header title="Bookings" subtitle="Manage your property bookings" showBackButton={false} />
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Search and Filter Section */}
+        <View style={styles.section}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
+              <Search size={20} color={colors.text.secondary} style={styles.searchIcon} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search bookings..."
+                placeholderTextColor={colors.text.secondary}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.filterButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Filter size={20} color={colors.primary.navy} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Date Filter */}
+        {showFilters && (
+          <View style={styles.section}>
+            <Card style={styles.filterCard}>
+              <Typography variant="h6" style={styles.filterTitle}>
+                Date Filter
+              </Typography>
+              
+              <View style={styles.dateFilterContainer}>
+                <View style={styles.dateFilterButtons}>
+                  <TouchableOpacity
+                    style={[
+                      styles.dateFilterButton,
+                      dateFilterType === 'checkIn' && styles.activeDateFilterButton
+                    ]}
+                    onPress={() => handleDateFilterTypeSelect('checkIn')}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      color={dateFilterType === 'checkIn' ? 'inverse' : 'secondary'}
+                    >
+                      Check-in
+                    </Typography>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.dateFilterButton,
+                      dateFilterType === 'checkOut' && styles.activeDateFilterButton
+                    ]}
+                    onPress={() => handleDateFilterTypeSelect('checkOut')}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      color={dateFilterType === 'checkOut' ? 'inverse' : 'secondary'}
+                    >
+                      Check-out
+                    </Typography>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[
+                      styles.dateFilterButton,
+                      dateFilterType === 'bookingDate' && styles.activeDateFilterButton
+                    ]}
+                    onPress={() => handleDateFilterTypeSelect('bookingDate')}
+                  >
+                    <Typography 
+                      variant="caption" 
+                      color={dateFilterType === 'bookingDate' ? 'inverse' : 'secondary'}
+                    >
+                      Booking Date
+                    </Typography>
+                  </TouchableOpacity>
+                </View>
+                
+                <TouchableOpacity
+                  style={styles.dateSelectButton}
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Calendar size={16} color={colors.primary.navy} />
+                  <Typography variant="body" color="primary">
+                    {getDateFilterLabel()}
+                  </Typography>
+                </TouchableOpacity>
+                
+                {selectedDate && (
+                  <TouchableOpacity
+                    style={styles.clearDateButton}
+                    onPress={handleClearDateFilter}
+                  >
+                    <X size={16} color={colors.status.error} />
+                    <Typography variant="caption" color="error">
+                      Clear
+                    </Typography>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Card>
+          </View>
+        )}
+
         {/* Filter Tabs */}
         <View style={styles.section}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -202,8 +344,6 @@ export default function BookingsScreen() {
               {[
                 { key: 'all', label: 'All Bookings' },
                 { key: 'confirmed', label: 'Confirmed' },
-                { key: 'pending', label: 'Pending' },
-                { key: 'completed', label: 'Completed' },
                 { key: 'cancelled', label: 'Cancelled' },
               ].map((filter) => (
                 <TouchableOpacity
@@ -216,7 +356,7 @@ export default function BookingsScreen() {
                 >
                   <Typography
                     variant="body"
-                    color={selectedFilter === filter.key ? 'white' : 'secondary'}
+                    color={selectedFilter === filter.key ? 'inverse' : 'secondary'}
                     style={styles.filterText}
                   >
                     {filter.label} ({getFilterCount(filter.key)})
@@ -226,6 +366,7 @@ export default function BookingsScreen() {
             </View>
           </ScrollView>
         </View>
+
         {/* Bookings List */}
         <View style={styles.section}>
           {filteredBookings.length > 0 ? (
@@ -244,7 +385,9 @@ export default function BookingsScreen() {
                 No bookings found
               </Typography>
               <Typography variant="body" color="secondary" align="center">
-                {selectedFilter === 'all'
+                {searchQuery || selectedDate
+                  ? 'No bookings match your search criteria'
+                  : selectedFilter === 'all'
                   ? 'Your bookings will appear here once guests start booking your properties'
                   : `No ${selectedFilter} bookings at the moment`}
               </Typography>
@@ -252,6 +395,28 @@ export default function BookingsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Date Picker Modal */}
+      <Modal visible={showDatePicker} onClose={() => setShowDatePicker(false)}>
+        <View style={styles.modalHeader}>
+          <Typography variant="h4" style={styles.modalTitle}>
+            Select Date
+          </Typography>
+          <TouchableOpacity onPress={() => setShowDatePicker(false)} style={styles.closeButton}>
+            <X size={24} color={colors.text.secondary} />
+          </TouchableOpacity>
+        </View>
+        
+        <Typography variant="body" color="secondary" style={styles.modalSubtitle}>
+          Choose a date to filter your bookings
+        </Typography>
+
+        <DatePicker
+          date={selectedDate || new Date()}
+          onDateChange={handleDateSelect}
+          placeholder="Select a date to filter"
+        />
+      </Modal>
     </View>
   );
 }
@@ -266,6 +431,107 @@ const styles = StyleSheet.create({
   section: {
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.lg,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.small,
+  },
+  searchIcon: {
+    marginRight: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: colors.text.primary,
+    fontFamily: 'Montserrat-Regular',
+  },
+  filterButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    ...shadow.small,
+  },
+  filterCard: {
+    padding: spacing.md,
+    backgroundColor: colors.neutral.white,
+    borderRadius: radius.lg,
+    ...shadow.small,
+  },
+  filterTitle: {
+    marginBottom: spacing.md,
+    fontWeight: '600',
+  },
+  dateFilterContainer: {
+    gap: spacing.md,
+  },
+  dateFilterButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dateFilterButton: {
+    flex: 1,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background.secondary,
+    alignItems: 'center',
+  },
+  activeDateFilterButton: {
+    backgroundColor: colors.primary.gold,
+  },
+  dateSelectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background.secondary,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+  },
+  clearDateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.background.tertiary,
+    borderRadius: radius.sm,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontWeight: '600',
+  },
+  closeButton: {
+    padding: spacing.xs,
+    borderRadius: radius.sm,
+  },
+  modalSubtitle: {
+    marginBottom: spacing.lg,
+    lineHeight: 20,
   },
   filterContainer: {
     flexDirection: 'row',

@@ -24,6 +24,7 @@ interface ButtonProps {
   loading?: boolean;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  leftIcon?: React.ReactNode; // <-- Add this line
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -35,6 +36,7 @@ export const Button: React.FC<ButtonProps> = ({
   loading = false,
   style,
   textStyle,
+  leftIcon, // <-- Add this line
 }) => {
   const buttonStyles = [
     styles.base,
@@ -75,7 +77,10 @@ export const Button: React.FC<ButtonProps> = ({
           {loading ? (
             <ActivityIndicator color={colors.neutral.white} size="small" />
           ) : (
-            <Text style={textStyles}>{title}</Text>
+            <>
+              {leftIcon && <View style={{ marginRight: 8 }}>{leftIcon}</View>}
+              <Text style={textStyles}>{title}</Text>
+            </>
           )}
         </LinearGradient>
       </TouchableOpacity>
@@ -99,7 +104,10 @@ export const Button: React.FC<ButtonProps> = ({
           size="small"
         />
       ) : (
-        <Text style={textStyles}>{title}</Text>
+        <>
+          {leftIcon && <View style={{ marginRight: 8 }}>{leftIcon}</View>}
+          <Text style={textStyles}>{title}</Text>
+        </>
       )}
     </TouchableOpacity>
   );

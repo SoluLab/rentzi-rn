@@ -22,6 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { ChevronDown, Check, Plus, X } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
+import { useHomeownerUpdateProperty } from '@/services/homeownerAddProperty';
 
 // Furnishing options
 const FURNISHING_OPTIONS = [
@@ -79,6 +80,19 @@ interface PricingValuationErrors {
 export default function ResidentialPropertyPricingValuationScreen() {
   const router = useRouter();
   const { data, updatePricingValuation } = useResidentialPropertyStore();
+  
+  // API mutation hook for updating property
+  const updatePropertyMutation = useHomeownerUpdateProperty({
+    onSuccess: (response) => {
+      console.log('Property updated successfully with pricing details:', response);
+      // Navigate to media upload step
+      router.push('/add-residential-details/residential-property-media-upload');
+    },
+    onError: (error) => {
+      console.error('Error updating property with pricing details:', error);
+      Alert.alert('Error', 'Failed to update property details. Please try again.');
+    },
+  });
   
   const [formData, setFormData] = useState<PricingValuationData>(data.pricingValuation || {
     furnishingDescription: '',
@@ -244,6 +258,21 @@ export default function ResidentialPropertyPricingValuationScreen() {
     );
   };
 
+  const transformFormDataToApiFormat = () => {
+    return {
+      amenities: [...formData.featuredAmenities, ...formData.customAmenities],
+      features: formData.smartHomeFeatures ? ['smartHome'] : [],
+      rules: formData.houseRules,
+      propertyDetails: {
+        furnishingDescription: formData.furnishingDescription,
+        conciergeServices: formData.conciergeServices,
+        checkInTime: `${formData.checkInTime.hour}:${formData.checkInTime.minute.toString().padStart(2, '0')} ${formData.checkInTime.period}`,
+        checkOutTime: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute.toString().padStart(2, '0')} ${formData.checkOutTime.period}`,
+        localHighlights: formData.localHighlights,
+      }
+    };
+  };
+
   const renderFurnishingItem = ({ item }: { item: string }) => (
     <TouchableOpacity
       style={styles.modalItem}
@@ -292,9 +321,33 @@ export default function ResidentialPropertyPricingValuationScreen() {
     );
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (validateForm()) {
-      router.push('/add-residential-details/residential-property-media-upload');
+      try {
+        // Update store with form data
+        updatePricingValuation(formData);
+        
+        // Transform data for API
+        const apiData = transformFormDataToApiFormat();
+        
+        // Get property ID from store
+        const propertyId = data.propertyId;
+        if (!propertyId) {
+          Alert.alert('Error', 'Property ID not found. Please go back and try again.');
+          return;
+        }
+        
+        console.log('Updating property with pricing data:', apiData);
+        
+        // Call the API to update property
+        await updatePropertyMutation.mutateAsync({
+          id: propertyId,
+          data: apiData
+        });
+      } catch (error) {
+        console.error('Error in handleNext:', error);
+        // Error is already handled by the mutation's onError callback
+      }
     }
   };
 
