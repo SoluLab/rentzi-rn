@@ -322,10 +322,7 @@ export default function MarketplaceScreen() {
         ].map((tab) => (
           <TouchableOpacity
             key={tab.value}
-            style={[
-              styles.tab,
-              activeTab === tab.value && styles.tabActive,
-            ]}
+            style={[styles.tab, activeTab === tab.value && styles.tabActive]}
             onPress={() => setActiveTab(tab.value as any)}
             activeOpacity={0.8}
           >
@@ -1072,7 +1069,20 @@ export default function MarketplaceScreen() {
       {/* Buy Tokens Modal */}
       <Modal visible={showBuyTokensModal} onClose={handleCloseBuyModal}>
         {selectedListing && (
-          <View style={[styles.buyModalContent, { height: '100%', width: '100%', position: 'relative', paddingBottom: 0, marginTop:0}]}> {/* Add margin from top */}
+          <View
+            style={[
+              styles.buyModalContent,
+              {
+                height: "100%",
+                width: "100%",
+                position: "relative",
+                paddingBottom: 0,
+                marginTop: 0,
+              },
+            ]}
+          >
+            {" "}
+            {/* Add margin from top */}
             {/* Modal Header always visible */}
             <View style={styles.modalHeader}>
               <Typography variant="h3" color="primary">
@@ -1213,19 +1223,21 @@ export default function MarketplaceScreen() {
               </View>
             </ScrollView>
             {/* Sticky Action Buttons */}
-            <View style={{
-              position: 'absolute',
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: '#fff',
-              paddingHorizontal: 24,
-              paddingTop: 12,
-              // paddingBottom: 8,
-              borderTopWidth: 1,
-              borderTopColor: '#eee',
-              zIndex: 10,
-            }}>
+            <View
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: "#fff",
+                paddingHorizontal: 24,
+                paddingTop: 12,
+                // paddingBottom: 8,
+                borderTopWidth: 1,
+                borderTopColor: "#eee",
+                zIndex: 10,
+              }}
+            >
               <Button
                 title="Confirm Purchase"
                 onPress={handleConfirmPurchase}

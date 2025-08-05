@@ -266,7 +266,7 @@ export default function PaymentScreen() {
         {/* Notice Box */}
         <Card style={styles.noticeCard}>
           <Typography variant="h6" style={styles.noticeTitle}>
-          Refund & Cancellation Policy Policies
+          Refund & Cancellation Policies
           </Typography>
           <View style={styles.noticeContent}>
             <Typography variant="body" style={styles.noticeText}>

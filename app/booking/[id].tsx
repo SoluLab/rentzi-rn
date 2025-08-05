@@ -155,9 +155,10 @@ export default function BookingScreen() {
               <Typography variant="body" color="gold">
                 ${property.price.rent}/night
               </Typography>
-              <Typography variant="body" color="gold">
+            {/*}  <Typography variant="body" color="gold">
                 60 Tokens/night
               </Typography>
+              */}
             </View>
           </Card>
           {/* Booking Details */}
@@ -297,7 +298,7 @@ export default function BookingScreen() {
           </Card>
           <Card style={styles.noticeCard}>
             <Typography variant="h6" style={styles.sectionTitle}>
-             Refund & Cancellation Policy Policies
+             Refund & Cancellation Policies
             </Typography>
             <View style={styles.noticeContent}>
               <Typography variant="body" style={styles.noticeText}>

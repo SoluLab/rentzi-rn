@@ -10,6 +10,8 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import { useGetProfile } from '@/services/auth';
+
 import {
   User,
   Settings,
@@ -24,14 +26,25 @@ import {
   HelpCircle,
   AArrowDown,
   LogOut,
+  Camera,
+  Edit,
+  Upload,
+  Eye,
 } from 'lucide-react-native';
 export default function HomeownerProfileScreen() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
+  const { data: profileData, isLoading, error } = useGetProfile('homeowner');
+
   const handleLogout = () => {
     logout();
     router.replace('/(auth)/login');
+  };
+
+  const handleProfilePictureUpload = () => {
+    // TODO: Implement profile picture upload
+    console.log('Profile picture upload');
   };
   const profileMenuItems = [
     {
@@ -98,18 +111,25 @@ export default function HomeownerProfileScreen() {
           <TouchableOpacity onPress={() => router.push('/edit-profile')}>
             <Card style={styles.profileCard}>
               <View style={styles.profileHeader}>
-                <Image
-                  source={{
-                    uri:
-                      user?.profileDetails.avatar ||
-                      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
-                  }}
-                  style={styles.avatar}
-                />
+                <TouchableOpacity onPress={handleProfilePictureUpload}>
+                  <Image
+                    source={{
+                      uri:
+                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.cameraOverlay}>
+                    <Camera size={16} color={colors.neutral.white} />
+                  </View>
+                </TouchableOpacity>
                 <View style={styles.profileInfo}>
-                  <Typography variant="h4">{user?.name}</Typography>
+                  <Typography variant="h4">{profileData?.data?.name || 'Loading...'}</Typography>
                   <Typography variant="body" color="secondary">
-                    {user?.email}
+                    {profileData?.data?.email || 'Loading...'}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {profileData?.data?.phone?.countryCode} {profileData?.data?.phone?.mobile}
                   </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>
@@ -124,11 +144,15 @@ export default function HomeownerProfileScreen() {
                     </View>
                   </View>
                 </View>
-                <ChevronRight size={20} color={colors.text.secondary} />
+                <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+                  <Edit size={20} color={colors.text.secondary} />
+                </TouchableOpacity>
               </View>
             </Card>
           </TouchableOpacity>
         </View>
+
+
         {/* Quick Stats */}
         <View style={styles.section}>
           <Typography variant="h4" style={styles.sectionTitle}>
@@ -215,13 +239,17 @@ export default function HomeownerProfileScreen() {
         </View>
         {/* Logout */}
         <View style={styles.section}>
-          <Button
-            title="Sign Out"
+          <TouchableOpacity
+            style={[styles.logoutButton, { borderColor: colors.status.error }]}
             onPress={handleLogout}
-            variant="outline"
-            style={styles.logoutButton}
-            leftIcon={<LogOut size={20} color={colors.status.error} />}
-          />
+          >
+            <View style={styles.logoutButtonContent}>
+              <LogOut size={20} color={colors.status.error} />
+              <Typography variant="body" color="error">
+                Sign Out
+              </Typography>
+            </View>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -264,6 +292,19 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     borderWidth: 3,
     borderColor: colors.primary.gold,
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.primary.gold,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.neutral.white,
   },
   profileInfo: {
     flex: 1,
@@ -331,6 +372,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
+
   supportCard: {
     alignItems: 'center',
     gap: spacing.md,
@@ -348,5 +390,15 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     borderColor: colors.status.error,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
 });

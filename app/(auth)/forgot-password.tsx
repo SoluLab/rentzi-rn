@@ -6,12 +6,12 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
-import { spacing } from "@/constants/spacing"; 
+import { spacing } from "@/constants/spacing";
 import { validateEmail } from "@/utils/validation";
 import { Header } from "@/components/ui/Header";
 import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useForgotPassword } from "@/services/apiClient";
+import { useForgotPassword } from "@/services/auth";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -48,9 +48,10 @@ export default function ForgotPasswordScreen() {
     if (!validateForm()) return;
     try {
       const response = await forgotPasswordMutation.mutateAsync({ email });
-      
       if (response.success) {
-        toast.success(AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP);
+        toast.success(
+          response.data?.message || AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP
+        );
         router.push({
           pathname: "/(auth)/forgot-password-otp",
           params: { email: email },
@@ -61,7 +62,8 @@ export default function ForgotPasswordScreen() {
       }
     } catch (error: any) {
       console.log("ForgotPassword error:", error);
-      const errorMessage = error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
+      const errorMessage =
+        error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
       toast.error(errorMessage);
       setError(errorMessage);
     }

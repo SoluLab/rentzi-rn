@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { 
-  CheckCircle2, 
+  House, 
   User, 
   Building2, 
   Calendar, 
@@ -14,7 +14,7 @@ import {
 
 export default function HomeownerTabLayout() {
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <StatusBar style={Platform.OS === 'ios' ? 'dark' : 'light'} />
       <Tabs
         screenOptions={{
@@ -37,7 +37,7 @@ export default function HomeownerTabLayout() {
           name="index"
           options={{
             title: 'Dashboard',
-            tabBarIcon: ({ color, size }) => <CheckCircle2 size={size} color={color} />,
+            tabBarIcon: ({ color, size }) => <House size={size} color={color} />,
           }}
         />
         <Tabs.Screen
@@ -69,6 +69,6 @@ export default function HomeownerTabLayout() {
           }}
         />
       </Tabs>
-    </>
+    </View>
   );
 }

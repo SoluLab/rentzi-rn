@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, spacing } from "@/constants";
 import { Header } from "@/components/ui/Header";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useVerifyOtp } from '@/services/apiClient';
+import { useVerifyOtp } from '@/services/auth';
 
 export default function MobileVerificationScreen() {
   const router = useRouter();
@@ -19,10 +19,12 @@ export default function MobileVerificationScreen() {
     email,
     phone,
     type = "register",
+    roleType,
   } = useLocalSearchParams<{
     email: string;
     phone: string;
     type: "register" | "login";
+    roleType?: string;
   }>();
 
   const {
@@ -37,7 +39,9 @@ export default function MobileVerificationScreen() {
   const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
   const [canResend, setCanResend] = useState(false);
 
-  const verifyOtpMutation = useVerifyOtp();
+  // Determine userType for API call based on roleType
+  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
+  const verifyOtpMutation = useVerifyOtp(userType);
 
   // Timer for OTP expiry
   useEffect(() => {
@@ -84,17 +88,16 @@ export default function MobileVerificationScreen() {
         // Navigation logic based on user type and role
         if (type === "login") {
           toast.success("Login successful! Welcome back.");
-          if (user?.role === "homeowner") {
+          // Route based on roleType parameter from login
+          if (roleType === "homeowner") {
             router.replace("/(homeowner-tabs)");
           } else {
             router.replace("/(tabs)");
           }
         } else {
-          if (user?.role === "homeowner") {
-            router.push("/kyc-verification");
-          } else {
-            router.push("/role-selection");
-          }
+          // For registration flow, redirect to login
+          toast.success("Registration completed! Please login to continue.");
+          router.replace("/(auth)/login");
         }
       } else {
         // Handle unsuccessful response
@@ -255,7 +258,7 @@ const styles = StyleSheet.create({
   },
 
   resendButton: {
-    paddingHorizontal: 0,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
 
@@ -268,7 +271,6 @@ const styles = StyleSheet.create({
   },
   helpText: {
     textAlign: "center",
-
     lineHeight: 20,
   },
 });

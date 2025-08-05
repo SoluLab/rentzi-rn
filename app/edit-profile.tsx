@@ -31,6 +31,7 @@ export default function EditProfileScreen() {
   const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.profileDetails?.phone || '');
   const [email, setEmail] = useState(user?.email || '');
+  const [address, setAddress] = useState('');
   const [originalEmail] = useState(user?.email || '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -152,6 +153,7 @@ export default function EditProfileScreen() {
     if (field === 'lastName') setLastName(value);
     if (field === 'phoneNumber') setPhoneNumber(value);
     if (field === 'email') setEmail(value);
+    if (field === 'address') setAddress(value);
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
     if (field === 'confirmPassword') setConfirmPassword(value);
@@ -234,6 +236,15 @@ export default function EditProfileScreen() {
                 You will need to verify your new email address.
               </Typography>
             )}
+            <Input
+              label="Address"
+              value={address}
+              onChangeText={(value) => updateField('address', value)}
+              placeholder="Enter your address"
+              multiline
+              numberOfLines={3}
+              error={errors.address}
+            />
           </View>
           {/* Change Password */}
           <View style={styles.section}>
@@ -274,6 +285,7 @@ export default function EditProfileScreen() {
               error={errors.confirmPassword}
             />
           </View>
+          
           {/* Save Button */}
           <View style={styles.buttonContainer}>
             <Button

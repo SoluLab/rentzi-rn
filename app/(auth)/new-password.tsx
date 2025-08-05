@@ -15,7 +15,7 @@ import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import { toast } from "@/components/ui/Toast";
 import { spacing } from "@/constants/spacing";
 import { validatePassword } from "@/utils/validation";
-import { useResetPassword } from "@/services/apiClient";
+import { useResetPassword } from "@/services/auth";
 export default function NewPasswordScreen() {
   const router = useRouter();
   const { email, code, verificationId } = useLocalSearchParams(); // Assume these are passed

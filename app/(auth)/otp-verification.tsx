@@ -8,21 +8,50 @@ import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp } from "@/services/apiClient";
+import { useVerifyOtp, useVerifyLoginOtp, useResendOtp } from "@/services/auth";
 import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
-  const { email, phone } = useLocalSearchParams();
-  const verifyOtpMutation = useVerifyOtp();
+  const { email, phone, type, roleType } = useLocalSearchParams<{
+    email: string;
+    phone: string;
+    type: "register" | "login";
+    roleType: string;
+  }>();
+  // Determine userType for API call based on roleType
+  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
+  const verifyOtpMutation = useVerifyOtp(userType);
+  const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
   const isLoading =
-    verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending;
+    verifyOtpMutation.status === "pending" ||
+    verifyOtpMutation.isPending ||
+    verifyLoginOtpMutation.status === "pending" ||
+    verifyLoginOtpMutation.isPending;
 
   const [otp, setOtp] = useState("");
-  const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [otpError, setOtpError] = useState("");
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for resend OTP
+  const resendOtpMutation = useResendOtp(userType, {
+    onSuccess: (response) => {
+      if (response.success) {
+        toast.success(response.message || "OTP resent successfully");
+      } else {
+        toast.error(response.message || "Failed to resend OTP");
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage = 
+        error?.data?.message || 
+        error?.message || 
+        "Failed to resend OTP. Please try again.";
+      toast.error(errorMessage);
+    }
+  });
+  const isResending = resendOtpMutation.isPending;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,36 +74,66 @@ export default function OTPVerificationScreen() {
   };
 
   const handleVerifyOTP = async () => {
+    // Clear any previous errors
+    setOtpError("");
+    
+
     // Validate OTP
     const otpValidation = validateOTP(otp);
     if (!otpValidation.isValid) {
-      setError(otpValidation.error!);
+      setOtpError(otpValidation.error!);
       return;
     }
 
     if (timeLeft <= 0) {
-      setError("OTP expired. Request a new one");
+      setOtpError("OTP expired. Request a new one");
       return;
     }
 
     try {
-      const response = await verifyOtpMutation.mutateAsync({
-        email: email as string,
-        otp,
-      });
+      let response;
+      if (phone) {
+        // Parse the phone object from JSON string
+        const phoneObj = JSON.parse(phone);
+        // If phone is present, use mobile verification
+        response = await verifyLoginOtpMutation.mutateAsync({
+          identifier: {
+            countryCode: phoneObj.countryCode,
+            mobile: phoneObj.mobile,
+          },
+          otp,
+        });
+      } else {
+        // Otherwise use email verification
+        response = await verifyOtpMutation.mutateAsync({
+          email: email as string,
+          otp,
+        });
+      }
 
       // Check the new response format
       if (response.success) {
-        toast.success("Verification successful! Welcome to Renzi");
-        // Always navigate to home screen after successful verification
-        router.replace("/(tabs)");
+        toast.success("Verification successful!");
+
+        // Handle navigation based on type and role
+        if (type === "register") {
+          // For registration flow, redirect to login
+          router.replace("/(auth)/login");
+        } else {
+          // For login flow, route based on roleType parameter
+          if (roleType === "homeowner") {
+            router.replace("/(homeowner-tabs)");
+          } else {
+            router.replace("/(tabs)");
+          }
+        }
       } else {
         // Handle unsuccessful response
         const errorMessage =
           response.message ||
           "Verification failed. Please check your OTP code.";
         toast.error(errorMessage);
-        setError(errorMessage);
+        setOtpError(errorMessage);
       }
     } catch (error: any) {
       let errorMessage = "Verification failed. Please check your OTP code.";
@@ -96,64 +155,88 @@ export default function OTPVerificationScreen() {
       }
 
       toast.error(errorMessage);
-      setError(errorMessage);
+      setOtpError(errorMessage);
     }
   };
 
   const handleResendOTP = async () => {
+    // Don't allow resend if timer is active or already resending
+    if (timeLeft > 0 || isResending) {
+      return;
+    }
+
     try {
-      setTimeLeft(300); // Reset timer
-      setError("");
-      toast.success("OTP resent successfully");
-    } catch (error: any) {
-      toast.error("Failed to resend OTP. Please try again.");
+      await resendOtpMutation.mutateAsync({
+        email: email as string,
+      });
+      
+      // Reset timer and clear errors only on success
+      setTimeLeft(60);
+      setOtpError("");
+    } catch (error) {
+      // Error handling is done via mutation callbacks
+      console.error("Resend OTP failed:", error);
     }
   };
 
   return (
     <ScreenContainer>
-      <Header title="Verify OTP" showBackButton />
+      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+        <Header title="Verify OTP" showBackButton />
 
-      <View style={styles.container}>
-        <Typography variant="h2" style={styles.title}>
-          Enter Verification Code
-        </Typography>
-
-        <Typography variant="body" style={styles.subtitle}>
-          We've sent a 6-digit code to {email || phone}
-        </Typography>
-
-        <View style={styles.otpContainer}>
-          <OTPInput value={otp} onOTPChange={setOtp} length={6} error={error} />
-        </View>
-
-        {error ? (
-          <Typography variant="body2" style={styles.errorText}>
-            {error}
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name={"call-outline"}
+                size={48}
+                color={colors.primary.gold}
+              />
+            </View>
+          </View>
+          <Typography variant="h4" style={styles.title}>
+            Enter Verification Code
           </Typography>
-        ) : null}
 
-        <View style={styles.timerContainer}>
-          <Typography variant="body2" style={styles.timerText}>
-            Time remaining: {formatTime(timeLeft)}
+          <Typography variant="body" style={styles.subtitle}>
+            We've sent a 6-digit code to{" "}
+            {phone
+              ? `${JSON.parse(phone).countryCode} ${JSON.parse(phone).mobile}`
+              : email}
           </Typography>
+
+          <View style={styles.otpContainer}>
+            <OTPInput
+              value={otp}
+              onOTPChange={setOtp}
+              length={6}
+              error={otpError}
+            />
+          </View>
+
+          <View style={styles.timerContainer}>
+            <Typography variant="body2" style={styles.timerText}>
+              Time remaining: {formatTime(timeLeft)}
+            </Typography>
+          </View>
+
+          <Button
+            title="Verify OTP"
+            onPress={handleVerifyOTP}
+            disabled={otp.length !== 6 || isLoading}
+            loading={isLoading}
+            style={styles.verifyButton}
+          />
+
+          <Button
+            title={isResending ? "Resending..." : "Resend OTP"}
+            onPress={handleResendOTP}
+            variant="outline"
+            disabled={timeLeft > 0 || isResending}
+            loading={isResending}
+            style={styles.resendButton}
+          />
         </View>
-
-        <Button
-          title="Verify OTP"
-          onPress={handleVerifyOTP}
-          disabled={otp.length !== 6 || isLoading}
-          loading={isLoading}
-          style={styles.verifyButton}
-        />
-
-        <Button
-          title="Resend OTP"
-          onPress={handleResendOTP}
-          variant="outline"
-          disabled={timeLeft > 0}
-          style={styles.resendButton}
-        />
       </View>
     </ScreenContainer>
   );
@@ -162,8 +245,7 @@ export default function OTPVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.lg,
-    justifyContent: "center",
+    padding: spacing.md,
   },
   title: {
     textAlign: "center",
@@ -195,5 +277,18 @@ const styles = StyleSheet.create({
   },
   resendButton: {
     marginBottom: spacing.lg,
+  },
+
+  header: {
+    alignItems: "center",
+
+    marginVertical: spacing.md,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
