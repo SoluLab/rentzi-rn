@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, StyleSheet, Platform, StatusBar } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -12,10 +12,15 @@ import { Header } from "@/components/ui/Header";
 import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useForgotPassword } from "@/services/auth";
+import { useRenterInvestorForgotPassword } from "@/services/renterInvestorAuth";
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const roleType = params.roleType as string | undefined;
+  console.log('[ForgotPasswordScreen] roleType:', roleType);
   const forgotPasswordMutation = useForgotPassword();
+  const renterInvestorForgotPasswordMutation = useRenterInvestorForgotPassword();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
 
@@ -47,14 +52,19 @@ export default function ForgotPasswordScreen() {
   const handleSendOTP = async () => {
     if (!validateForm()) return;
     try {
-      const response = await forgotPasswordMutation.mutateAsync({ email });
+      let response;
+      if (roleType === "renter_investor") {
+        response = await renterInvestorForgotPasswordMutation.mutateAsync({ email });
+      } else {
+        response = await forgotPasswordMutation.mutateAsync({ email });
+      }
       if (response.success) {
         toast.success(
           response.data?.message || AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP
         );
         router.push({
           pathname: "/(auth)/forgot-password-otp",
-          params: { email: email },
+          params: { email: email, roleType: roleType },
         });
       } else {
         toast.error(response.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED);

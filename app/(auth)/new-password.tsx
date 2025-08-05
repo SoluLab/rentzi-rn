@@ -16,10 +16,12 @@ import { toast } from "@/components/ui/Toast";
 import { spacing } from "@/constants/spacing";
 import { validatePassword } from "@/utils/validation";
 import { useResetPassword } from "@/services/auth";
+import { useRenterInvestorResetPassword } from '@/services/renterInvestorAuth';
 export default function NewPasswordScreen() {
   const router = useRouter();
-  const { email, code, verificationId } = useLocalSearchParams(); // Assume these are passed
+  const { email, code, verificationId, roleType } = useLocalSearchParams(); // Assume these are passed
   const resetPasswordMutation = useResetPassword();
+  const renterInvestorResetPasswordMutation = useRenterInvestorResetPassword();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -46,7 +48,19 @@ export default function NewPasswordScreen() {
       return;
     }
     try {
-      // TODO: Ensure code and verificationId are passed via params or context
+      if (roleType === "renter_investor") {
+        await renterInvestorResetPasswordMutation.mutateAsync({
+          email: email as string,
+          password,
+          otp: code as string,
+        });
+        toast.success(
+          "Password reset successfully! Please login with your new password."
+        );
+        router.replace("/(auth)/login");
+        return;
+      }
+      // Homeowner logic (default)
       await resetPasswordMutation.mutateAsync({
         email: email as string,
         code: code as string, // Should be passed from previous step

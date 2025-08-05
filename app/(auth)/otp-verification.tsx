@@ -13,6 +13,10 @@ import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { Ionicons } from "@expo/vector-icons";
+import { useRenterInvestorVerifyLoginOtp } from "@/services/renterInvestorAuth";
+import { RenterInvestorVerifyLoginOtpRequest, RenterInvestorVerifyLoginOtpResponse } from "@/types/renterInvestorAuth";
+import { useRenterInvestorResendOtp } from "@/services/renterInvestorAuth";
+import { RenterInvestorResendOtpRequest, RenterInvestorResendOtpResponse } from "@/types/renterInvestorAuth";
 
 export default function OTPVerificationScreen() {
   const router = useRouter();
@@ -26,6 +30,23 @@ export default function OTPVerificationScreen() {
   const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
   const verifyOtpMutation = useVerifyOtp(userType);
   const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
+  const renterInvestorVerifyLoginOtpMutation = useRenterInvestorVerifyLoginOtp();
+  const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
+    onSuccess: (response) => {
+      if (response.success) {
+        toast.success(response.message || "OTP resent successfully");
+      } else {
+        toast.error(response.message || "Failed to resend OTP");
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to resend OTP. Please try again.";
+      toast.error(errorMessage);
+    },
+  });
   const isLoading =
     verifyOtpMutation.status === "pending" ||
     verifyOtpMutation.isPending ||
@@ -92,6 +113,23 @@ export default function OTPVerificationScreen() {
 
     try {
       let response;
+      if (type === "login" && userType === "renter_investor") {
+        // Use new renter/investor verify login OTP API
+        response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
+          identifier: email as string,
+          otp,
+        });
+        if (response.success) {
+          toast.success("Verification successful!");
+          // Save token or user info as needed here
+          router.replace("/(tabs)");
+        } else {
+          const errorMessage = response.message || "Verification failed. Please check your OTP code.";
+          toast.error(errorMessage);
+          setOtpError(errorMessage);
+        }
+        return;
+      }
       if (phone) {
         // Parse the phone object from JSON string
         const phoneObj = JSON.parse(phone);
@@ -106,7 +144,7 @@ export default function OTPVerificationScreen() {
       } else {
         // Otherwise use email verification
         response = await verifyOtpMutation.mutateAsync({
-          email: email as string,
+          identifier: email as string,
           otp,
         });
       }
@@ -166,11 +204,19 @@ export default function OTPVerificationScreen() {
     }
 
     try {
+      if (userType === "renter_investor" && type === "login") {
+        await renterInvestorResendOtpMutation.mutateAsync({
+          identifier: email as string,
+          type: "login",
+        });
+        setTimeLeft(60);
+        setOtpError("");
+        return;
+      }
+      // fallback to original resendOtpMutation for other flows
       await resendOtpMutation.mutateAsync({
         email: email as string,
       });
-      
-      // Reset timer and clear errors only on success
       setTimeLeft(60);
       setOtpError("");
     } catch (error) {

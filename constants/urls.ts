@@ -33,7 +33,8 @@ export const ENDPOINTS = {
     // OTP Verification
     VERIFY_OTP: "/auth/verify-otp",
     VERIFY_LOGIN_OTP: "/auth/verify-login-otp",
-    RESEND_OTP: "/auth/resend-otp",
+    RESEND_OTP: "/auth/resend-otp", 
+    VERIFY_FORGOT_PASSWORD_OTP: "/auth/verify-forgot-password-otp",
 
     // Password Management
     FORGOT_PASSWORD: "/auth/forgot-password",

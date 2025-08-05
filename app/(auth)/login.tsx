@@ -24,6 +24,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { AuthResponse, LoginRequest } from "@/types";
 import { NetworkTest } from "@/components/ui/NetworkTest";
+import { useRenterInvestorLogin } from "@/services/renterInvestorAuth";
+import { RenterInvestorLoginRequest, RenterInvestorLoginResponse } from "@/types/renterInvestorAuth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -54,7 +56,7 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    router.push("/(auth)/forgot-password");
+    router.push({ pathname: '/(auth)/forgot-password', params: { roleType: selectedUserType } });
   };
 
   const validateForm = () => {
@@ -89,72 +91,114 @@ export default function LoginScreen() {
     }
   };
 
-  const loginMutation = useLogin(selectedUserType, {
+  const homeownerLoginMutation = useLogin("homeowner", {
     onSuccess: async (response: AuthResponse) => {
-      console.log("Login API success:", response);
+      // Homeowner response handling (existing logic)
       if (response.success && response.data) {
         const { user } = response.data;
-
-        // Check verification status
         if (!user.isEmailVerified || !user.isPhoneVerified) {
           toast.info("Please verify your account");
-          // Pass email/phone to OTP screen (token is now stored in AsyncStorage)
           router.push({
             pathname: "/(auth)/otp-verification",
             params: {
               email: user.email,
-              phone: JSON.stringify(user.phone), // Pass the entire phone object
+              phone: JSON.stringify(user.phone),
               type: "login",
-              roleType: selectedUserType, // Pass the selected user type
+              roleType: selectedUserType,
             },
           });
           return;
         }
-        // User is already verified, proceed to main app
         toast.success(AUTH.LOGIN.SUCCESS);
         router.replace("/(tabs)");
       } else {
-        // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
-        const errorMessage =
-          response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+        const errorMessage = response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
         toast.error(errorMessage);
         console.error("Login API error:", response);
       }
     },
     onError: (error) => {
-      console.error("Login API error:", error);
-      // Handle error response format: { "success": false, "message": "Invalid email or password", "data": null }
       let errorMessage = ERROR_MESSAGES.AUTH.LOGIN_FAILED;
-
       if (error?.data?.message) {
-        // If error has data.message (API error response)
         errorMessage = error.data.message;
       } else if (error?.message) {
-        // If error has direct message (network error, etc.)
         errorMessage = error.message;
       }
-
       toast.error(errorMessage);
     },
   });
 
+  const renterInvestorLoginMutation = useRenterInvestorLogin({
+    onSuccess: async (response: RenterInvestorLoginResponse, variables) => {
+      if (response.success && response.data) {
+        // OTP required
+        if (response.data.requiresOTP) {
+          toast.info("OTP sent to your registered mobile number");
+          router.push({
+            pathname: "/(auth)/otp-verification",
+            params: {
+              email: variables.identifier, // Pass identifier used for login
+              sessionId: response.data.sessionId,
+              userId: response.data.userId,
+              type: "login",
+              roleType: selectedUserType,
+              otp: response.data.otp,
+            },
+          });
+          return;
+        }
+        // If no OTP required, proceed to main app (customize as needed)
+        toast.success(AUTH.LOGIN.SUCCESS);
+        router.replace("/(tabs)");
+      } else {
+        const errorMessage = response.message || ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+        toast.error(errorMessage);
+        console.error("Login API error:", response);
+      }
+    },
+    onError: (error) => {
+      let errorMessage = ERROR_MESSAGES.AUTH.LOGIN_FAILED;
+      if (error?.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
+    },
+  });
+
+  // Replace loginMutation with a selector
+  const loginMutation = selectedUserType === "homeowner"
+    ? homeownerLoginMutation
+    : renterInvestorLoginMutation;
+
+  // Update handleLogin to use the correct payload type
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
     const isEmail = emailOrMobile.includes("@");
     const isMobile = /^\d+$/.test(emailOrMobile.replace(/\s/g, ""));
-    let payload: LoginRequest = { identifier: "", password };
-    if (isEmail) {
-      payload.identifier = emailOrMobile;
-    } else if (isMobile) {
-      payload.identifier = emailOrMobile; // API expects identifier field for both
+    if (selectedUserType === "homeowner") {
+      let payload: LoginRequest = { identifier: "", password };
+      if (isEmail || isMobile) {
+        payload.identifier = emailOrMobile;
+      } else {
+        toast.error("Please enter a valid email address or mobile number");
+        toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
+        return;
+      }
+      loginMutation.mutate(payload);
     } else {
-      toast.error("Please enter a valid email address or mobile number");
-      toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
-      return;
+      let payload: RenterInvestorLoginRequest = { identifier: "", password };
+      if (isEmail || isMobile) {
+        payload.identifier = emailOrMobile;
+      } else {
+        toast.error("Please enter a valid email address or mobile number");
+        toast.error(ERROR_MESSAGES.AUTH.INVALID_MOBILE_EMAIL);
+        return;
+      }
+      loginMutation.mutate(payload);
     }
-    console.log("[Login] Sending payload:", payload);
-    loginMutation.mutate(payload);
-  }, [emailOrMobile, password, loginMutation]);
+  }, [emailOrMobile, password, loginMutation, selectedUserType]);
 
   const isLoading = loginMutation.isPending;
 

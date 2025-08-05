@@ -105,60 +105,29 @@ export const useSignup = (
       mobile,
       roleType,
     }) => {
-      // Determine base URL and payload format based on role type
-      const isHomeowner = roleType === "homeowner";
-      const baseURL = isHomeowner
-        ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-        : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
-
-      let payload: any;
-
-      if (isHomeowner) {
-        // Homeowner format - no userType field
-        payload = {
-          name: {
-            firstName,
-            lastName,
-          },
-          email,
-          password,
-          phone: {
-            countryCode,
-            mobile,
-          },
-        };
-      } else {
-        // Renter/Investor format - includes userType
-        payload = {
-          name: {
-            firstName,
-            lastName,
-          },
-          email,
-          password,
-          phone: {
-            countryCode,
-            mobile,
-          },
-        };
+      // Only allow homeowner registration here
+      if (roleType !== "homeowner") {
+        throw new Error("Renter/Investor registration is handled separately.");
       }
-
-      console.log("[API Client] Registration payload:", payload);
-      console.log("[API Client] Role type:", roleType);
-      console.log(
-        "[API Client] Registration URL:",
-        `${baseURL}${ENDPOINTS.AUTH.SIGNUP}`
-      );
-
+      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const payload = {
+        name: {
+          firstName,
+          lastName,
+        },
+        email,
+        password,
+        phone: {
+          countryCode,
+          mobile,
+        },
+      };
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNUP,
         data: payload,
         auth: false,
       });
-
-      console.log("[API Client] Registration response:", response);
-
       return response;
     },
     ...options,

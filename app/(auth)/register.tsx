@@ -9,6 +9,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { PasswordStrengthMeter } from "@/components/ui/PasswordStrengthMeter";
 import { toast } from "@/components/ui/Toast";
 import { useSignup } from "@/services/auth";
+import { useRenterInvestorRegister } from "@/services/renterInvestorAuth";
 import { validateRegistrationForm } from "@/utils/validation";
 import { spacing, colors, radius, shadow } from "@/constants";
 import { staticText } from "@/constants/staticText";
@@ -59,10 +60,12 @@ export default function RegisterScreen() {
   const [hasSpaceInPassword, setHasSpaceInPassword] = useState(false);
 
   // Use TanStack Query mutation
-  const signupMutation = useSignup();
+  const renterInvestorRegisterMutation = useRenterInvestorRegister();
+  const homeownerRegisterMutation = useSignup();
 
   const isLoading =
-    signupMutation.status === "pending" || signupMutation.isPending;
+    renterInvestorRegisterMutation.status === "pending" || renterInvestorRegisterMutation.isPending ||
+    homeownerRegisterMutation.status === "pending" || homeownerRegisterMutation.isPending;
 
   const validateForm = () => {
     const { errors: newErrors, isValid } = validateRegistrationForm({
@@ -82,17 +85,61 @@ export default function RegisterScreen() {
     try {
       const cleanMobile = formData.mobileNumber.replace(/\D/g, "");
       const countryCode = selectedCountryCode?.phoneCode || "+1";
+      if (roleType === "renter_investor") {
+        // Use new API for renter/investor
+        const payload = {
+          name: {
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+          },
+          email: formData.email.toLowerCase().trim(),
+          password: formData.password,
+          phone: {
+            countryCode: countryCode,
+            mobile: cleanMobile,
+          },
+          // userType will be set to ["renter"] in the API call file
+        };
+        console.log("[Register] Sending payload (renter/investor):", payload);
+        const response = await renterInvestorRegisterMutation.mutateAsync(payload);
+        console.log("[Register] API response:", response);
+        if (response?.success) {
+          // Store the token if it exists in the response
+          if (response?.data?.token) {
+            await AsyncStorage.setItem("token", response.data.token);
+          }
 
-      // Determine user type based on roleType parameter
-      // API only accepts "renter" or "investor" as valid user types
-      let userType = ["renter"];
-      if (roleType === "homeowner") {
-        // For homeowners, we'll use "renter" as the user type since API doesn't accept "homeowner"
-        userType = ["renter"];
-      } else if (roleType === "renter_investor") {
-        userType = ["renter"];
+          // Store user data for later use
+          if (response?.data?.user) {
+            await AsyncStorage.setItem(
+              "userData",
+              JSON.stringify(response.data.user)
+            );
+          }
+
+          toast.success("Registration successful! Please verify your email");
+          // Navigate to mobile verification for OTP verification
+          router.push({
+            pathname: "/(auth)/mobile-verification",
+            params: {
+              email: formData.email.toLowerCase().trim(),
+              phone: cleanMobile,
+              type: "register",
+              roleType: roleType,
+            },
+          });
+        } else {
+          const errorMsg =
+            response?.message || "Registration failed. Please try again.";
+          toast.error(errorMsg);
+          console.error(
+            "[Register] Registration error (API response):",
+            response
+          );
+        }
+        return;
       }
-
+      // Homeowner registration (default)
       const payload = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -100,11 +147,10 @@ export default function RegisterScreen() {
         password: formData.password,
         countryCode: countryCode,
         mobile: cleanMobile,
-        userType: userType,
         roleType: roleType,
       };
-      console.log("[Register] Sending payload:", payload);
-      const response = await signupMutation.mutateAsync(payload);
+      console.log("[Register] Sending payload (homeowner):", payload);
+      const response = await homeownerRegisterMutation.mutateAsync(payload);
       console.log("[Register] API response:", response);
       if (response?.success) {
         // Store the token if it exists in the response

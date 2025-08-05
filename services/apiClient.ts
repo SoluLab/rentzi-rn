@@ -130,13 +130,16 @@ const apiCall = async <T = any>({
       },
     };
 
-    console.log("[API Call] Config:", {
+    {/*
+console.log("[API Call] Config:", {
       method: axiosConfig.method,
       url: `${baseURL}${endpoint}`,
       headers: headers,
       data: axiosConfig.data,
       timeout: timeout,
     });
+    */}
+    
 
     console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
     console.log("[API Call] Request Method:", method);
@@ -146,9 +149,9 @@ const apiCall = async <T = any>({
     const response: AxiosResponse<T> = await axios(axiosConfig);
 
     console.log("[API Call] Response received:", {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
+      //status: response.status,
+      //statusText: response.statusText,
+      //headers: response.headers,
       data: response.data
     });
 

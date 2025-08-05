@@ -12,6 +12,8 @@ import { colors, spacing } from "@/constants";
 import { Header } from "@/components/ui/Header";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useVerifyOtp } from '@/services/auth';
+import { useRenterInvestorVerifyLoginOtp } from '@/services/renterInvestorAuth';
+import { useRenterInvestorResendOtp } from '@/services/renterInvestorAuth';
 
 export default function MobileVerificationScreen() {
   const router = useRouter();
@@ -36,12 +38,29 @@ export default function MobileVerificationScreen() {
   } = useAuthStore();
 
   const [otp, setOtp] = useState("");
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minutes
   const [canResend, setCanResend] = useState(false);
 
   // Determine userType for API call based on roleType
   const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
   const verifyOtpMutation = useVerifyOtp(userType);
+  const renterInvestorVerifyLoginOtpMutation = useRenterInvestorVerifyLoginOtp();
+  const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
+    onSuccess: (response) => {
+      if (response.success) {
+        toast.success(response.message || "OTP resent successfully");
+      } else {
+        toast.error(response.message || "Failed to resend OTP");
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to resend OTP. Please try again.";
+      toast.error(errorMessage);
+    },
+  });
 
   // Timer for OTP expiry
   useEffect(() => {
@@ -78,55 +97,63 @@ export default function MobileVerificationScreen() {
     }
 
     try {
-      // For login and registration flow, verify OTP using TanStack mutation
-      const response = await verifyOtpMutation.mutateAsync({ identifier: email || user?.email || '', otp });
-      
-      // Check the new response format
+      let response;
+      if (userType === "renter_investor") {
+        response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
+          identifier: email || user?.email || '',
+          otp,
+        });
+      } else {
+        response = await verifyOtpMutation.mutateAsync({
+          identifier: email || user?.email || '',
+          otp,
+        });
+      }
       if (response.success) {
         toast.success("Mobile number verified successfully!");
-
-        // Navigation logic based on user type and role
         if (type === "login") {
           toast.success("Login successful! Welcome back.");
-          // Route based on roleType parameter from login
           if (roleType === "homeowner") {
             router.replace("/(homeowner-tabs)");
           } else {
             router.replace("/(tabs)");
           }
         } else {
-          // For registration flow, redirect to login
           toast.success("Registration completed! Please login to continue.");
           router.replace("/(auth)/login");
         }
       } else {
-        // Handle unsuccessful response
         const errorMessage = response.message || "Failed to verify OTP";
         toast.error(errorMessage);
       }
     } catch (error: any) {
       let errorMessage = "Failed to verify OTP";
-      
-      // Handle different error formats
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
-      // Map specific error messages
       if (errorMessage.includes("Invalid or expired OTP")) {
         errorMessage = "Invalid or expired OTP. Please try again.";
       }
-      
       toast.error(errorMessage);
     }
   };
 
   const handleResendOTP = async () => {
     if (!canResend) return;
-
     try {
+      if (userType === "renter_investor") {
+        await renterInvestorResendOtpMutation.mutateAsync({
+          identifier: email || user?.email || '',
+          type: 'signup',
+        });
+        setTimeLeft(120);
+        setCanResend(false);
+        setOtp("");
+        return;
+      }
+      // fallback to original resendOTP for homeowner
       await resendOTP(user?.email || email || "", phone || "");
       toast.success("OTP sent successfully!");
       setTimeLeft(120);

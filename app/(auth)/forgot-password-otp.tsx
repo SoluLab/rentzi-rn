@@ -7,20 +7,43 @@ import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp } from "@/services/auth";
+import { useRenterInvestorVerifyForgotPasswordOtp } from '@/services/renterInvestorAuth';
+import { useRenterInvestorResendOtp } from '@/services/renterInvestorAuth';
+import { useVerifyOtp, useResendOtp } from '@/services/auth';
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function ForgotPasswordOTPScreen() {
   const router = useRouter();
-  const { email } = useLocalSearchParams();
+  const { email, roleType } = useLocalSearchParams();
   const verifyOtpMutation = useVerifyOtp();
+  const resendOtpMutation = useResendOtp();
+  const renterInvestorVerifyForgotPasswordOtpMutation = useRenterInvestorVerifyForgotPasswordOtp();
+  const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
+    onSuccess: (response) => {
+      if (response.success) {
+        toast.success(response.message || "OTP resent successfully");
+      } else {
+        toast.error(response.message || "Failed to resend OTP");
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error?.data?.message ||
+        error?.message ||
+        "Failed to resend OTP. Please try again.";
+      toast.error(errorMessage);
+    },
+  });
   const isLoading =
-    verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending;
+    verifyOtpMutation.status === "pending" || verifyOtpMutation.isPending ||
+    resendOtpMutation.status === "pending" || resendOtpMutation.isPending ||
+    renterInvestorVerifyForgotPasswordOtpMutation.status === "pending" || renterInvestorVerifyForgotPasswordOtpMutation.isPending ||
+    renterInvestorResendOtpMutation.status === "pending";
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+  const [timeLeft, setTimeLeft] = useState(60); // 1 minutes
 
   // Timer for OTP expiry
   useEffect(() => {
@@ -49,39 +72,39 @@ export default function ForgotPasswordOTPScreen() {
       return;
     }
     try {
-      const response = await verifyOtpMutation.mutateAsync({
-        email: email as string,
-        otp,
-      });
-
-      // Check the new response format
+      let response;
+      if (roleType === "renter_investor") {
+        response = await renterInvestorVerifyForgotPasswordOtpMutation.mutateAsync({
+          email: email as string,
+          otp,
+        });
+      } else {
+        response = await verifyOtpMutation.mutateAsync({
+          identifier: email as string,
+          otp,
+        });
+      }
       if (response.success) {
         toast.success("OTP verified successfully!");
         router.push({
           pathname: "/(auth)/new-password",
-          params: { email: email },
+          params: { email: email, code: otp, roleType: roleType },
         });
       } else {
-        // Handle unsuccessful response
         const errorMessage = response.message || "OTP verification failed";
         toast.error(errorMessage);
         setError(errorMessage);
       }
     } catch (error: any) {
       let errorMessage = "OTP verification failed";
-
-      // Handle different error formats
       if (error?.data?.message) {
         errorMessage = error.data.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
-
-      // Map specific error messages
       if (errorMessage.includes("Invalid or expired OTP")) {
         errorMessage = "Invalid or expired OTP. Please try again.";
       }
-
       toast.error(errorMessage);
       setError(errorMessage);
     }
@@ -89,10 +112,21 @@ export default function ForgotPasswordOTPScreen() {
 
   const handleResendOTP = async () => {
     try {
-      // The original code had sendForgotPasswordOTP here, but it's removed from imports.
-      // Assuming it's no longer needed or will be re-added if the intent was to resend OTP.
-      // For now, removing it as per the new_code.
-      toast.error("Resending OTP functionality is currently unavailable.");
+      if (roleType === "renter_investor") {
+        await renterInvestorResendOtpMutation.mutateAsync({
+          identifier: email as string,
+          type: 'password_reset',
+        });
+        setTimeLeft(60);
+        setOtp("");
+        return;
+      }
+      // Homeowner and other roles
+      await resendOtpMutation.mutateAsync({
+        email: email as string,
+      });
+      setTimeLeft(60);
+      setOtp("");
     } catch (error: any) {
       toast.error("Failed to resend OTP. Please try again.");
     }
