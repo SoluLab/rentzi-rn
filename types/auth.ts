@@ -52,3 +52,11 @@ export interface OTPResponse extends Omit<AuthResponse, "data"> {
     user: User;
   } | null;
 }
+
+export interface ForgotPasswordResponse {
+  success: boolean;
+  message: string;
+  data: {
+    message: string;
+  };
+}

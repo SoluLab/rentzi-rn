@@ -9,7 +9,7 @@ import type { ApiError } from "@/types/auth";
 import type {
   MarketplacePropertyResponse,
   IMarketplaceProperty,
-} from "@/types/marketplace";
+} from "@/types/renterMarketplace";
 import { apiPut, apiDelete, useApiQuery, useApiMutation } from "./apiClient";
 
 // 1. Get all properties (with filters/pagination)

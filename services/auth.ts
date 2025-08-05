@@ -6,7 +6,7 @@ import {
   UseMutationOptions,
 } from "@tanstack/react-query";
 import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
-import { AuthResponse, LoginRequest, ApiError } from "@/types/auth";
+import { AuthResponse, LoginRequest, ApiError, ForgotPasswordResponse } from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiPost, apiPut, apiGet, queryKeys } from "./apiClient";
 
@@ -329,11 +329,11 @@ export const useResetPassword = (
 export const useForgotPassword = (
   userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
-    UseMutationOptions<any, ApiError, { email: string }>,
+    UseMutationOptions<ForgotPasswordResponse, ApiError, { email: string }>,
     "mutationFn"
   >
 ) => {
-  return useMutation<any, ApiError, { email: string }>({
+  return useMutation<ForgotPasswordResponse, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
       const baseURL =
         userType === "homeowner"
@@ -394,6 +394,33 @@ export const useUpdateProfile = (
         data,
         auth: true,
       });
+    },
+    ...options,
+  });
+};
+
+// Resend OTP
+export const useResendOtp = (
+  userType: "renter_investor" | "homeowner" = "renter_investor",
+  options?: Omit<
+    UseMutationOptions<{ success: boolean; message: string }, ApiError, { email: string }>,
+    "mutationFn"
+  >
+) => {
+  return useMutation<{ success: boolean; message: string }, ApiError, { email: string }>({
+    mutationFn: async ({ email }) => {
+      const baseURL =
+        userType === "homeowner"
+          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
+          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+
+      const response = await apiPost({
+        baseURL,
+        endpoint: ENDPOINTS.AUTH.RESEND_OTP,
+        data: { email },
+        auth: false,
+      });
+      return response;
     },
     ...options,
   });

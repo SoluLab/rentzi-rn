@@ -52,6 +52,7 @@ import {
   Calendar,
 } from "lucide-react-native";
 import { useMarketplaceGetProperty } from '@/services/apiClient';
+import { useHomeownerDeleteProperty } from '@/services/homeownerAddProperty';
 
 interface PropertyDetails {
   id: string;
@@ -156,11 +157,24 @@ export default function PropertyDetailsScreen() {
     setDeleteSheetVisible(true);
   };
 
+  const deletePropertyMutation = useHomeownerDeleteProperty({
+    onSuccess: () => {
+      setDeleteSheetVisible(false);
+      setDeleteConfirmChecked(false);
+      Alert.alert('Success', 'Property deleted successfully');
+      router.back();
+    },
+    onError: (error) => {
+      Alert.alert('Error', error.message || 'Failed to delete property');
+      setDeleteSheetVisible(false);
+      setDeleteConfirmChecked(false);
+    },
+  });
+
   const handleConfirmDelete = () => {
-    setDeleteSheetVisible(false);
-    setDeleteConfirmChecked(false);
-    Alert.alert('Property Deleted', 'The property has been deleted successfully.');
-    router.back();
+    if (property?.id) {
+      deletePropertyMutation.mutate(property.id);
+    }
   };
 
   const handleCancelDelete = () => {
@@ -709,11 +723,11 @@ export default function PropertyDetailsScreen() {
               style={{ flex: 1 }}
             />
             <Button
-              title="Delete"
+              title={deletePropertyMutation.isPending ? "Deleting..." : "Delete"}
               onPress={handleConfirmDelete}
               variant="primary"
               style={{ flex: 1 }}
-              disabled={!deleteConfirmChecked}
+              disabled={!deleteConfirmChecked || deletePropertyMutation.isPending}
               textStyle={{ color: colors.neutral.white }}
             />
           </View>

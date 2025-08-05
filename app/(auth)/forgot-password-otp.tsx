@@ -7,7 +7,7 @@ import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
 import { toast } from "@/components/ui/Toast";
 import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp } from "@/services/apiClient";
+import { useVerifyOtp } from "@/services/auth";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";

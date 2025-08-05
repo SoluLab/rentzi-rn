@@ -2,6 +2,7 @@ import { UseQueryOptions } from "@tanstack/react-query";
 import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
 import type { ApiError } from "./apiClient";
 import { useApiQuery, queryKeys } from "./apiClient";
+import type { DashboardStats } from "@/types/homeownerDashboard";
 
 // 1. Get All Properties (with filters/pagination)
 export const useHomeownerGetAllProperties = (
@@ -30,6 +31,21 @@ export const useHomeownerGetPropertyById = (
     {
       baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
       endpoint: ENDPOINTS.HOMEOWNER_DASHBOARD.GET_PROPERTY_BY_ID(id.toString()),
+      auth: true,
+    },
+    options
+  );
+};
+
+// 3. Get Dashboard Stats
+export const useHomeownerDashboardStats = (
+  options?: Omit<UseQueryOptions<{ data: DashboardStats }, ApiError>, "queryKey" | "queryFn">
+) => {
+  return useApiQuery(
+    queryKeys.homeownerDashboardStats(),
+    {
+      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
+      endpoint: ENDPOINTS.HOMEOWNER_DASHBOARD.STATS,
       auth: true,
     },
     options

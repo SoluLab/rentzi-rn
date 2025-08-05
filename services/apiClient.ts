@@ -85,6 +85,7 @@ export const queryKeys = {
   homeownerDashboardMetrics: () => [...queryKeys.homeownerDashboard(), "metrics"] as const,
   homeownerDashboardEarnings: () => [...queryKeys.homeownerDashboard(), "earnings"] as const,
   homeownerDashboardBookings: () => [...queryKeys.homeownerDashboard(), "bookings"] as const,
+  homeownerDashboardStats: () => [...queryKeys.homeownerDashboard(), "stats"] as const,
 };
 
 // Main API call function

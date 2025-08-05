@@ -22,7 +22,7 @@ import { useNotificationStore } from "@/stores/notificationStore";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
-import { useHomeownerGetAllProperties } from "@/services/homeownerDashboard";
+import { useHomeownerGetAllProperties, useHomeownerDashboardStats } from "@/services/homeownerDashboard";
 import {
   Bell,
   Plus,
@@ -49,12 +49,10 @@ export default function HomeownerDashboardScreen() {
   const { unreadCount } = useNotificationStore();
   const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
   const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
-  const {
-    dashboardMetrics,
-    fetchDashboardMetrics,
-    syncFromCommercialStore,
-    syncFromResidentialStore,
-  } = useHomeownerPropertyStore();
+  const { syncFromCommercialStore, syncFromResidentialStore } = useHomeownerPropertyStore();
+  
+  // Fetch dashboard stats
+  const { data: dashboardStats } = useHomeownerDashboardStats();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,7 +88,6 @@ export default function HomeownerDashboardScreen() {
 
   // Fetch data on component mount
   useEffect(() => {
-    fetchDashboardMetrics();
     // Sync with property stores
     syncFromCommercialStore();
     syncFromResidentialStore();
@@ -329,7 +326,7 @@ export default function HomeownerDashboardScreen() {
                 <Building2 size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardMetrics.totalProperties}
+                    {dashboardStats?.data?.totalProperties || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Properties
@@ -342,7 +339,7 @@ export default function HomeownerDashboardScreen() {
                 <Clock size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardMetrics.pendingApprovals}
+                    {dashboardStats?.data?.pendingApproval || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Pending Approvals
@@ -355,8 +352,7 @@ export default function HomeownerDashboardScreen() {
                 <DollarSign size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    $12000 
-                    {/* dashboardMetrics.totalEarnings.toLocaleString() */}
+                    ${dashboardStats?.data?.totalRevenue?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Earnings
@@ -369,7 +365,7 @@ export default function HomeownerDashboardScreen() {
                 <Calendar size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardMetrics.activeBookings}
+                    {dashboardStats?.data?.activeBookings || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Active Bookings
