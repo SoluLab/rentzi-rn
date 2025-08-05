@@ -79,7 +79,7 @@ export default function MobileVerificationScreen() {
 
     try {
       // For login and registration flow, verify OTP using TanStack mutation
-      const response = await verifyOtpMutation.mutateAsync({ email: email || user?.email || '', otp });
+      const response = await verifyOtpMutation.mutateAsync({ identifier: email || user?.email || '', otp });
       
       // Check the new response format
       if (response.success) {

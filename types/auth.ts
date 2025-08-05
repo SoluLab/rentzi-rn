@@ -15,7 +15,6 @@ export interface User {
   email: string;
   phone: Phone;
   isActive: boolean;
-  isEmailVerified: boolean;
   isPhoneVerified: boolean;
 }
 

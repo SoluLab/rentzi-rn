@@ -5,6 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
   useQuery,
   useMutation, 
@@ -122,6 +123,11 @@ const apiCall = async <T = any>({
       params,
       data: ["post", "put", "patch"].includes(method) ? data : undefined,
       timeout,
+      // Add additional debugging for React Native
+      validateStatus: (status) => {
+        console.log("[API Call] Response status:", status);
+        return status < 500; // Accept all status codes less than 500
+      },
     };
 
     console.log("[API Call] Config:", {
@@ -129,9 +135,22 @@ const apiCall = async <T = any>({
       url: `${baseURL}${endpoint}`,
       headers: headers,
       data: axiosConfig.data,
+      timeout: timeout,
     });
 
+    console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
+    console.log("[API Call] Request Method:", method);
+    console.log("[API Call] Platform:", Platform.OS);
+    console.log("[API Call] Request Data:", data);
+
     const response: AxiosResponse<T> = await axios(axiosConfig);
+
+    console.log("[API Call] Response received:", {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+      data: response.data
+    });
 
     return response.data;
   } catch (error: any) {
@@ -140,8 +159,28 @@ const apiCall = async <T = any>({
       const axiosError = error as AxiosError;
       const status = axiosError.response?.status ?? null;
       const responseData = axiosError.response?.data as any;
-      const message =
-        responseData?.message || axiosError.message || "Network error occurred";
+      
+      // Enhanced error message for network issues
+      let message = "Network error occurred";
+      if (axiosError.code === 'ECONNREFUSED') {
+        message = "Server is not reachable. Please check if the server is running.";
+      } else if (axiosError.code === 'ENOTFOUND') {
+        message = "Server address not found. Please check the API URL.";
+      } else if (axiosError.code === 'ETIMEDOUT') {
+        message = "Request timed out. Please check your internet connection.";
+      } else if (responseData?.message) {
+        message = responseData.message;
+      } else if (axiosError.message) {
+        message = axiosError.message;
+      }
+
+      console.log("[API Error] Details:", {
+        code: axiosError.code,
+        status: status,
+        message: message,
+        url: axiosError.config?.url,
+        method: axiosError.config?.method,
+      });
 
       const apiError: ApiError = {
         status,
@@ -170,6 +209,55 @@ const getAuthToken = async (): Promise<string | null> => {
     return token;
   } catch (err) {
     return null;
+  }
+};
+
+// Network connectivity test function
+export const testNetworkConnectivity = async (url: string): Promise<boolean> => {
+  try {
+    console.log("[Network Test] Testing connectivity to:", url);
+    
+    // For signin endpoints, make a POST request with test credentials
+    if (url.includes('/auth/signin')) {
+      const testCredentials = {
+        identifier: "test@example.com",
+        password: "testpassword"
+      };
+      
+      const response = await axios.post(url, testCredentials, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Rentzi-App/1.0'
+        }
+      });
+      console.log("[Network Test] Success:", response.status);
+      return true;
+    } else {
+      // For other endpoints, make a GET request
+      const response = await axios.get(url, {
+        timeout: 5000,
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': 'Rentzi-App/1.0'
+        }
+      });
+      console.log("[Network Test] Success:", response.status);
+      return true;
+    }
+  } catch (error: any) {
+    console.log("[Network Test] Failed:", error.message);
+    if (axios.isAxiosError(error)) {
+      console.log("[Network Test] Error code:", error.code);
+      console.log("[Network Test] Error status:", error.response?.status);
+      
+      // Consider 401 as success for signin endpoint (server is reachable)
+      if (url.includes('/auth/signin') && error.response?.status === 401) {
+        console.log("[Network Test] 401 is expected for signin without valid credentials - server is reachable");
+        return true;
+      }
+    }
+    return false;
   }
 };
 

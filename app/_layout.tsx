@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { View, Platform, StatusBar } from 'react-native';
 import { useFonts } from 'expo-font';
 import 'react-native-reanimated';
+import 'react-native-url-polyfill/auto';
 import { Toaster } from '@/components/ui/Toast';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';

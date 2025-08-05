@@ -39,6 +39,14 @@ export const useLogin = (
         "[API Client] Login URL:",
         `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`
       );
+      console.log("[API Client] Full request details:", {
+        method: 'POST',
+        url: `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: payload
+      });
       const response = await apiPost<AuthResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNIN,
@@ -69,7 +77,6 @@ export const useSignup = (
         password: string;
         countryCode: string;
         mobile: string;
-        userType: string[];
         roleType?: string;
       }
     >,
@@ -86,7 +93,6 @@ export const useSignup = (
       password: string;
       countryCode: string;
       mobile: string;
-      userType: string[];
       roleType?: string;
     }
   >({
@@ -97,7 +103,6 @@ export const useSignup = (
       password,
       countryCode,
       mobile,
-      userType,
       roleType,
     }) => {
       // Determine base URL and payload format based on role type
@@ -135,7 +140,6 @@ export const useSignup = (
             countryCode,
             mobile,
           },
-          userType,
         };
       }
 
@@ -169,9 +173,9 @@ export const useVerifyOtp = (
     "mutationFn"
   >
 ) => {
-  return useMutation<any, ApiError, { email: string; otp: string }>({
-    mutationFn: async ({ email, otp }) => {
-      console.log("useVerifyOtp called with:", { email, otp, userType });
+  return useMutation<any, ApiError, { identifier: string; otp: string }>({
+    mutationFn: async ({ identifier, otp }) => {
+      console.log("useVerifyOtp called with:", { identifier, otp, userType });
 
       // Set base URL based on user type
       const baseURL =
@@ -182,7 +186,7 @@ export const useVerifyOtp = (
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_OTP,
-        data: { email, otp },
+        data: { identifier, otp },
         auth: true, // Enable authentication to include Bearer token
       });
       console.log("useVerifyOtp response:", response);

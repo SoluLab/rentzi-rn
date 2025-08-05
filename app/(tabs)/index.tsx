@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,22 +7,22 @@ import {
   Image,
   TextInput,
   FlatList,
-} from "react-native";
-import { useRouter } from "expo-router"; 
-import { Typography } from "@/components/ui/Typography";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { FilterModal } from "@/components/ui/FilterModal";
-import { Header } from "@/components/ui/Header";
-import { colors } from "@/constants/colors";
-import { spacing } from "@/constants/spacing";
-import { radius } from "@/constants/radius";
-import { usePropertyStore } from "@/stores/propertyStore";
-import { useNotificationStore } from "@/stores/notificationStore";
-import { useWishlistStore } from "@/stores/wishlistStore";
-import { useAuthStore } from "@/stores/authStore";
-import { toast } from "@/components/ui/Toast";
-import { useMarketplaceProperties } from "@/hooks/useMarketplaceProperties";
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Typography } from '@/components/ui/Typography';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { FilterModal } from '@/components/ui/FilterModal';
+import { Header } from '@/components/ui/Header';
+import { colors } from '@/constants/colors';
+import { spacing } from '@/constants/spacing';
+import { radius } from '@/constants/radius';
+import { usePropertyStore } from '@/stores/propertyStore';
+import { useNotificationStore } from '@/stores/notificationStore';
+import { useWishlistStore } from '@/stores/wishlistStore';
+import { useAuthStore } from '@/stores/authStore';
+import { toast } from '@/components/ui/Toast';
 import {
   Search,
   Filter,
@@ -33,34 +33,31 @@ import {
   AlertCircle,
   Bell,
   Heart,
-} from "lucide-react-native";
+} from 'lucide-react-native';
 export default function ExploreScreen() {
   const router = useRouter();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedTab, setSelectedTab] = useState<"Commercial" | "Residential">(
-    "Residential"
-  );
-  const [localSearchQuery, setLocalSearchQuery] = useState("");
-  const [showFilters, setShowFilters] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
-  
-  // Use TanStack Query for marketplace properties
   const {
-    data: marketplaceData,
+    filteredProperties,
+    searchQuery,
+    filters,
     isLoading,
-    error,
-    refetch,
-  } = useMarketplaceProperties({
-    page: currentPage,
-    limit: 10,
-  });
-
+    suggestions,
+    fetchProperties,
+    searchProperties,
+    filterProperties,
+    clearFilters,
+    hasActiveFilters,
+  } = usePropertyStore();
   const { unreadCount } = useNotificationStore();
   const { user } = useAuthStore();
-  const { addToWishlist, removeFromWishlist, isInWishlist } =
-    useWishlistStore();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedTab, setSelectedTab] = useState<'Commercial' | 'Residential'>('Residential');
+  useEffect(() => {
+    fetchProperties();
+  }, [fetchProperties]);
   // Debounced search
   const handleSearch = useCallback(
     (query: string) => {
@@ -69,112 +66,81 @@ export default function ExploreScreen() {
         clearTimeout(searchTimeout);
       }
       const timeout = setTimeout(() => {
-        // For now, we'll just update the local search query
-        // In a real implementation, you might want to refetch with search params
-        console.log('Search query:', query);
+        searchProperties(query);
       }, 300);
       setSearchTimeout(timeout);
     },
-    [searchTimeout]
+    [searchTimeout, searchProperties]
   );
-  
   const handlePropertyPress = (propertyId: string) => {
     router.push(`/property/${propertyId}`);
   };
-  
   const handleApplyFilters = (newFilters: any) => {
-    // For now, we'll just log the filters
-    // In a real implementation, you might want to refetch with filter params
-    console.log('Applied filters:', newFilters);
+    filterProperties(newFilters);
   };
-  
   const handleClearFilters = () => {
-    setLocalSearchQuery("");
-    // Reset to first page when clearing filters
-    setCurrentPage(1);
+    clearFilters();
+    setLocalSearchQuery('');
   };
-  
-  const handleTabChange = (tab: "Commercial" | "Residential") => {
+  const handleTabChange = (tab: 'Commercial' | 'Residential') => {
     setSelectedTab(tab);
   };
-  
-  const handleLoadMore = () => {
-    if (marketplaceData?.data?.pagination) {
-      const { currentPage, totalPages } = marketplaceData.data.pagination;
-      if (currentPage < totalPages) {
-        setCurrentPage(currentPage + 1);
-      }
-    }
-  };
-  
   // Filter properties based on selected tab
   const getFilteredPropertiesByTab = () => {
-    if (!marketplaceData?.data?.items) return [];
-    
-    let tabFilteredProperties = marketplaceData.data.items;
-    if (selectedTab === "Commercial") {
+    let tabFilteredProperties = filteredProperties;
+    if (selectedTab === 'Commercial') {
       // Commercial properties: office, retail, warehouse, etc.
-      tabFilteredProperties = marketplaceData.data.items.filter(
-        (property: any) =>
-          ["office", "retail", "warehouse", "commercial"].includes(
-            property.type
-          ) ||
-          property.title.toLowerCase().includes("commercial") ||
-          property.title.toLowerCase().includes("office") ||
-          property.title.toLowerCase().includes("retail")
+      tabFilteredProperties = filteredProperties.filter(
+        (property) =>
+          ['office', 'retail', 'warehouse', 'commercial'].includes(property.propertyType) ||
+          property.title.toLowerCase().includes('commercial') ||
+          property.title.toLowerCase().includes('office') ||
+          property.title.toLowerCase().includes('retail')
       );
     } else {
       // Residential properties: villa, penthouse, mansion, apartment, etc.
-      tabFilteredProperties = marketplaceData.data.items.filter(
-        (property: any) =>
+      tabFilteredProperties = filteredProperties.filter(
+        (property) =>
           [
-            "villa",
-            "penthouse",
-            "mansion",
-            "apartment",
-            "house",
-            "condo",
-            "loft",
-            "cabin",
-            "treehouse",
-            "farmhouse",
-            "yacht",
-          ].includes(property.type) ||
-          !["office", "retail", "warehouse", "commercial"].includes(
-            property.type
-          )
+            'villa',
+            'penthouse',
+            'mansion',
+            'apartment',
+            'house',
+            'condo',
+            'loft',
+            'cabin',
+            'treehouse',
+            'farmhouse',
+            'yacht',
+          ].includes(property.propertyType) ||
+          !['office', 'retail', 'warehouse', 'commercial'].includes(property.propertyType)
       );
     }
     return tabFilteredProperties;
   };
   const handleNotifications = () => {
-    router.push("/notifications");
+    router.push('/notifications');
   };
   const handleWishlistToggle = (property: any) => {
     if (!user) {
-      toast.error("Please login to add to wishlist");
+      toast.error('Please login to add to wishlist');
       return;
     }
-    const isWishlisted = isInWishlist(user.id, property._id);
+    const isWishlisted = isInWishlist(user.id, property.id);
     if (isWishlisted) {
-      removeFromWishlist(user.id, property._id);
-      toast.success("Removed from wishlist");
+      removeFromWishlist(user.id, property.id);
+      toast.success('Removed from wishlist');
     } else {
       addToWishlist(user.id, property);
-      toast.success("Added to wishlist");
+      toast.success('Added to wishlist');
     }
   };
   const renderPropertyCard = ({ item: property }: { item: any }) => (
-    <TouchableOpacity
-      onPress={() => handlePropertyPress(property._id)}
-      style={styles.propertyItem}
-    >
+    <TouchableOpacity onPress={() => handlePropertyPress(property.id)} style={styles.propertyItem}>
       <Card style={styles.propertyCard}>
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=800&h=600&fit=crop&quality=40' }}
-            style={styles.propertyImage}
-          />
+          <Image source={{ uri: property.mediaGallery.images[0] }} style={styles.propertyImage} />
           <TouchableOpacity
             onPress={() => handleWishlistToggle(property)}
             style={styles.wishlistButton}
@@ -183,14 +149,12 @@ export default function ExploreScreen() {
             <Heart
               size={20}
               color={
-                user && isInWishlist(user.id, property._id)
+                user && isInWishlist(user.id, property.id)
                   ? colors.status.error
                   : colors.neutral.white
               }
               fill={
-                user && isInWishlist(user.id, property._id)
-                  ? colors.status.error
-                  : "transparent"
+                user && isInWishlist(user.id, property.id) ? colors.status.error : 'transparent'
               }
             />
           </TouchableOpacity>
@@ -201,48 +165,67 @@ export default function ExploreScreen() {
               {property.title}
             </Typography>
             <View style={styles.ratingContainer}>
-              <Star
-                size={16}
-                color={colors.primary.gold}
-                fill={colors.primary.gold}
-              />
+              <Star size={16} color={colors.primary.gold} fill={colors.primary.gold} />
               <Typography variant="caption" color="secondary">
-                4.8
+                {property.rating}
               </Typography>
             </View>
           </View>
           <View style={styles.locationContainer}>
             <MapPin size={14} color={colors.text.secondary} />
             <Typography variant="caption" color="secondary" numberOfLines={1}>
-              {property.propertyCategory}
+              {property.location.city}, {property.location.country}
             </Typography>
           </View>
           <View style={styles.propertyDetails}>
             <Typography variant="caption" color="secondary">
-              {property.specifications.bedrooms} bed • {property.specifications.bathrooms} bath
+              {property.bedrooms} bed • {property.bathrooms} bath
             </Typography>
           </View>
           <View style={styles.propertyFooter}>
             <View>
               <Typography variant="body" color="gold">
-                ${property.rentAmount.basePrice}/night
+                ${property.price.rent}/night
               </Typography>
               <Typography variant="caption" color="secondary">
-                {property.specifications.area} {property.specifications.unit}
+                Investment from ${property.price.investment.toLocaleString()}
               </Typography>
+              <View style={styles.investmentInfo}>
+                <TrendingUp size={12} color={colors.status.success} />
+                <Typography variant="caption" color="success">
+                  {property.investmentDetails.roiEstimate}% yield
+                </Typography>
+                <Typography variant="caption" color="secondary">
+                  • {property.investmentDetails.fundedPercentage}% funded
+                </Typography>
+              </View>
             </View>
             <View style={styles.propertyType}>
               <Typography variant="caption" color="white">
-                {property.type.toUpperCase()}
+                {property.propertyType.toUpperCase()}
               </Typography>
             </View>
+          </View>
+          <View style={styles.amenitiesContainer}>
+            {property.amenities.slice(0, 3).map((amenity: string, index: number) => (
+              <View key={index} style={styles.amenityTag}>
+                <Typography variant="label" color="secondary">
+                  {amenity}
+                </Typography>
+              </View>
+            ))}
+            {property.amenities.length > 3 && (
+              <Typography variant="label" color="secondary">
+                +{property.amenities.length - 3} more
+              </Typography>
+            )}
           </View>
         </View>
       </Card>
     </TouchableOpacity>
   );
   const renderSuggestions = () => {
-    if (getFilteredPropertiesByTab().length > 0) return null;
+    if (filteredProperties.length > 0) return null;
     return (
       <View style={styles.suggestionsContainer}>
         <ScrollView>
@@ -255,6 +238,48 @@ export default function ExploreScreen() {
               Try adjusting your search criteria or explore our suggestions
             </Typography>
           </View>
+          {suggestions.nearestDates.length > 0 && (
+            <View style={styles.suggestionSection}>
+              <View style={styles.suggestionHeader}>
+                <Calendar size={20} color={colors.primary.gold} />
+                <Typography variant="h5">Nearest Available Dates</Typography>
+              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.dateChips}>
+                  {suggestions.nearestDates.map((date, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.dateChip}
+                      onPress={() => {
+                        filterProperties({ checkInDate: date, checkOutDate: date });
+                        setShowFilters(false);
+                      }}
+                    >
+                      <Typography variant="caption" color="gold">
+                        {new Date(date).toLocaleDateString()}
+                      </Typography>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
+          {suggestions.similarInvestments.length > 0 && (
+            <View style={styles.suggestionSection}>
+              <View style={styles.suggestionHeader}>
+                <TrendingUp size={20} color={colors.primary.gold} />
+                <Typography variant="h5">High-Yield Investments</Typography>
+              </View>
+              <FlatList
+                data={suggestions.similarInvestments}
+                renderItem={renderPropertyCard}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.horizontalList}
+              />
+            </View>
+          )}
           <Button
             title="Clear All Filters"
             onPress={handleClearFilters}
@@ -265,13 +290,9 @@ export default function ExploreScreen() {
       </View>
     );
   };
-  
-  const activeFiltersCount = localSearchQuery.trim() ? 1 : 0;
+  const activeFiltersCount = hasActiveFilters() ? 1 : 0;
   const headerRightComponent = (
-    <TouchableOpacity
-      onPress={handleNotifications}
-      style={styles.notificationButton}
-    >
+    <TouchableOpacity onPress={handleNotifications} style={styles.notificationButton}>
       <Bell size={24} color={colors.neutral.white} />
       {unreadCount > 0 && (
         <View style={styles.notificationBadge}>
@@ -304,26 +325,15 @@ export default function ExploreScreen() {
         </View>
         <TouchableOpacity
           onPress={() => setShowFilters(true)}
-          style={[
-            styles.filterButton,
-            activeFiltersCount > 0 && styles.activeFilterButton,
-          ]}
+          style={[styles.filterButton, activeFiltersCount > 0 && styles.activeFilterButton]}
         >
           <Filter
             size={20}
-            color={
-              activeFiltersCount > 0
-                ? colors.neutral.white
-                : colors.primary.gold
-            }
+            color={activeFiltersCount > 0 ? colors.neutral.white : colors.primary.gold}
           />
           {activeFiltersCount > 0 && (
             <View style={styles.filterBadge}>
-              <Typography
-                variant="label"
-                color="inverse"
-                style={styles.filterBadgeText}
-              >
+              <Typography variant="label" color="inverse" style={styles.filterBadgeText}>
                 {activeFiltersCount}
               </Typography>
             </View>
@@ -331,7 +341,7 @@ export default function ExploreScreen() {
         </TouchableOpacity>
       </View>
       {/* Active Filters Indicator */}
-      {activeFiltersCount > 0 && (
+      {hasActiveFilters() && (
         <View style={styles.activeFiltersContainer}>
           <Typography variant="caption" color="secondary">
             Filters applied
@@ -346,27 +356,24 @@ export default function ExploreScreen() {
       {/* Property Type Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === "Commercial" && styles.activeTab]}
-          onPress={() => handleTabChange("Commercial")}
+          style={[styles.tab, selectedTab === 'Commercial' && styles.activeTab]}
+          onPress={() => handleTabChange('Commercial')}
         >
           <Typography
             variant="body"
-            color={selectedTab === "Commercial" ? "white" : "secondary"}
+            color={selectedTab === 'Commercial' ? 'white' : 'secondary'}
             style={styles.tabText}
           >
             Commercial
           </Typography>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[
-            styles.tab,
-            selectedTab === "Residential" && styles.activeTab,
-          ]}
-          onPress={() => handleTabChange("Residential")}
+          style={[styles.tab, selectedTab === 'Residential' && styles.activeTab]}
+          onPress={() => handleTabChange('Residential')}
         >
           <Typography
             variant="body"
-            color={selectedTab === "Residential" ? "white" : "secondary"}
+            color={selectedTab === 'Residential' ? 'white' : 'secondary'}
             style={styles.tabText}
           >
             Residential
@@ -381,39 +388,18 @@ export default function ExploreScreen() {
               Loading luxury properties...
             </Typography>
           </View>
-        ) : error ? (
-          <View style={styles.loadingContainer}>
-            <Typography variant="body" color="secondary" align="center">
-              Error loading properties. Please try again.
-            </Typography>
-            <Button
-              title="Retry"
-              onPress={() => refetch()}
-              variant="outline"
-              style={{ marginTop: spacing.md }}
-            />
-          </View>
         ) : (
           <>
             {getFilteredPropertiesByTab().length > 0 ? (
               <FlatList
                 data={getFilteredPropertiesByTab()}
                 renderItem={renderPropertyCard}
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.propertiesList}
-                onEndReached={handleLoadMore}
-                onEndReachedThreshold={0.1}
               />
             ) : (
               renderSuggestions()
-            )}
-            {marketplaceData?.data?.pagination && (
-              <View style={styles.paginationContainer}>
-                <Typography variant="caption" color="secondary" align="center">
-                  Page {marketplaceData.data.pagination.currentPage} of {marketplaceData.data.pagination.totalPages}
-                </Typography>
-              </View>
             )}
           </>
         )}
@@ -421,7 +407,7 @@ export default function ExploreScreen() {
       <FilterModal
         visible={showFilters}
         onClose={() => setShowFilters(false)}
-        filters={{}}
+        filters={filters}
         onApplyFilters={handleApplyFilters}
         onClearFilters={handleClearFilters}
       />
@@ -436,7 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary.header,
   },
   searchContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.md,
     gap: spacing.md,
@@ -444,8 +430,8 @@ const styles = StyleSheet.create({
   },
   searchBar: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.background.card,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
@@ -461,32 +447,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: radius.md,
     padding: spacing.md,
-    alignItems: "center",
-    justifyContent: "center",
-    position: "relative",
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
   },
   activeFilterButton: {
     backgroundColor: colors.primary.gold,
   },
   filterBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: -4,
     right: -4,
     backgroundColor: colors.status.error,
     borderRadius: radius.full,
     minWidth: 16,
     height: 16,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterBadgeText: {
     fontSize: 10,
     lineHeight: 12,
   },
   activeFiltersContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.sm,
     backgroundColor: colors.neutral.lightGray,
@@ -496,8 +482,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingVertical: spacing.xxxl,
   },
   propertiesList: {
@@ -507,65 +493,65 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   propertyCard: {
-    overflow: "hidden",
+    overflow: 'hidden',
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
     padding: spacing.md,
-    shadowColor: colors.primary.navy,
+    shadowColor: colors.primary.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 3,
   },
   imageContainer: {
-    position: "relative",
+    position: 'relative',
   },
   propertyImage: {
-    width: "100%",
+    width: '100%',
     height: 200,
     marginBottom: spacing.md,
     borderRadius: radius.md,
   },
   wishlistButton: {
-    position: "absolute",
+    position: 'absolute',
     top: spacing.sm,
     right: spacing.sm,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: radius.full,
     padding: spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   propertyContent: {
     gap: spacing.sm,
   },
   propertyHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   ratingContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
   },
   propertyDetails: {
     marginVertical: spacing.xs,
   },
   propertyFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
   },
   investmentInfo: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.xs,
     marginTop: spacing.xs,
   },
@@ -576,8 +562,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   amenitiesContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.xs,
     marginTop: spacing.sm,
   },
@@ -592,7 +578,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   noResultsHeader: {
-    alignItems: "center",
+    alignItems: 'center',
     gap: spacing.md,
     marginBottom: spacing.lg,
   },
@@ -600,12 +586,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   suggestionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.sm,
   },
   dateChips: {
-    flexDirection: "row",
+    flexDirection: 'row',
     gap: spacing.sm,
   },
   dateChip: {
@@ -621,24 +607,24 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   notificationButton: {
-    position: "relative",
+    position: 'relative',
     padding: spacing.sm,
     borderRadius: 22,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   notificationBadge: {
-    position: "absolute",
+    position: 'absolute',
     top: 0,
     right: 0,
     backgroundColor: colors.status.error,
     borderRadius: radius.full,
     minWidth: 20,
     height: 20,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   tabContainer: {
-    flexDirection: "row",
+    flexDirection: 'row',
     backgroundColor: colors.neutral.lightGray,
     marginHorizontal: spacing.layout.screenPadding,
     borderRadius: radius.md,
@@ -649,17 +635,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeTab: {
     backgroundColor: colors.primary.gold,
   },
   tabText: {
-    fontWeight: "600",
-  },
-  paginationContainer: {
-    paddingVertical: spacing.md,
-    alignItems: "center",
+    fontWeight: '600',
   },
 });
