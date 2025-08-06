@@ -16,7 +16,6 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Check, AlertTriangle } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
-import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 interface ConsentData {
   investmentRisks: boolean;
@@ -86,25 +85,6 @@ const CONSENT_ITEMS = [
 export default function CommercialPropertyLegalConsentsScreen() {
   const router = useRouter();
   const { data, updateLegalConsents } = useCommercialPropertyStore();
-
-  // API mutation hook for updating property draft
-  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
-    onSuccess: (response) => {
-      console.log(
-        "Commercial property draft saved successfully with legal consents:",
-        response
-      );
-      // Navigate to listing type selection step
-      router.push('/add-commercial-details/commercial-property-listing-type');
-    },
-    onError: (error) => {
-      console.error(
-        "Error saving commercial property draft with legal consents:",
-        error
-      );
-      Alert.alert("Error", "Failed to save property draft. Please try again.");
-    },
-  });
   
   const [consents, setConsents] = useState<ConsentData>(data.legalConsents);
   const [errors, setErrors] = useState<ConsentValidationErrors>({});
@@ -148,42 +128,15 @@ export default function CommercialPropertyLegalConsentsScreen() {
     setExpandedItem(expandedItem === key ? null : key);
   };
 
-  const transformFormDataToApiFormat = () => {
-    const apiData: any = {
-      title: data.propertyDetails?.propertyTitle || "",
-      type: "commercial",
-    };
-
-    // Add legal consents based on schema requirements
-    // These are boolean flags indicating user consent
-    apiData.legalConsents = {
-      investmentRisks: consents.investmentRisks,
-      platformTerms: consents.platformTerms,
-      variableIncome: consents.variableIncome,
-      tokenizationConsent: consents.tokenizationConsent,
-      usageRights: consents.usageRights,
-      liquidityLimitations: consents.liquidityLimitations,
-      governanceRights: consents.governanceRights,
-    };
-
-    return apiData;
-  };
-
-  const handleNext = async () => {
+  const handleNext = () => {
     if (validateForm()) {
-      await proceedWithDraft();
-    }
-  };
-
-  const proceedWithDraft = async () => {
-    try {
+      // Update store with legal consents
       updateLegalConsents(consents);
-      const apiData = transformFormDataToApiFormat();
+      
+      // Navigate to next screen with title and property ID
+      const propertyTitle = data.propertyDetails?.propertyTitle || "";
       const propertyId = data.propertyId;
-      console.log(
-        "Commercial Property ID from store before draft API:",
-        propertyId
-      );
+      
       if (!propertyId) {
         Alert.alert(
           "Error",
@@ -191,30 +144,20 @@ export default function CommercialPropertyLegalConsentsScreen() {
         );
         return;
       }
-      console.log("Saving commercial property draft with legal consents data:", {
-        propertyId,
-        ...apiData,
+      
+      router.push({
+        pathname: '/add-commercial-details/commercial-property-listing-type',
+        params: {
+          propertyTitle,
+          propertyId: propertyId.toString(),
+        }
       });
-      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
-    } catch (error) {
-      console.error("Error in proceedWithDraft:", error);
     }
   };
 
   const isFormValid = () => {
-    // Re-validate the form to check if it's actually valid
-    const newErrors: ConsentValidationErrors = {};
-
-    newErrors.investmentRisks = validateConsent(consents.investmentRisks, 'Investment Risks Understanding');
-    newErrors.platformTerms = validateConsent(consents.platformTerms, 'Platform Terms Agreement');
-    newErrors.variableIncome = validateConsent(consents.variableIncome, 'Variable Income Understanding');
-    newErrors.tokenizationConsent = validateConsent(consents.tokenizationConsent, 'Tokenization Consent');
-    newErrors.usageRights = validateConsent(consents.usageRights, 'Usage Rights Agreement');
-    newErrors.liquidityLimitations = validateConsent(consents.liquidityLimitations, 'Liquidity Limitations');
-    newErrors.governanceRights = validateConsent(consents.governanceRights, 'Governance and Voting Rights');
-
-    // Check if all consents are checked and no validation errors
-    return Object.values(newErrors).every(error => !error);
+    // Check if all consents are checked
+    return Object.values(consents).every(consent => consent === true);
   };
 
   const renderConsentItem = (item: typeof CONSENT_ITEMS[0]) => {
@@ -314,9 +257,9 @@ export default function CommercialPropertyLegalConsentsScreen() {
 
           {/* Next Button */}
           <Button
-            title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
+            title="Next"
             onPress={handleNext}
-            disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
+            disabled={!isFormValid()}
             style={styles.nextButton}
           />
         </ScrollView>

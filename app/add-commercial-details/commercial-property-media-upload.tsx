@@ -872,7 +872,7 @@ export default function CommercialPropertyMediaUploadScreen() {
         <Button
           title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
+          //disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>

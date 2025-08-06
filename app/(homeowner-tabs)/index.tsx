@@ -23,6 +23,7 @@ import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerGetAllProperties, useHomeownerDashboardStats } from "@/services/homeownerDashboard";
+import { useFocusEffect } from '@react-navigation/native';
 import {
   Bell,
   Plus,
@@ -92,6 +93,13 @@ export default function HomeownerDashboardScreen() {
     syncFromCommercialStore();
     syncFromResidentialStore();
   }, []);
+
+  // Refresh property list when screen comes into focus (e.g., after delete)
+  useFocusEffect(
+    React.useCallback(() => {
+      handleRefresh();
+    }, [])
+  );
 
   const handleNotifications = () => {
     router.push("/notifications");
@@ -304,7 +312,10 @@ export default function HomeownerDashboardScreen() {
     </Modal>
   );
 
-  const recentProperties = allProperties;
+  // Remove duplicate properties by _id
+  const uniqueProperties = allProperties.filter((prop, idx, arr) =>
+    arr.findIndex(p => p._id === prop._id) === idx
+  );
 
   return (
     <View style={styles.container}>
@@ -406,10 +417,10 @@ export default function HomeownerDashboardScreen() {
                 Loading properties...
               </Typography>
             </View>
-          ) : recentProperties.length > 0 ? (
+          ) : uniqueProperties.length > 0 ? (
             <>
               <FlatList
-                data={recentProperties}
+                data={uniqueProperties}
                 renderItem={renderPropertyCard}
                 keyExtractor={(item) => item._id}
                 showsVerticalScrollIndicator={false}
@@ -453,7 +464,7 @@ export default function HomeownerDashboardScreen() {
           )}
         </View>
       </ScrollView>
-
+ 
       <PropertyTypeModal />
     </View>
   );

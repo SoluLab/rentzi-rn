@@ -124,7 +124,7 @@ export default function HomeownerProfileScreen() {
                   </View>
                 </TouchableOpacity>
                 <View style={styles.profileInfo}>
-                  <Typography variant="h4">{profileData?.data?.name || 'Loading...'}</Typography>
+                  <Typography variant="h4">{profileData?.data?.name?.fullName || 'Loading...'}</Typography>
                   <Typography variant="body" color="secondary">
                     {profileData?.data?.email || 'Loading...'}
                   </Typography>

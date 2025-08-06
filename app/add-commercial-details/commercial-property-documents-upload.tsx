@@ -22,6 +22,7 @@ import { FileText, Upload, X, Check } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
 import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyFiles } from '@/services/homeownerAddProperty';
 import { BASE_URLS, ENDPOINTS } from '@/constants/urls';
+import { uploadToPinata } from '@/utils/ipfsUpload';
 
 interface DocumentFile {
   uri: string;
@@ -170,75 +171,27 @@ export default function CommercialPropertyDocumentsUploadScreen() {
 
   const uploadDocumentToServer = async (document: DocumentFile, documentField: keyof DocumentsFormData) => {
     try {
-      const propertyId = data.propertyId;
-      if (!propertyId) {
-        console.error("Property ID not found for document upload");
-        Alert.alert("Error", "Property ID not found. Please go back and try again.");
-        return;
-      }
-
-      // Create file object for upload - ensure proper format for React Native
-      const file = {
+      setIsUploading(documentField);
+      // 1. Upload to Pinata (IPFS)
+      const ipfsUrl = await uploadToPinata({
         uri: document.uri,
-        type: document.type || "application/pdf",
-        name: document.name || `document_${Date.now()}.pdf`,
-      };
-
-      console.log("Uploading document:", file);
-      console.log("Property ID:", propertyId);
-      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId));
-      
-      const response = await uploadFilesMutation.mutateAsync({
-        propertyId,
-        files: [file],
-        fileType: "document",
+        name: document.name,
+        type: document.type,
       });
-
-      console.log("Document upload response:", response);
-
-      // Update the document with uploaded URL and key
-      if (response.data?.uploadedFiles?.[0]) {
-        const uploadedDocument = response.data.uploadedFiles[0];
-        const updatedDocument: DocumentFile = {
-          ...document,
-          uploadedUrl: uploadedDocument.url,
-          uploadedKey: uploadedDocument.key,
-        };
-        updateFormData(documentField, updatedDocument);
-        console.log("Updated document with uploaded URL:", uploadedDocument.url);
-      } else {
-        console.warn("No uploaded documents in response:", response);
-      }
+      // 2. Update formData with IPFS url
+      const updatedDocument: DocumentFile = {
+        ...document,
+        uploadedUrl: ipfsUrl,
+        uploadedKey: document.name,
+      };
+      updateFormData(documentField, updatedDocument);
+      setIsUploading(null);
+      // 3. (Optional) If you still want to upload to your backend, do it here
+      // await uploadFilesMutation.mutateAsync({ ... })
     } catch (error: any) {
-      console.error("Error uploading document to server:", error);
-      
-      // Show a more specific error message
-      if (error?.message === "Network Error") {
-        Alert.alert(
-          "Upload Failed", 
-          "Network error occurred. Please check your internet connection and try again."
-        );
-      } else if (error?.status === 401) {
-        Alert.alert(
-          "Authentication Error", 
-          "Please log in again to continue."
-        );
-      } else if (error?.status === 413) {
-        Alert.alert(
-          "File Too Large", 
-          "The document file is too large. Please select a smaller file."
-        );
-      } else if (error?.status === 422) {
-        Alert.alert(
-          "Upload Failed", 
-          "Invalid document format. Please try again with a different file."
-        );
-      } else {
-        Alert.alert(
-          "Upload Failed", 
-          "Failed to upload document. Please try again."
-        );
-      }
+      setIsUploading(null);
+      console.error('Error uploading document to IPFS:', error);
+      Alert.alert('Upload Failed', 'Failed to upload document to IPFS. Please try again.');
     }
   };
 

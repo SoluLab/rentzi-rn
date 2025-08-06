@@ -82,8 +82,25 @@ export default function ResidentialPropertyListingPurposeScreen() {
         "Residential property draft saved successfully with listing purpose:",
         response
       );
-      // Navigate to review details step
-      router.push('/add-residential-details/residential-property-review');
+      // Navigate to review details step with title and property ID
+      const propertyTitle = data.propertyDetails?.propertyTitle || "";
+      const propertyId = data.propertyId;
+      
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      
+      router.push({
+        pathname: '/add-residential-details/residential-property-review',
+        params: {
+          propertyTitle,
+          propertyId: propertyId.toString(),
+        }
+      });
     },
     onError: (error) => {
       console.error(
@@ -141,15 +158,12 @@ export default function ResidentialPropertyListingPurposeScreen() {
     };
 
     // Add listing purpose based on schema requirements
-    // Map the selected listing purpose to appropriate schema fields
+    // Use allowsFractionalization instead of listingType
     if (formData.selectedPurpose === 'rental-only') {
-      apiData.listingType = 'rental';
       apiData.allowsFractionalization = false;
     } else if (formData.selectedPurpose === 'fractional-ownership-only') {
-      apiData.listingType = 'fractional';
       apiData.allowsFractionalization = true;
     } else if (formData.selectedPurpose === 'both') {
-      apiData.listingType = 'both';
       apiData.allowsFractionalization = true;
     }
 

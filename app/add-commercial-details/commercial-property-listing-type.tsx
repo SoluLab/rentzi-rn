@@ -68,8 +68,25 @@ export default function CommercialPropertyListingTypeScreen() {
         "Commercial property draft saved successfully with listing type:",
         response
       );
-      // Navigate to review screen
-      router.push('/add-commercial-details/commercial-property-review');
+      // Navigate to review screen with title and property ID
+      const propertyTitle = data.propertyDetails?.propertyTitle || "";
+      const propertyId = data.propertyId;
+      
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      
+      router.push({
+        pathname: '/add-commercial-details/commercial-property-review',
+        params: {
+          propertyTitle,
+          propertyId: propertyId.toString(),
+        }
+      });
     },
     onError: (error) => {
       console.error(
@@ -127,12 +144,10 @@ export default function CommercialPropertyListingTypeScreen() {
     };
 
     // Add listing type based on schema requirements
-    // Map the selected listing type to appropriate schema fields
+    // Use allowsFractionalization instead of listingType
     if (formData.selectedType === 'rental-only') {
-      apiData.listingType = 'rental';
       apiData.allowsFractionalization = false;
     } else if (formData.selectedType === 'fractional-ownership-rental') {
-      apiData.listingType = 'fractional';
       apiData.allowsFractionalization = true;
     }
 

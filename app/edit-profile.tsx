@@ -22,7 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { useAuthStore } from '@/stores/authStore';
 import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
-import { useUpdateProfile } from '@/services/apiClient';
+import { useUpdateProfile } from '@/services/auth';
 
 export default function EditProfileScreen() {
   const router = useRouter();

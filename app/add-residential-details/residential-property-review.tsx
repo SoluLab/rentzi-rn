@@ -45,7 +45,6 @@ import {
 } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerSubmitPropertyForReview } from '@/services/homeownerAddProperty';
 
 interface ReviewSection {
   id: string;
@@ -109,19 +108,6 @@ export default function ResidentialPropertyReviewScreen() {
     getCompletionStatus 
   } = useResidentialPropertyStore();
   const { syncFromResidentialStore } = useHomeownerPropertyStore();
-  const { getPropertyById } = useHomeownerPropertyStore();
-
-  // API mutation hook for submitting property for review
-  const submitForReviewMutation = useHomeownerSubmitPropertyForReview({
-    onSuccess: (response) => {
-      console.log('Property submitted for review successfully:', response);
-      setShowSuccessPopup(true);
-    },
-    onError: (error) => {
-      console.error('Error submitting property for review:', error);
-      Alert.alert('Error', 'Failed to submit property for review. Please try again.');
-    },
-  });
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,25 +151,15 @@ export default function ResidentialPropertyReviewScreen() {
     setIsSubmitting(true);
     
     try {
-      // Get property ID from store
-      const propertyId = data.propertyId;
-      if (!propertyId) {
-        Alert.alert('Error', 'Property ID not found. Please go back and try again.');
-        return;
-      }
-      
-      console.log('Submitting property for review:', propertyId);
-      
-      // Call the API to submit property for review
-      await submitForReviewMutation.mutateAsync({
-        propertyId: propertyId
-      });
+      // Submit property to store
+      submitProperty();
       
       // Sync with homeowner property store
       await syncFromResidentialStore();
       
+      setShowSuccessPopup(true);
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
+      console.error('Error submitting residential property:', error);
       Alert.alert('Submission Failed', 'Please try again later.');
     } finally {
       setIsSubmitting(false);
