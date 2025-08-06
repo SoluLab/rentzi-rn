@@ -1956,6 +1956,11 @@
   resolved "https://registry.yarnpkg.com/@standard-schema/utils/-/utils-0.3.0.tgz#3d5e608f16c2390c10528e98e59aef6bf73cae7b"
   integrity sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==
 
+"@sumsub/react-native-mobilesdk-module@^1.35.1":
+  version "1.35.1"
+  resolved "https://registry.yarnpkg.com/@sumsub/react-native-mobilesdk-module/-/react-native-mobilesdk-module-1.35.1.tgz#8fa61335d16ee4e791eb3683c66a905210bf41fa"
+  integrity sha512-P/c67fR0jj4/4x3YjLBZrMC4xuUHfpot5KLxmhG5/freixH0KTHRGFffaoj99AcLjCJWLO2AE+mP3F1cr10+6w==
+
 "@svgr/babel-plugin-add-jsx-attribute@8.0.0":
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/@svgr/babel-plugin-add-jsx-attribute/-/babel-plugin-add-jsx-attribute-8.0.0.tgz#4001f5d5dd87fa13303e36ee106e3ff3a7eb8b22"
