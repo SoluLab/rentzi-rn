@@ -97,3 +97,4 @@ export interface PaymentTransaction {
 export * from "./auth";
 export * from "./homeownerProperty";
 export * from "./marketplace";
+export * from "./homeownerProfile";

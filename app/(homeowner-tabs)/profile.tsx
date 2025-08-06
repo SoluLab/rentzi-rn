@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -10,7 +10,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useGetProfile } from '@/services/auth';
+import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
 
 import {
   User,
@@ -35,7 +35,15 @@ export default function HomeownerProfileScreen() {
   const router = useRouter();
   const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { data: profileData, isLoading, error } = useGetProfile('homeowner');
+  const { profileData, isLoading, error, refetch } = useHomeownerProfile();
+
+  // Refetch profile data when screen comes into focus for additional reliability
+  useFocusEffect(
+    React.useCallback(() => {
+      // This is a backup to ensure data is fresh when navigating back
+      refetch();
+    }, [refetch])
+  );
 
   const handleLogout = () => {
     logout();
@@ -81,7 +89,7 @@ export default function HomeownerProfileScreen() {
       icon: Shield,
       title: 'Security & Privacy',
       subtitle: 'Password and security settings',
-      onPress: () => console.log('Security settings'),
+      onPress: () => router.push('/change-password'),
     },
     {
       icon: FileText,
@@ -96,6 +104,8 @@ export default function HomeownerProfileScreen() {
       onPress: () => console.log('Help center'),
     },
   ];
+
+
   const quickStats = [
     { label: 'Properties Listed', value: '12' },
     { label: 'Total Bookings', value: '156' },
@@ -108,8 +118,24 @@ export default function HomeownerProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
         <View style={styles.section}>
-          <TouchableOpacity onPress={() => router.push('/edit-profile')}>
-            <Card style={styles.profileCard}>
+          {error && (
+            <Card style={{ ...styles.profileCard, borderColor: colors.status.error, borderWidth: 1 }}>
+              <View style={styles.errorContainer}>
+                <Typography variant="body" color="error" align="center">
+                  Failed to load profile
+                </Typography>
+                <Button
+                  title="Retry"
+                  onPress={() => refetch()}
+                  variant="outline"
+                  style={{ marginTop: spacing.sm }}
+                />
+              </View>
+            </Card>
+          )}
+          {!error && (
+            <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+              <Card style={styles.profileCard}>
               <View style={styles.profileHeader}>
                 <TouchableOpacity onPress={handleProfilePictureUpload}>
                   <Image
@@ -124,12 +150,19 @@ export default function HomeownerProfileScreen() {
                   </View>
                 </TouchableOpacity>
                 <View style={styles.profileInfo}>
-                  <Typography variant="h4">{profileData?.data?.name || 'Loading...'}</Typography>
+                  <Typography variant="h4">
+                    {isLoading ? 'Loading...' : profileData?.name?.fullName || 'No Name'}
+                  </Typography>
                   <Typography variant="body" color="secondary">
-                    {profileData?.data?.email || 'Loading...'}
+                    {isLoading ? 'Loading...' : profileData?.email || 'No Email'}
                   </Typography>
                   <Typography variant="caption" color="secondary">
-                    {profileData?.data?.phone?.countryCode} {profileData?.data?.phone?.mobile}
+                    {isLoading 
+                      ? 'Loading...' 
+                      : profileData?.phone 
+                        ? `${profileData.phone.countryCode} ${profileData.phone.mobile}`
+                        : 'No Phone'
+                    }
                   </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>
@@ -137,11 +170,20 @@ export default function HomeownerProfileScreen() {
                         PROPERTY OWNER
                       </Typography>
                     </View>
-                    <View style={[styles.roleBadge, { backgroundColor: colors.status.success }]}>
-                      <Typography variant="label" color="inverse">
-                        VERIFIED
-                      </Typography>
-                    </View>
+                    {/* {profileData?.isEmailVerified && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.status.success }]}>
+                        <Typography variant="label" color="inverse">
+                          EMAIL VERIFIED
+                        </Typography>
+                      </View>
+                    )}
+                    {profileData?.isPhoneVerified && (
+                      <View style={[styles.roleBadge, { backgroundColor: colors.status.success }]}>
+                        <Typography variant="label" color="inverse">
+                          PHONE VERIFIED
+                        </Typography>
+                      </View>
+                    )} */}
                   </View>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/edit-profile')}>
@@ -150,6 +192,7 @@ export default function HomeownerProfileScreen() {
               </View>
             </Card>
           </TouchableOpacity>
+          )}
         </View>
 
 
@@ -400,5 +443,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  errorContainer: {
+    alignItems: 'center',
+    padding: spacing.md,
   },
 });

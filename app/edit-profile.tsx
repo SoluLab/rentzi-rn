@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,31 +15,41 @@ import { Typography } from '@/components/ui/Typography';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Header } from '@/components/ui/Header';
-import { PasswordStrengthMeter } from '@/components/ui/PasswordStrengthMeter';
+import { PhoneInput } from '@/components/ui/PhoneInput';
 import { toast } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
-import { useAuthStore } from '@/stores/authStore';
-import { validatePassword, validateFullName, validateEmail } from '@/utils/validation';
+import { validateFullName } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
-import { useUpdateProfile } from '@/services/apiClient';
+import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
+import { countryCodes } from '@/components/ui/PhoneInput';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user } = useAuthStore();
-  const [firstName, setFirstName] = useState(user?.name?.split(' ')[0] || '');
-  const [lastName, setLastName] = useState(user?.name?.split(' ').slice(1).join(' ') || '');
-  const [phoneNumber, setPhoneNumber] = useState(user?.profileDetails?.phone || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [address, setAddress] = useState('');
-  const [originalEmail] = useState(user?.email || '');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [profileImage, setProfileImage] = useState(user?.profileDetails?.avatar || '');
-  const [isLoading, setIsLoading] = useState(false);
+  const { profileData, isLoading: profileLoading, updateProfile, isUpdating } = useHomeownerProfile();
+  
+  // Initialize state with profile data
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes.find(c => c.code === "US") || countryCodes[0]);
+  const [profileImage, setProfileImage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const { mutateAsync: updateProfile } = useUpdateProfile();
+
+  // Update state when profile data is loaded
+  useEffect(() => {
+    if (profileData) {
+      setFirstName(profileData.name.firstName || '');
+      setLastName(profileData.name.lastName || '');
+      setPhoneNumber(profileData.phone.mobile || '');
+      
+      // Set country code based on profile data
+      const countryCode = countryCodes.find(c => c.phoneCode === profileData.phone.countryCode);
+      if (countryCode) {
+        setSelectedCountryCode(countryCode);
+      }
+    }
+  }, [profileData]);
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -47,30 +57,6 @@ export default function EditProfileScreen() {
     const nameValidation = validateFullName(firstName + ' ' + lastName);
     if (!nameValidation.isValid) {
       newErrors.name = nameValidation.error!;
-    }
-    // Email validation
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) {
-      newErrors.email = emailValidation.error!;
-    }
-    // Password validation (only if user wants to change password)
-    if (currentPassword || newPassword || confirmPassword) {
-      if (!currentPassword) {
-        newErrors.currentPassword = 'Current password is required';
-      }
-      if (newPassword) {
-        const passwordValidation = validatePassword(newPassword);
-        if (!passwordValidation.isValid) {
-          newErrors.newPassword = passwordValidation.error!;
-        }
-      } else {
-        newErrors.newPassword = 'New password is required';
-      }
-      if (!confirmPassword) {
-        newErrors.confirmPassword = 'Please confirm your new password';
-      } else if (newPassword !== confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -80,33 +66,26 @@ export default function EditProfileScreen() {
       toast.error('Please fix the errors below');
       return;
     }
-    if (email !== originalEmail) {
-      router.push({
-        pathname: '/(auth)/email-verification',
-        params: { email: email, type: 'change' },
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const payload: any = {
+    
+    const payload: any = {
+      name: {
         firstName,
         lastName,
-        phoneNumber,
-        email,
-      };
-      if (profileImage) payload.profileImage = profileImage;
-      if (newPassword) {
-        payload.currentPassword = currentPassword;
-        payload.newPassword = newPassword;
-      }
+      },
+      phone: {
+        countryCode: selectedCountryCode.phoneCode,
+        mobile: phoneNumber,
+      },
+    };
+    
+    try {
       await updateProfile(payload);
-      toast.success('Profile updated successfully!');
+      // The hook will automatically refetch profile data and show success toast
+      // Then navigate back to profile screen
       router.back();
     } catch (error: any) {
-      toast.error(error?.message || 'Failed to update profile. Please try again.');
-    } finally {
-      setIsLoading(false);
+      // Error handling is already done in the hook
+      console.error('Profile update error:', error);
     }
   };
   const handleImagePicker = () => {
@@ -152,13 +131,15 @@ export default function EditProfileScreen() {
     if (field === 'firstName') setFirstName(value);
     if (field === 'lastName') setLastName(value);
     if (field === 'phoneNumber') setPhoneNumber(value);
-    if (field === 'email') setEmail(value);
-    if (field === 'address') setAddress(value);
-    if (field === 'currentPassword') setCurrentPassword(value);
-    if (field === 'newPassword') setNewPassword(value);
-    if (field === 'confirmPassword') setConfirmPassword(value);
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleCountryChange = (country: any) => {
+    setSelectedCountryCode(country);
+    if (errors.phoneNumber) {
+      setErrors((prev) => ({ ...prev, phoneNumber: '' }));
     }
   };
   return (
@@ -173,129 +154,79 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* Profile Picture Section */}
-          <View style={styles.section}>
-            <Typography variant="h4" style={styles.sectionTitle}>
-              Profile Picture
-            </Typography>
-            <View style={styles.imageContainer}>
-              <Image
-                source={{
-                  uri:
-                    profileImage ||
-                    'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
-                }}
-                style={styles.profileImage}
-              />
-              <TouchableOpacity style={styles.imageEditButton} onPress={handleImagePicker}>
-                <Camera size={20} color={colors.neutral.white} />
-              </TouchableOpacity>
-            </View>
-            <Typography variant="caption" color="secondary" align="center">
-              Tap the camera icon to change your profile picture
-            </Typography>
-          </View>
-          {/* Personal Information */}
-          <View style={styles.section}>
-            <Typography variant="h4" style={styles.sectionTitle}>
-              Personal Information
-            </Typography>
-            <Input
-              label="First Name"
-              value={firstName}
-              onChangeText={(value) => updateField('firstName', value)}
-              placeholder="Enter your first name"
-              error={errors.firstName}
-            />
-            <Input
-              label="Last Name"
-              value={lastName}
-              onChangeText={(value) => updateField('lastName', value)}
-              placeholder="Enter your last name"
-              error={errors.lastName}
-            />
-            <Input
-              label="Phone Number"
-              value={phoneNumber}
-              onChangeText={(value) => updateField('phoneNumber', value)}
-              placeholder="Enter your phone number"
-              keyboardType="phone-pad"
-              error={errors.phoneNumber}
-            />
-            <Input
-              label="Email Address"
-              value={email}
-              onChangeText={(value) => updateField('email', value)}
-              placeholder="Enter your email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              error={errors.email}
-            />
-            {email !== originalEmail && (
-              <Typography variant="caption" color="primary" style={{ marginTop: 4 }}>
-                You will need to verify your new email address.
+          {profileLoading ? (
+            <View style={styles.loadingContainer}>
+              <Typography variant="body" color="secondary" align="center">
+                Loading profile data...
               </Typography>
-            )}
-            <Input
-              label="Address"
-              value={address}
-              onChangeText={(value) => updateField('address', value)}
-              placeholder="Enter your address"
-              multiline
-              numberOfLines={3}
-              error={errors.address}
-            />
-          </View>
-          {/* Change Password */}
-          <View style={styles.section}>
-            <Typography variant="h4" style={styles.sectionTitle}>
-              Change Password
-            </Typography>
-            <Typography variant="caption" color="secondary" style={styles.sectionDescription}>
-              Leave blank if you don't want to change your password
-            </Typography>
-            <Input
-              label="Current Password"
-              value={currentPassword}
-              onChangeText={(value) => updateField('currentPassword', value)}
-              placeholder="Enter your current password"
-              secureTextEntry
-              showPasswordToggle
-              error={errors.currentPassword}
-            />
-            <View>
-              <Input
-                label="New Password"
-                value={newPassword}
-                onChangeText={(value) => updateField('newPassword', value)}
-                placeholder="Enter your new password"
-                secureTextEntry
-                showPasswordToggle
-                error={errors.newPassword}
-              />
-              <PasswordStrengthMeter password={newPassword} hideWhenSpaces={true} />
             </View>
-            <Input
-              label="Confirm New Password"
-              value={confirmPassword}
-              onChangeText={(value) => updateField('confirmPassword', value)}
-              placeholder="Confirm your new password"
-              secureTextEntry
-              showPasswordToggle
-              error={errors.confirmPassword}
-            />
-          </View>
-          
-          {/* Save Button */}
-          <View style={styles.buttonContainer}>
-            <Button
-              title="Save Changes"
-              onPress={handleSave}
-              loading={isLoading}
-              variant="primary"
-              style={styles.saveButton}
-            />
-          </View>
+          ) : (
+            <>
+              {/* Profile Picture Section */}
+              <View style={styles.section}>
+                <Typography variant="h4" style={styles.sectionTitle}>
+                  Profile Picture
+                </Typography>
+                <View style={styles.imageContainer}>
+                  <Image
+                    source={{
+                      uri:
+                        profileImage ||
+                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
+                    }}
+                    style={styles.profileImage}
+                  />
+                  <TouchableOpacity style={styles.imageEditButton} onPress={handleImagePicker}>
+                    <Camera size={20} color={colors.neutral.white} />
+                  </TouchableOpacity>
+                </View>
+                <Typography variant="caption" color="secondary" align="center">
+                  Tap the camera icon to change your profile picture
+                </Typography>
+              </View>
+              {/* Personal Information */}
+              <View style={styles.section}>
+                <Typography variant="h4" style={styles.sectionTitle}>
+                  Personal Information
+                </Typography>
+                <Input
+                  label="First Name"
+                  value={firstName}
+                  onChangeText={(value) => updateField('firstName', value)}
+                  placeholder="Enter your first name"
+                  error={errors.firstName}
+                />
+                <Input
+                  label="Last Name"
+                  value={lastName}
+                  onChangeText={(value) => updateField('lastName', value)}
+                  placeholder="Enter your last name"
+                  error={errors.lastName}
+                />
+                <PhoneInput
+                  label="Mobile Number"
+                  value={phoneNumber}
+                  onChangeText={(value) => updateField('phoneNumber', value)}
+                  placeholder="Enter your mobile number"
+                  error={errors.phoneNumber}
+                  selectedCountry={selectedCountryCode}
+                  onCountryChange={handleCountryChange}
+                />
+                            </View>
+
+              
+              {/* Save Button */}
+              <View style={styles.buttonContainer}>
+                <Button
+                  title="Save Changes"
+                  onPress={handleSave}
+                  loading={isUpdating}
+                  variant="primary"
+                  style={styles.saveButton}
+                />
+              </View>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -314,6 +245,12 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: spacing.xl,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
   },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,

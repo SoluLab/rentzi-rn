@@ -70,6 +70,7 @@ export const queryKeys = {
   tokens: () => [...queryKeys.all, "tokens"] as const,
   mailerOptions: () => [...queryKeys.all, "mailerOptions"] as const,
   profile: () => [...queryKeys.all, "profile"] as const,
+  homeownerProfile: () => [...queryKeys.all, "homeowner", "profile"] as const,
 
   // Homeowner Property Query Keys
   homeownerProperties: () =>

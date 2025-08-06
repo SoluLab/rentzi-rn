@@ -58,4 +58,14 @@ export const TOAST_MESSAGES = {
       UNEXPECTED_ERROR: "An unexpected error occurred. Please try again.",
     },
   },
+  PROFILE: {
+    FETCH_SUCCESS: "Profile loaded successfully",
+    FETCH_FAILED: "Failed to load profile. Please try again.",
+    UPDATE_SUCCESS: "Profile updated successfully!",
+    UPDATE_FAILED: "Failed to update profile. Please try again.",
+    UPLOAD_SUCCESS: "Profile picture uploaded successfully!",
+    UPLOAD_FAILED: "Failed to upload profile picture. Please try again.",
+    PASSWORD_CHANGE_SUCCESS: "Password changed successfully!",
+    PASSWORD_CHANGE_FAILED: "Failed to change password. Please try again.",
+  },
 } as const; 
