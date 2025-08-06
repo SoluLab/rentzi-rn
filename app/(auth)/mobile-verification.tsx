@@ -11,7 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { colors, spacing } from "@/constants";
 import { Header } from "@/components/ui/Header";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useVerifyOtp } from '@/services/auth';
+import { useVerifyLoginOtp, useResendOtp } from '@/services/auth';
 import { useRenterInvestorVerifyLoginOtp } from '@/services/renterInvestorAuth';
 import { useRenterInvestorResendOtp } from '@/services/renterInvestorAuth';
 
@@ -43,8 +43,9 @@ export default function MobileVerificationScreen() {
 
   // Determine userType for API call based on roleType
   const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
-  const verifyOtpMutation = useVerifyOtp(userType);
+  const homeownerVerifyLoginOtpMutation = useVerifyLoginOtp();
   const renterInvestorVerifyLoginOtpMutation = useRenterInvestorVerifyLoginOtp();
+  const homeownerResendOtpMutation = useResendOtp();
   const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
     onSuccess: (response) => {
       if (response.success) {
@@ -104,24 +105,16 @@ export default function MobileVerificationScreen() {
           otp,
         });
       } else {
-        response = await verifyOtpMutation.mutateAsync({
+        // For homeowner registration
+        response = await homeownerVerifyLoginOtpMutation.mutateAsync({
           identifier: email || user?.email || '',
           otp,
         });
       }
       if (response.success) {
         toast.success("Mobile number verified successfully!");
-        if (type === "login") {
-          toast.success("Login successful! Welcome back.");
-          if (roleType === "homeowner") {
-            router.replace("/(homeowner-tabs)");
-          } else {
-            router.replace("/(tabs)");
-          }
-        } else {
-          toast.success("Registration completed! Please login to continue.");
-          router.replace("/(auth)/login");
-        }
+        toast.success("Registration completed! Please login to continue.");
+        router.replace("/(auth)/login");
       } else {
         const errorMessage = response.message || "Failed to verify OTP";
         toast.error(errorMessage);
@@ -153,8 +146,10 @@ export default function MobileVerificationScreen() {
         setOtp("");
         return;
       }
-      // fallback to original resendOTP for homeowner
-      await resendOTP(user?.email || email || "", phone || "");
+      // Use homeowner resend OTP function
+      await homeownerResendOtpMutation.mutateAsync({
+        email: user?.email || email || "",
+      });
       toast.success("OTP sent successfully!");
       setTimeLeft(120);
       setCanResend(false);
@@ -224,8 +219,8 @@ export default function MobileVerificationScreen() {
           {/* Verify Button */}
           <Button
             onPress={handleVerifyOTP}
-            disabled={otp.length !== 6 || verifyOtpMutation.status === 'pending'}
-            loading={verifyOtpMutation.status === 'pending'}
+            disabled={otp.length !== 6 || (userType === "homeowner" ? homeownerVerifyLoginOtpMutation.status === 'pending' : renterInvestorVerifyLoginOtpMutation.status === 'pending')}
+            loading={userType === "homeowner" ? homeownerVerifyLoginOtpMutation.status === 'pending' : renterInvestorVerifyLoginOtpMutation.status === 'pending'}
             style={styles.verifyButton}
             title={`Verify ${getVerificationType()}`}
           />

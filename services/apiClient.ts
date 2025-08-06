@@ -125,7 +125,7 @@ const apiCall = async <T = any>({
       timeout,
       // Add additional debugging for React Native
       validateStatus: (status) => {
-        console.log("[API Call] Response status:", status);
+        //console.log("[API Call] Response status:", status);
         return status < 500; // Accept all status codes less than 500
       },
     };
@@ -142,8 +142,8 @@ console.log("[API Call] Config:", {
     
 
     console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
-    console.log("[API Call] Request Method:", method);
-    console.log("[API Call] Platform:", Platform.OS);
+    //console.log("[API Call] Request Method:", method);
+    //console.log("[API Call] Platform:", Platform.OS);
     console.log("[API Call] Request Data:", data);
 
     const response: AxiosResponse<T> = await axios(axiosConfig);

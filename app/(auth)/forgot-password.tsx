@@ -18,7 +18,6 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const roleType = params.roleType as string | undefined;
-  console.log('[ForgotPasswordScreen] roleType:', roleType);
   const forgotPasswordMutation = useForgotPassword();
   const renterInvestorForgotPasswordMutation = useRenterInvestorForgotPassword();
   const [email, setEmail] = useState("");

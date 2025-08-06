@@ -90,7 +90,7 @@ export default function LoginScreen() {
     }
   };
 
-  const homeownerLoginMutation = useLogin("homeowner", {
+  const homeownerLoginMutation = useLogin({
     onSuccess: async (response: AuthResponse) => {
       // Homeowner response handling (existing logic)
       if (response.success && response.data) {
