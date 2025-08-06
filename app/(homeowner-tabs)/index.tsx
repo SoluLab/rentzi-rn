@@ -82,7 +82,7 @@ export default function HomeownerDashboardScreen() {
       
       // Check if there's more data
       const pagination = propertiesData.pagination;
-      setHasMoreData(pagination?.currentPage < pagination?.totalPages);
+      setHasMoreData(pagination?.page < pagination?.totalPages);
     }
   }, [propertiesData, currentPage]);
 
@@ -339,7 +339,7 @@ export default function HomeownerDashboardScreen() {
                 <Clock size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.pendingApproval || 0}
+                    {dashboardStats?.data?.pendingApprovals || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Pending Approvals
@@ -352,7 +352,7 @@ export default function HomeownerDashboardScreen() {
                 <DollarSign size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    ${dashboardStats?.data?.totalRevenue?.toLocaleString() || '0'}
+                    ${dashboardStats?.data?.totalEarnings?.amount?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Earnings
@@ -438,8 +438,8 @@ export default function HomeownerDashboardScreen() {
               {propertiesData?.pagination && (
                 <View style={styles.paginationInfo}>
                   <Typography variant="caption" color="secondary">
-                    Page {propertiesData.pagination.currentPage} of {propertiesData.pagination.totalPages} 
-                    ({propertiesData.pagination.totalItems} total properties)
+                    Page {propertiesData.pagination.page} of {propertiesData.pagination.totalPages} 
+                    ({propertiesData.pagination.total} total properties)
                   </Typography>
                 </View>
               )}

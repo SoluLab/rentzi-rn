@@ -16,18 +16,10 @@ export interface MonthlyStats {
 
 export interface DashboardStats {
   totalProperties: number;
-  activeProperties: number;
-  draftProperties: number;
-  pendingApproval: number;
-  totalBookings: number;
+  pendingApprovals: number;
+  totalEarnings: {
+    amount: number;
+    currency: string;
+  };
   activeBookings: number;
-  completedBookings: number;
-  cancelledBookings: number;
-  totalRevenue: number;
-  monthlyRevenue: number;
-  averageRating: number;
-  totalReviews: number;
-  occupancyRate: number;
-  recentBookings: DashboardRecentBooking[];
-  monthlyStats: Record<string, MonthlyStats>;
 }

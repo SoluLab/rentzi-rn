@@ -3,13 +3,29 @@ import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
 import type { ApiError } from "./apiClient";
 import { useApiQuery, queryKeys } from "./apiClient";
 import type { DashboardStats } from "@/types/homeownerDashboard";
+import type { IHomeownerProperty } from "@/types/homeownerProperty";
+
+// Paginated property list response type
+export interface PaginatedPropertyListResponse {
+  success: boolean;
+  message: string;
+  data: IHomeownerProperty[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
 
 // 1. Get All Properties (with filters/pagination)
 export const useHomeownerGetAllProperties = (
-  params?: Record<string, any>,
-  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">
+  params?: { page?: number; limit?: number; status?: string },
+  options?: Omit<UseQueryOptions<PaginatedPropertyListResponse, ApiError>, "queryKey" | "queryFn">
 ) => {
-  return useApiQuery(
+  return useApiQuery<PaginatedPropertyListResponse>(
     [...queryKeys.homeownerProperties(), params],
     {
       baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,

@@ -7,107 +7,85 @@ export interface HomeownerPropertyResponse {
 }
 
 export interface IHomeownerProperty {
-  _id?: string;
-  _propertyOwner: string;
+  _id: string;
+  _propertyOwner: {
+    name: {
+      firstName: string;
+      lastName: string;
+      fullName: string;
+    };
+    _id: string;
+    email: string;
+  };
   title: string;
-  description?: string;
-  type?: PropertyType;
-  category?: PropertyCategory;
-  address?: {
-    street?: string;
-    _city?: string;
-    _state?: string;
-    _country?: string;
-    zipCode?: string;
-    coordinates?: {
+  description: string;
+  type: string;
+  category: string;
+  address: {
+    coordinates: {
       latitude: number;
       longitude: number;
     };
+    street: string;
+    zipCode: string;
   };
-  rentAmount?: {
-    basePrice?: number;
-    weekendPrice?: number;
-    peakSeasonPrice?: number;
-    currency?: string;
-  };
-  maintenanceFee?: {
-    amount: number;
+  rentAmount: {
     currency: string;
   };
-  bedrooms?: {
-    roomType: RoomType;
-    bedType: BedType;
+  maintenanceFee: {
+    currency: string;
+  };
+  area: {
+    value: number;
+  };
+  propertyValueEstimate: {
+    currency: string;
+  };
+  documents: {
+    propertyDeed: any[];
+    zoningCertificate: any[];
+    occupancyCertificate: any[];
+    governmentIssuedId: any[];
+    propertyTaxBill: any[];
+    titleReportOrInsurance: any[];
+    rentRoll: any[];
+    incomeandExpenseStatement: any[];
+    camAgreement: any[];
+    propertyConditionAssessment: any[];
+    proofOfInsurance: any[];
+    utilityBill: any[];
+    propertyAppraisal: any[];
+    authorizationToTokenize: any[];
+    conditional: any[];
+    mortgageStatement: any[];
+    hoaDocument: any[];
+    granchiseAgreement: any[];
+    businessLicense: any[];
+    adaComplianceReport: any[];
+    safetyReport: any[];
+    appraisalReport: any[];
+  };
+  bedrooms: Array<{
+    roomType: string;
+    bedType: string;
     attachedBathroom: boolean;
     walkInCloset: boolean;
-    roomSizeInSqft?: number;
+    roomSizeInSqft: number;
     hasBalcony: boolean;
-  }[];
-  bathrooms?: number;
-  area?: {
-    value: number;
-  };
-  _amenities?: string[];
-  images?: {
-    key: string;
-    url: string;
-  }[];
-  status: PropertyStatus;
-  blockchainStatus: BlockchainStatus;
-  _rules?: string[];
-  propertyValueEstimate?: {
-    value: number;
-    currency: string;
-  };
-  yearOfBuilt?: number;
-  yearOfRenovated?: number;
-  _zoningClassification?: string;
-  availableWeeksPerYear?: number;
-  isFurnished?: boolean;
-  furnishingDescription?: string;
-  ownershipType?: OwnershipType;
-  allowsFractionalizationOrEquity?: boolean;
-  _propertyFeatures?: string[];
-  conciergeServicesIncluded?: string;
-  videos?: {
-    key: string;
-    url: string;
-  }[];
-  videos360?: {
-    key: string;
-    url: string;
-  }[];
-  documents?: {
-    propertyDeed?: { key: string; url: string }[];
-    zoningCertificate?: { key: string; url: string }[];
-    occupancyCertificate?: { key: string; url: string }[];
-    governmentIssuedId?: { key: string; url: string }[];
-    propertyTaxBill?: { key: string; url: string }[];
-    titleReportOrInsurance?: { key: string; url: string }[];
-    rentRoll?: { key: string; url: string }[];
-    incomeandExpenseStatement?: { key: string; url: string }[];
-    camAgreement?: { key: string; url: string }[];
-    propertyConditionAssessment?: { key: string; url: string }[];
-    proofOfInsurance?: { key: string; url: string }[];
-    utilityBill?: { key: string; url: string }[];
-    propertyAppraisal?: { key: string; url: string }[];
-    authorizationToTokenize?: { key: string; url: string }[];
-    conditional?: { key: string; url: string }[];
-    mortgageStatement?: { key: string; url: string }[];
-    hoaDocument?: { key: string; url: string }[];
-    granchiseAgreement?: { key: string; url: string }[];
-    businessLicense?: { key: string; url: string }[];
-    adaComplianceReport?: { key: string; url: string }[];
-    safetyReport?: { key: string; url: string }[];
-    appraisalReport?: { key: string; url: string }[];
-  };
-  checkInCheckOutTimes?: {
-    checkIn: string;
-    checkOut: string;
-  };
-  localHighlights?: string;
-  submittedAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+    _id: string;
+  }>;
+  bathrooms: number;
+  _amenities: any[];
+  status: string;
+  blockchainStatus: string;
+  _rules: any[];
+  yearOfBuilt: number;
+  _propertyFeatures: any[];
+  images: any[];
+  videos: any[];
+  videos360: any[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type PropertyType =
@@ -149,3 +127,18 @@ export type OwnershipType =
   | "leasehold"
   | "cooperative"
   | "condominium";
+
+// Paginated property list response type (for homeownerDashboard)
+export interface PaginatedPropertyListResponse {
+  success: boolean;
+  message: string;
+  data: IHomeownerProperty[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}
