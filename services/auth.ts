@@ -145,7 +145,7 @@ export const useVerifyOtp = (
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_OTP,
-        data: { identifier, otp },
+        data: { email: identifier, otp },
         auth: true, // Enable authentication to include Bearer token
       });
       console.log("useVerifyOtp response:", response);
