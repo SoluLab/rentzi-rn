@@ -116,17 +116,13 @@ export const useMobileVerification = (): UseMobileVerificationReturn => {
       let response;
       const email = Array.isArray(params.email) ? params.email[0] : params.email;
       const identifier = email || user?.email || '';
-
-      console.log("[MobileVerification] Calling API for userType:", userType);
       
       if (userType === "renter_investor") {
-        console.log("[MobileVerification] Using RENTER API (port 5000)");
         response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
           identifier,
           otp,
         });
       } else {
-        console.log("[MobileVerification] Using HOMEOWNER API (port 5001)");
         // For homeowner registration
         const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
         response = await homeownerVerifyLoginOtpMutation.mutateAsync({
@@ -178,17 +174,13 @@ export const useMobileVerification = (): UseMobileVerificationReturn => {
     try {
       const email = Array.isArray(params.email) ? params.email[0] : params.email;
       const identifier = email || user?.email || '';
-
-      console.log("[MobileVerification] Resend OTP for userType:", userType);
       
       if (userType === "renter_investor") {
-        console.log("[MobileVerification] Using RENTER API for resend (port 5000)");
         await renterInvestorResendOtpMutation.mutateAsync({
           identifier,
           type: 'signup',
         });
       } else {
-        console.log("[MobileVerification] Using HOMEOWNER API for resend (port 5001)");
         // Use homeowner resend OTP function
         await homeownerResendOtpMutation.mutateAsync({
           email: identifier,

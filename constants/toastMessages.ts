@@ -12,6 +12,7 @@ export const TOAST_MESSAGES = {
       FAILED: "Registration failed. Please try again.",
       EMAIL_EXISTS: "Email already registered. Please use a different email or login.",
       VALIDATION_ERROR: "Please fix the errors below",
+      USER_EXISTS: "User already exists. Please login instead.",
     },
     OTP: {
       VERIFICATION_SUCCESS: "Verification successful!",
@@ -57,5 +58,11 @@ export const TOAST_MESSAGES = {
       NETWORK_ERROR: "Network error. Please check your connection.",
       UNEXPECTED_ERROR: "An unexpected error occurred. Please try again.",
     },
+  },
+  PROFILE: {
+    UPDATE_SUCCESS: "Profile updated successfully!",
+    UPDATE_FAILED: "Failed to update profile. Please try again.",
+    PASSWORD_CHANGE_SUCCESS: "Password changed successfully!",
+    PASSWORD_CHANGE_FAILED: "Failed to change password. Please try again.",
   },
 } as const; 

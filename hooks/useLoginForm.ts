@@ -7,6 +7,7 @@ import { loginSchema, userTypeSchema, type LoginFormData, type UserType } from "
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
 import { AuthResponse } from "@/types/auth";
 import { RenterInvestorLoginResponse, RenterInvestorLoginRequest } from "@/types/renterInvestorAuth";
+import { validateWithZod } from "@/utils/validation";
 
 interface UseLoginFormReturn {
   formData: LoginFormData;
@@ -92,21 +93,9 @@ export const useLoginForm = (): UseLoginFormReturn => {
   const loginMutation = userType === "homeowner" ? homeownerLoginMutation : renterInvestorLoginMutation;
 
   const validateForm = useCallback((): boolean => {
-    try {
-      loginSchema.parse(formData);
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const newErrors: Record<string, string> = {};
-        zodError.errors?.forEach((err: any) => {
-          newErrors[err.path[0]] = err.message;
-        });
-        setErrors(newErrors);
-      }
-      return false;
-    }
+    const { isValid, errors: validationErrors } = validateWithZod(loginSchema, formData);
+    setErrors(validationErrors);
+    return isValid;
   }, [formData]);
 
   const updateField = useCallback((field: keyof LoginFormData, value: string) => {
@@ -119,9 +108,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
 
-    const payload = userType === "homeowner" 
-      ? { identifier: formData.identifier, password: formData.password }
-      : { identifier: formData.identifier, password: formData.password } as RenterInvestorLoginRequest;
+    const payload = { identifier: formData.identifier, password: formData.password };
 
     loginMutation.mutate(payload);
   }, [formData, userType, validateForm, loginMutation]);
@@ -135,9 +122,7 @@ export const useLoginForm = (): UseLoginFormReturn => {
     setFormData({ identifier: email, password: defaultPassword });
 
     setTimeout(() => {
-      const payload = newUserType === "homeowner"
-        ? { identifier: email, password: defaultPassword }
-        : { identifier: email, password: defaultPassword } as RenterInvestorLoginRequest;
+      const payload = { identifier: email, password: defaultPassword };
 
       loginMutation.mutate(payload);
     }, 100);

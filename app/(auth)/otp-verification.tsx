@@ -36,8 +36,8 @@ export default function OTPVerificationScreen() {
       >
         <View style={styles.form}>
           <OTPVerificationHeader 
-            email={params.email} 
-            phone={params.phone} 
+            email={Array.isArray(params.email) ? params.email[0] : params.email || ''}
+            phone={Array.isArray(params.phone) ? params.phone[0] : params.phone || ''} 
           />
 
           <View style={styles.otpContainer}>

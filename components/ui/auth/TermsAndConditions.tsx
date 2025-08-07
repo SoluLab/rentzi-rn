@@ -4,6 +4,7 @@ import { Typography } from "@/components/ui/Typography";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
+import { APP_URLS } from "@/constants/urls";
 
 interface TermsAndConditionsProps {
   acceptedTerms: boolean;
@@ -42,7 +43,7 @@ export const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({
         </Typography>
         <TouchableOpacity
           accessibilityRole="link"
-          onPress={() => Linking.openURL("https://www.google.com/")}
+          onPress={() => Linking.openURL(APP_URLS.TERMS_AND_CONDITIONS)}
         >
           <Typography variant="body" color="primary">
             {" "}
@@ -54,7 +55,7 @@ export const TermsAndConditions: React.FC<TermsAndConditionsProps> = ({
         </Typography>
         <TouchableOpacity
           accessibilityRole="link"
-          onPress={() => Linking.openURL("https://www.google.com/")}
+          onPress={() => Linking.openURL(APP_URLS.PRIVACY_POLICY)}
         >
           <Typography variant="body" color="primary">
             {" "}

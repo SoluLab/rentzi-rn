@@ -22,6 +22,9 @@ export default function MobileVerificationScreen() {
     params,
   } = useMobileVerification();
 
+  const phoneParam = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+  const codeParam = Array.isArray(params.code) ? params.code[0] : params.code;
+
   return (
     <View style={styles.container}>
       <Header title="Verify Mobile Number" />
@@ -33,7 +36,10 @@ export default function MobileVerificationScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.content}>
-          <MobileVerificationHeader phone={params.phone} />
+          <MobileVerificationHeader 
+            phone={phoneParam} 
+            code={codeParam} 
+          />
 
           <View style={styles.otpSection}>
             <OTPInput value={otp} onOTPChange={setOtp} length={6} />

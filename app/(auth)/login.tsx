@@ -180,7 +180,7 @@ export default function LoginScreen() {
                   />
                 </View>
 
-                <QuickAccessButtons onQuickAccess={quickAccessLogin} />
+                {/* <QuickAccessButtons onQuickAccess={quickAccessLogin} /> */}
               </View>
             </View>
           </View>

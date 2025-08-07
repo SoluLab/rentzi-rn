@@ -1,51 +1,60 @@
-import { useMutation, UseMutationOptions, useQueryClient } from "@tanstack/react-query";
-import { RenterInvestorLoginRequest, RenterInvestorLoginResponse, RenterInvestorApiError } from "@/types/renterInvestorAuth";
+import {
+  useMutation,
+  useQueryClient,
+  UseMutationOptions,
+} from "@tanstack/react-query";
 import { apiPost } from "./apiClient";
-import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
-import {
-  RenterInvestorVerifyLoginOtpRequest,
-  RenterInvestorVerifyLoginOtpResponse,
-} from "@/types/renterInvestorAuth";
-import {
-  RenterInvestorResendOtpRequest,
-  RenterInvestorResendOtpResponse,
-} from "@/types/renterInvestorAuth";
-import {
+import { ENDPOINTS, getRenterAuthBaseURL } from "@/constants/urls";
+import { 
+  RenterInvestorLoginRequest, 
+  RenterInvestorLoginResponse,
   RenterInvestorRegisterRequest,
   RenterInvestorRegisterResponse,
-} from "@/types/renterInvestorAuth";
-import {
-  RenterInvestorForgotPasswordRequest,
-  RenterInvestorForgotPasswordResponse,
-} from "@/types/renterInvestorAuth";
-import {
-  RenterInvestorResetPasswordRequest,
-  RenterInvestorResetPasswordResponse,
-} from "@/types/renterInvestorAuth";
-import {
+  RenterInvestorVerifyLoginOtpRequest,
+  RenterInvestorVerifyLoginOtpResponse,
   RenterInvestorVerifyForgotPasswordOtpRequest,
   RenterInvestorVerifyForgotPasswordOtpResponse,
+  RenterInvestorResendOtpRequest,
+  RenterInvestorResendOtpResponse,
+  RenterInvestorForgotPasswordRequest,
+  RenterInvestorForgotPasswordResponse,
+  RenterInvestorResetPasswordRequest,
+  RenterInvestorResetPasswordResponse,
+  RenterInvestorApiError,
 } from "@/types/renterInvestorAuth";
+import { ApiError } from "@/types";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { queryKeys } from "./apiClient";
 
+// Login
 export const useRenterInvestorLogin = (
-  options?: Omit<UseMutationOptions<RenterInvestorLoginResponse, RenterInvestorApiError, RenterInvestorLoginRequest>, "mutationFn">
+  options?: Omit<
+    UseMutationOptions<RenterInvestorLoginResponse, ApiError, RenterInvestorLoginRequest>,
+    "mutationFn"
+  >
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation<RenterInvestorLoginResponse, RenterInvestorApiError, RenterInvestorLoginRequest>({
+  return useMutation<RenterInvestorLoginResponse, ApiError, RenterInvestorLoginRequest>({
     mutationFn: async ({ identifier, password }) => {
-      const payload: RenterInvestorLoginRequest = { identifier, password };
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
-      const response = await apiPost<RenterInvestorLoginResponse>({
+      console.log("useRenterInvestorLogin called with:", { identifier, password });
+
+      const baseURL = getRenterAuthBaseURL();
+
+      const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNIN,
-        data: payload,
+        data: { identifier, password },
         auth: false,
       });
+      console.log("useRenterInvestorLogin response:", response);
       return response;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries();
+    onSuccess: (response) => {
+      // Note: Token is not available in login response, only in OTP verification
+      // Token will be stored after successful OTP verification
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.user() });
     },
     ...options,
   });
@@ -69,7 +78,7 @@ export const useRenterInvestorVerifyLoginOtp = (
   >({
     mutationFn: async ({ identifier, otp }) => {
       const payload: RenterInvestorVerifyLoginOtpRequest = { identifier, otp };
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       const response = await apiPost<RenterInvestorVerifyLoginOtpResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_LOGIN_OTP,
@@ -78,7 +87,11 @@ export const useRenterInvestorVerifyLoginOtp = (
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store token after successful OTP verification
+      if (response?.data?.token) {
+        AsyncStorage.setItem("token", response.data.token);
+      }
       queryClient.invalidateQueries();
     },
     ...options,
@@ -103,7 +116,7 @@ export const useRenterInvestorResendOtp = (
   >({
     mutationFn: async ({ identifier, type }) => {
       const payload: RenterInvestorResendOtpRequest = { identifier, type };
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       const response = await apiPost<RenterInvestorResendOtpResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.RESEND_OTP,
@@ -136,7 +149,7 @@ export const useRenterInvestorRegister = (
     RenterInvestorRegisterRequest
   >({
     mutationFn: async (payload) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       // Always set userType to ['renter']
       const finalPayload = {
         ...payload,
@@ -150,7 +163,11 @@ export const useRenterInvestorRegister = (
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store token after successful registration
+      if (response?.data?.token) {
+        AsyncStorage.setItem("token", response.data.token);
+      }
       queryClient.invalidateQueries();
     },
     ...options,
@@ -174,7 +191,7 @@ export const useRenterInvestorForgotPassword = (
     RenterInvestorForgotPasswordRequest
   >({
     mutationFn: async (payload) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       const response = await apiPost<RenterInvestorForgotPasswordResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.FORGOT_PASSWORD,
@@ -207,7 +224,7 @@ export const useRenterInvestorResetPassword = (
     RenterInvestorResetPasswordRequest
   >({
     mutationFn: async (payload) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       const response = await apiPost<RenterInvestorResetPasswordResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.RESET_PASSWORD,
@@ -240,7 +257,7 @@ export const useRenterInvestorVerifyForgotPasswordOtp = (
     RenterInvestorVerifyForgotPasswordOtpRequest
   >({
     mutationFn: async (payload) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getRenterAuthBaseURL();
       const response = await apiPost<RenterInvestorVerifyForgotPasswordOtpResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_FORGOT_PASSWORD_OTP,

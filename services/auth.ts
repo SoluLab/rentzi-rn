@@ -5,7 +5,7 @@ import {
   UseQueryOptions,
   UseMutationOptions,
 } from "@tanstack/react-query";
-import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
+import { BASE_URLS, ENDPOINTS, getHomeownerAuthBaseURL } from "@/constants/urls";
 import { AuthResponse, LoginRequest, ApiError, ForgotPasswordResponse } from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiPost, apiPut, apiGet, queryKeys } from "./apiClient";
@@ -26,7 +26,7 @@ export const useLogin = (
         password,
       };
 
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       console.log("[API Client] Login payload:", payload);
       console.log("[API Client] User type: homeowner");
@@ -104,7 +104,7 @@ export const useSignup = (
       if (roleType !== "homeowner") {
         throw new Error("Renter/Investor registration is handled separately.");
       }
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
       const payload = {
         name: {
           firstName,
@@ -140,7 +140,7 @@ export const useVerifyOtp = (
     mutationFn: async ({ identifier, otp }) => {
       console.log("useVerifyOtp called with:", { identifier, otp, userType: "homeowner" });
 
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
@@ -180,7 +180,7 @@ export const useVerifyLoginOtp = (
         userType: "homeowner",
       });
 
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
@@ -214,7 +214,7 @@ export const useLogout = (
   return useMutation<any, ApiError, void>({
     mutationFn: async () => {
       try {
-        const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+        const baseURL = getHomeownerAuthBaseURL();
 
         // Call logout API
         const response = await apiPost({
@@ -260,7 +260,7 @@ export const useResetPassword = (
     { email: string; code: string; newPassword: string; verificationId: number }
   >({
     mutationFn: async ({ email, code, newPassword, verificationId }) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
@@ -283,7 +283,7 @@ export const useForgotPassword = (
 ) => {
   return useMutation<ForgotPasswordResponse, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       console.log("[API Client] ForgotPassword request:", { email });
       const response = await apiPost({
@@ -303,7 +303,7 @@ export const useForgotPassword = (
 export const useGetProfile = (
   options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">
 ) => {
-  const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+  const baseURL = getHomeownerAuthBaseURL();
 
   return useQuery<any, ApiError>({
     queryKey: [...queryKeys.all, "profile"],
@@ -323,7 +323,7 @@ export const useUpdateProfile = (
 ) => {
   return useMutation<any, ApiError, any>({
     mutationFn: async (data) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       return apiPut({
         baseURL,
@@ -345,7 +345,7 @@ export const useResendOtp = (
 ) => {
   return useMutation<{ success: boolean; message: string }, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
-      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
