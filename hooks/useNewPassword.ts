@@ -8,6 +8,7 @@ import {
   type NewPasswordFormData
 } from "@/types/auth";
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
+import { validateWithZod } from "@/utils/validation";
 
 interface UseNewPasswordReturn {
   password: string;
@@ -43,21 +44,9 @@ export const useNewPassword = (): UseNewPasswordReturn => {
   const isLoading = activeMutation.isPending;
 
   const validateForm = useCallback((): boolean => {
-    try {
-      newPasswordSchema.parse({ password, confirmPassword });
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const newErrors: Record<string, string> = {};
-        zodError.errors?.forEach((err: any) => {
-          newErrors[err.path[0]] = err.message;
-        });
-        setErrors(newErrors);
-      }
-      return false;
-    }
+    const { isValid, errors: validationErrors } = validateWithZod(newPasswordSchema, { password, confirmPassword });
+    setErrors(validationErrors);
+    return isValid;
   }, [password, confirmPassword]);
 
   const handleResetPassword = useCallback(async () => {

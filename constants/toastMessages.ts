@@ -12,6 +12,7 @@ export const TOAST_MESSAGES = {
       FAILED: "Registration failed. Please try again.",
       EMAIL_EXISTS: "Email already registered. Please use a different email or login.",
       VALIDATION_ERROR: "Please fix the errors below",
+      USER_EXISTS: "User already exists. Please login instead.",
     },
     OTP: {
       VERIFICATION_SUCCESS: "Verification successful!",
@@ -59,12 +60,8 @@ export const TOAST_MESSAGES = {
     },
   },
   PROFILE: {
-    FETCH_SUCCESS: "Profile loaded successfully",
-    FETCH_FAILED: "Failed to load profile. Please try again.",
     UPDATE_SUCCESS: "Profile updated successfully!",
     UPDATE_FAILED: "Failed to update profile. Please try again.",
-    UPLOAD_SUCCESS: "Profile picture uploaded successfully!",
-    UPLOAD_FAILED: "Failed to upload profile picture. Please try again.",
     PASSWORD_CHANGE_SUCCESS: "Password changed successfully!",
     PASSWORD_CHANGE_FAILED: "Failed to change password. Please try again.",
   },

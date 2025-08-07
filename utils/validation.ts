@@ -272,3 +272,52 @@ export const validateRegistrationForm = (formData: {
   }
   return { errors, isValid: Object.keys(errors).length === 0 };
 };
+
+import { ZodError } from "zod";
+
+/**
+ * Shared function to handle Zod validation and return formatted errors
+ * @param schema - Zod schema to validate against
+ * @param data - Data to validate
+ * @returns Object with isValid boolean and errors object
+ */
+export const validateWithZod = <T>(
+  schema: any,
+  data: T
+): { isValid: boolean; errors: Record<string, string> } => {
+  try {
+    schema.parse(data);
+    return { isValid: true, errors: {} };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const newErrors: Record<string, string> = {};
+      error.issues?.forEach((err) => {
+        const fieldName = typeof err.path[0] === 'string' ? err.path[0] : String(err.path[0]);
+        newErrors[fieldName] = err.message;
+      });
+      return { isValid: false, errors: newErrors };
+    }
+    return { isValid: false, errors: { general: "Validation failed" } };
+  }
+};
+
+/**
+ * Shared function to handle single field Zod validation
+ * @param schema - Zod schema to validate against
+ * @param data - Data to validate
+ * @returns Error message string or empty string if valid
+ */
+export const validateSingleFieldWithZod = (
+  schema: any,
+  data: any
+): string => {
+  try {
+    schema.parse(data);
+    return "";
+  } catch (error) {
+    if (error instanceof ZodError) {
+      return error.issues?.[0]?.message || "Validation failed";
+    }
+    return "Validation failed";
+  }
+};

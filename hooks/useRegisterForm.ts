@@ -12,6 +12,7 @@ import {
   type RenterInvestorRegisterRequest
 } from "@/types/renterInvestorAuth";
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
+import { validateWithZod } from "@/utils/validation";
 
 interface UseRegisterFormReturn {
   formData: RegisterFormData;
@@ -68,26 +69,14 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
   }, []);
 
   const validateForm = useCallback((): boolean => {
-    try {
-      const dataToValidate = {
-        ...formData,
-        acceptedTerms,
-        selectedCountryCode,
-      };
-      registerSchema.parse(dataToValidate);
-      setErrors({});
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const newErrors: Record<string, string> = {};
-        zodError.errors?.forEach((err: any) => {
-          newErrors[err.path[0]] = err.message;
-        });
-        setErrors(newErrors);
-      }
-      return false;
-    }
+    const dataToValidate = {
+      ...formData,
+      acceptedTerms,
+      selectedCountryCode,
+    };
+    const { isValid, errors: validationErrors } = validateWithZod(registerSchema, dataToValidate);
+    setErrors(validationErrors);
+    return isValid;
   }, [formData, acceptedTerms, selectedCountryCode]);
 
   const updateField = useCallback((field: keyof RegisterFormData, value: any) => {
@@ -134,6 +123,7 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
             params: {
               email: formData.email,
               phone: formData.mobileNumber,
+              code: selectedCountryCode.phoneCode,
               type: "register",
               roleType: userType,
             },
@@ -162,6 +152,7 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
             params: {
               email: formData.email,
               phone: formData.mobileNumber,
+              code: selectedCountryCode.phoneCode,
               type: "register",
               roleType: userType,
             },
@@ -170,20 +161,21 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
           toast.error(response.message || TOAST_MESSAGES.AUTH.REGISTER.FAILED);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log("Register error:", error);
       
-      let errorMessage = TOAST_MESSAGES.AUTH.REGISTER.FAILED;
+      let errorMessage: string = TOAST_MESSAGES.AUTH.REGISTER.FAILED;
       
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
+      // Type-safe error handling
+      if (error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object' && 'message' in error.data) {
+        errorMessage = String(error.data.message);
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        errorMessage = String(error.message);
       }
       
       // Handle specific error cases
       if (errorMessage.includes("already exists") || errorMessage.includes("already registered")) {
-        errorMessage = TOAST_MESSAGES.AUTH.REGISTER.FAILED;
+        errorMessage = TOAST_MESSAGES.AUTH.REGISTER.USER_EXISTS || "User already exists. Please login instead.";
       }
       
       toast.error(errorMessage);

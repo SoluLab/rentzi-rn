@@ -8,6 +8,7 @@ import {
   type OTPFormData
 } from "@/types/auth";
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
+import { validateSingleFieldWithZod } from "@/utils/validation";
 
 interface UseForgotPasswordOTPReturn {
   otp: string;
@@ -85,18 +86,9 @@ export const useForgotPasswordOTP = (): UseForgotPasswordOTPReturn => {
   }, []);
 
   const validateOTP = useCallback((): boolean => {
-    try {
-      otpSchema.parse({ otp });
-      setError("");
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const errorMessage = zodError.errors?.[0]?.message || TOAST_MESSAGES.AUTH.VALIDATION.OTP_REQUIRED;
-        setError(errorMessage);
-      }
-      return false;
-    }
+    const errorMessage = validateSingleFieldWithZod(otpSchema, { otp });
+    setError(errorMessage);
+    return !errorMessage;
   }, [otp]);
 
   const handleVerifyOTP = useCallback(async () => {
@@ -106,16 +98,12 @@ export const useForgotPasswordOTP = (): UseForgotPasswordOTPReturn => {
       let response;
       const email = Array.isArray(params.email) ? params.email[0] : params.email;
       
-      console.log("[ForgotPasswordOTP] Verifying OTP for userType:", userType);
-      
       if (userType === "renter_investor") {
-        console.log("[ForgotPasswordOTP] Using RENTER API for verification (port 5000)");
         response = await renterInvestorVerifyForgotPasswordOtpMutation.mutateAsync({
           email,
           otp,
         });
       } else {
-        console.log("[ForgotPasswordOTP] Using HOMEOWNER API for verification (port 5001)");
         response = await verifyOtpMutation.mutateAsync({
           identifier: email,
           otp,

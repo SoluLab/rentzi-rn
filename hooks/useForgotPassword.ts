@@ -9,6 +9,7 @@ import {
   type ForgotPasswordParams
 } from "@/types/auth";
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
+import { validateSingleFieldWithZod } from "@/utils/validation";
 
 interface UseForgotPasswordFormReturn {
   email: string;
@@ -37,18 +38,9 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
   const isLoading = forgotPasswordMutation.isPending || renterInvestorForgotPasswordMutation.isPending;
 
   const validateForm = useCallback((): boolean => {
-    try {
-      forgotPasswordSchema.parse({ email });
-      setError("");
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const errorMessage = zodError.errors?.[0]?.message || TOAST_MESSAGES.AUTH.VALIDATION.EMAIL_REQUIRED;
-        setError(errorMessage);
-      }
-      return false;
-    }
+    const errorMessage = validateSingleFieldWithZod(forgotPasswordSchema, { email });
+    setError(errorMessage);
+    return !errorMessage;
   }, [email]);
 
   const handleSendOTP = useCallback(async () => {
@@ -76,7 +68,7 @@ export const useForgotPasswordForm = (): UseForgotPasswordFormReturn => {
         setError(errorMessage);
       }
     } catch (error: any) {
-      console.log("ForgotPassword error:", error);
+      console.error("ForgotPassword error:", error);
       const errorMessage = error.message || TOAST_MESSAGES.AUTH.FORGOT_PASSWORD.OTP_SENT_FAILED;
       toast.error(errorMessage);
       setError(errorMessage);

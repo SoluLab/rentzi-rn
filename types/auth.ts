@@ -145,10 +145,10 @@ export const loginSchema = z.object({
     .refine(
       (value) => {
         const isEmail = value.includes("@");
-        const isMobile = /^\d+$/.test(value.replace(/\s/g, ""));
+        const isMobile = /^[\+]?[1-9][\d]{0,15}$/.test(value.replace(/[\s\-\(\)]/g, ""));
         return isEmail || isMobile;
       },
-      "Please enter a valid email address or mobile number"
+      "Please enter a valid email address or mobile number (including country code)"
     ),
   password: z.string().min(1, "Password is required"),
 });

@@ -925,7 +925,7 @@ const { user } = useAuthStore();
                         />
                     </View>
                 </View>
-            </Modal>}
+            </Modal>
         </SafeAreaView>
     );
 }

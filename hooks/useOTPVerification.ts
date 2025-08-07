@@ -11,6 +11,7 @@ import {
   type ResendOTPRequest
 } from "@/types/auth";
 import { TOAST_MESSAGES } from "@/constants/toastMessages";
+import { validateSingleFieldWithZod } from "@/utils/validation";
 
 interface UseOTPVerificationReturn {
   otp: string;
@@ -22,13 +23,13 @@ interface UseOTPVerificationReturn {
   handleVerifyOTP: () => Promise<void>;
   handleResendOTP: () => Promise<void>;
   formatTime: (seconds: number) => string;
-  params: OTPVerificationParams;
+  params: any;
   userType: string;
 }
 
 export const useOTPVerification = (): UseOTPVerificationReturn => {
   const router = useRouter();
-  const params = useLocalSearchParams<OTPVerificationParams>();
+  const params = useLocalSearchParams();
   
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState("");
@@ -38,12 +39,12 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
   const userType = params.roleType === "homeowner" ? "homeowner" : "renter_investor";
 
   // Mutations
-  const verifyOtpMutation = useVerifyOtp(userType);
-  const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
+  const verifyOtpMutation = useVerifyOtp();
+  const verifyLoginOtpMutation = useVerifyLoginOtp();
   const renterInvestorVerifyLoginOtpMutation = useRenterInvestorVerifyLoginOtp();
   
-  const resendOtpMutation = useResendOtp(userType, {
-    onSuccess: (response) => {
+  const resendOtpMutation = useResendOtp({
+    onSuccess: (response: any) => {
       if (response.success) {
         toast.success(response.message || TOAST_MESSAGES.AUTH.OTP.RESEND_SUCCESS);
       } else {
@@ -60,7 +61,7 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
   });
 
   const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
-    onSuccess: (response) => {
+    onSuccess: (response: any) => {
       if (response.success) {
         toast.success(response.message || TOAST_MESSAGES.AUTH.OTP.RESEND_SUCCESS);
       } else {
@@ -87,10 +88,12 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
 
   // Timer effect
   useEffect(() => {
+    // Only start timer if timeLeft is greater than 0
+    if (timeLeft <= 0) return;
+
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(timer);
           return 0;
         }
         return prev - 1;
@@ -98,7 +101,7 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [timeLeft]);
 
   const formatTime = useCallback((seconds: number) => {
     const minutes = Math.floor(seconds / 60);
@@ -107,18 +110,9 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
   }, []);
 
   const validateOTP = useCallback((): boolean => {
-    try {
-      otpSchema.parse({ otp });
-      setOtpError("");
-      return true;
-    } catch (error) {
-      if (error instanceof Error) {
-        const zodError = error as any;
-        const errorMessage = zodError.errors?.[0]?.message || TOAST_MESSAGES.AUTH.VALIDATION.OTP_REQUIRED;
-        setOtpError(errorMessage);
-      }
-      return false;
-    }
+    const errorMessage = validateSingleFieldWithZod(otpSchema, { otp });
+    setOtpError(errorMessage);
+    return !errorMessage;
   }, [otp]);
 
   const handleVerifyOTP = useCallback(async () => {
@@ -137,11 +131,13 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
 
     try {
       let response;
+      const email = Array.isArray(params.email) ? params.email[0] : params.email;
+      const roleType = Array.isArray(params.roleType) ? params.roleType[0] : params.roleType;
 
       if (params.type === "login" && userType === "renter_investor") {
         // Use new renter/investor verify login OTP API
         response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
-          identifier: params.email,
+          identifier: email,
           otp,
         });
         
@@ -158,9 +154,18 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
 
       // Handle other verification flows
       if (params.phone) {
-        // Parse the phone object from JSON string
-        const phoneObj = JSON.parse(params.phone);
-        // If phone is present, use mobile verification
+        // Parse the phone object from JSON string with error handling
+        const phoneParam = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+        let phoneObj;
+        
+        try {
+          phoneObj = JSON.parse(phoneParam);
+        } catch (parseError) {
+          console.error("Failed to parse phone parameter:", parseError);
+          throw new Error("Invalid phone parameter format");
+        }
+        
+        // Use mobile verification
         response = await verifyLoginOtpMutation.mutateAsync({
           identifier: {
             countryCode: phoneObj.countryCode,
@@ -171,7 +176,7 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
       } else {
         // Otherwise use email verification
         response = await verifyOtpMutation.mutateAsync({
-          identifier: params.email,
+          identifier: email,
           otp,
         });
       }
@@ -185,7 +190,7 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
           router.replace("/(auth)/login");
         } else {
           // For login flow, route based on roleType parameter
-          if (params.roleType === "homeowner") {
+          if (roleType === "homeowner") {
             router.replace("/(homeowner-tabs)");
           } else {
             router.replace("/(tabs)");
@@ -197,7 +202,7 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
         setOtpError(errorMessage);
       }
     } catch (error: any) {
-      let errorMessage = TOAST_MESSAGES.AUTH.OTP.VERIFICATION_FAILED;
+      let errorMessage: string = TOAST_MESSAGES.AUTH.OTP.VERIFICATION_FAILED;
 
       // Handle different error formats
       if (error?.data?.message) {
@@ -208,11 +213,11 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
 
       // Map specific error messages
       if (errorMessage.includes("Invalid or expired OTP")) {
-        errorMessage = TOAST_MESSAGES.AUTH.OTP.INVALID_OTP;
+        errorMessage = "Invalid or expired OTP. Please try again.";
       } else if (errorMessage.includes("expired")) {
-        errorMessage = TOAST_MESSAGES.AUTH.OTP.EXPIRED_OTP;
+        errorMessage = "OTP expired. Request a new one";
       } else if (errorMessage.includes("Incorrect OTP")) {
-        errorMessage = TOAST_MESSAGES.AUTH.OTP.INCORRECT_OTP;
+        errorMessage = "Incorrect OTP entered";
       }
 
       toast.error(errorMessage);
@@ -237,19 +242,23 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
     }
 
     try {
+      const email = Array.isArray(params.email) ? params.email[0] : params.email;
+      
       if (userType === "renter_investor" && params.type === "login") {
         await renterInvestorResendOtpMutation.mutateAsync({
-          identifier: params.email,
+          identifier: email,
           type: "login",
         });
       } else {
         // fallback to original resendOtpMutation for other flows
         await resendOtpMutation.mutateAsync({
-          email: params.email,
+          email: email,
         });
       }
       
+      // Reset timer and clear OTP input
       setTimeLeft(60);
+      setOtp("");
       setOtpError("");
     } catch (error) {
       // Error handling is done via mutation callbacks
