@@ -17,7 +17,15 @@ export const useHomeownerGetAllProperties = (
       params,
       auth: true,
     },
-    options
+    {
+      // Default options for better refetching
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      cacheTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      ...options,
+    }
   );
 };
 
@@ -48,6 +56,14 @@ export const useHomeownerDashboardStats = (
       endpoint: ENDPOINTS.HOMEOWNER_DASHBOARD.STATS,
       auth: true,
     },
-    options
+    {
+      // Default options for better refetching
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      ...options,
+    }
   );
 };
