@@ -54,6 +54,7 @@ interface FormData {
   fullAddress: string;
   propertyType: string;
   yearBuilt: string;
+  yearRenovated: string;
   bedrooms: string;
   bathrooms: string;
   guestCapacity: string;
@@ -68,6 +69,7 @@ interface ValidationErrors {
   fullAddress?: string;
   propertyType?: string;
   yearBuilt?: string;
+  yearRenovated?: string;
   bedrooms?: string;
   bathrooms?: string;
   guestCapacity?: string;
@@ -115,7 +117,10 @@ export default function AddResidentialPropertyScreen() {
   }, []);
 
   // If editing, fetch property by id and pre-fill form
-  const [formData, setFormData] = useState<FormData>(data.propertyDetails);
+  const [formData, setFormData] = useState<FormData>({
+    ...data.propertyDetails,
+    yearRenovated: data.propertyDetails.yearRenovated || '',
+  });
   useEffect(() => {
     if (id) {
       const property = getPropertyById(id as string);
@@ -128,6 +133,7 @@ export default function AddResidentialPropertyScreen() {
           fullAddress: property.location || '',
           propertyType: property.data?.propertyDetails?.propertyType || '',
           yearBuilt: property.data?.propertyDetails?.yearBuilt?.toString() || '',
+          yearRenovated: property.data?.propertyDetails?.yearRenovated?.toString() || '',
           bedrooms: property.bedrooms?.toString() || '',
           bathrooms: property.bathrooms?.toString() || '',
           guestCapacity: property.data?.propertyDetails?.guestCapacity?.toString() || '',
@@ -216,6 +222,18 @@ export default function AddResidentialPropertyScreen() {
     return undefined;
   };
 
+  const validateYearRenovated = (year: string): string | undefined => {
+    if (!year) {
+      return undefined; // Year renovated is optional
+    }
+    const cleanYear = year.replace(/\D/g, '');
+    const yearNumber = parseInt(cleanYear);
+    if (isNaN(yearNumber) || yearNumber < 1900 || yearNumber > currentYear) {
+      return `Year must be between 1900 and ${currentYear}`;
+    }
+    return undefined;
+  };
+
   const validateBedrooms = (bedrooms: string): string | undefined => {
     if (!bedrooms) {
       return 'Number of bedrooms is required';
@@ -258,6 +276,14 @@ export default function AddResidentialPropertyScreen() {
     if (isNaN(sqftNumber) || sqftNumber <= 0) {
       return 'Square footage must be greater than 0';
     }
+    
+    // Check if square footage is sufficient for the number of bedrooms
+    const numBedrooms = parseInt(formData.bedrooms) || 0;
+    const minRequiredSqft = numBedrooms * 50; // 50 sqft minimum per bedroom
+    if (sqftNumber < minRequiredSqft) {
+      return `Square footage must be at least ${minRequiredSqft} sqft for ${numBedrooms} bedroom(s) (50 sqft minimum per bedroom)`;
+    }
+    
     return undefined;
   };
 
@@ -273,6 +299,7 @@ export default function AddResidentialPropertyScreen() {
     newErrors.fullAddress = validateFullAddress(formData.fullAddress);
     newErrors.propertyType = validatePropertyType(formData.propertyType);
     newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+    newErrors.yearRenovated = validateYearRenovated(formData.yearRenovated);
     newErrors.bedrooms = validateBedrooms(formData.bedrooms);
     newErrors.bathrooms = validateBathrooms(formData.bathrooms);
     newErrors.guestCapacity = validateGuestCapacity(formData.guestCapacity);
@@ -310,6 +337,7 @@ export default function AddResidentialPropertyScreen() {
     newErrors.fullAddress = validateFullAddress(formData.fullAddress);
     newErrors.propertyType = validatePropertyType(formData.propertyType);
     newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+    newErrors.yearRenovated = validateYearRenovated(formData.yearRenovated);
     newErrors.bedrooms = validateBedrooms(formData.bedrooms);
     newErrors.bathrooms = validateBathrooms(formData.bathrooms);
     newErrors.guestCapacity = validateGuestCapacity(formData.guestCapacity);
@@ -373,17 +401,40 @@ export default function AddResidentialPropertyScreen() {
     // Create bedrooms array based on the number of bedrooms
     const createBedroomsArray = () => {
       const numBedrooms = parseInt(formData.bedrooms);
+      const totalSqft = parseInt(formData.squareFootage);
       const bedrooms = [];
       
-      for (let i = 0; i < numBedrooms; i++) {
-        bedrooms.push({
-          roomType: 'master', // Default room type
-          bedType: 'king', // Default bed type
-          attachedBathroom: i === 0, // First bedroom has attached bathroom
-          walkInCloset: i === 0, // First bedroom has walk-in closet
-          roomSizeInSqft: Math.floor(parseInt(formData.squareFootage) / numBedrooms), // Distribute area
-          hasBalcony: false, // Default no balcony
-        });
+      // Calculate minimum room size (50 sqft per bedroom)
+      const minRoomSize = 50;
+      const totalMinSize = numBedrooms * minRoomSize;
+      
+      // If total square footage is less than minimum required, use minimum size
+      if (totalSqft < totalMinSize) {
+        for (let i = 0; i < numBedrooms; i++) {
+          bedrooms.push({
+            roomType: 'master', // Default room type
+            bedType: 'king', // Default bed type
+            attachedBathroom: i === 0, // First bedroom has attached bathroom
+            walkInCloset: i === 0, // First bedroom has walk-in closet
+            roomSizeInSqft: minRoomSize, // Use minimum size
+            hasBalcony: false, // Default no balcony
+          });
+        }
+      } else {
+        // Distribute remaining area after minimum allocation
+        const remainingSqft = totalSqft - totalMinSize;
+        const extraPerRoom = Math.floor(remainingSqft / numBedrooms);
+        
+        for (let i = 0; i < numBedrooms; i++) {
+          bedrooms.push({
+            roomType: 'master', // Default room type
+            bedType: 'king', // Default bed type
+            attachedBathroom: i === 0, // First bedroom has attached bathroom
+            walkInCloset: i === 0, // First bedroom has walk-in closet
+            roomSizeInSqft: minRoomSize + extraPerRoom, // Minimum + extra
+            hasBalcony: false, // Default no balcony
+          });
+        }
       }
       
       return bedrooms;
@@ -404,6 +455,7 @@ export default function AddResidentialPropertyScreen() {
         value: parseInt(formData.squareFootage),
       },
       yearOfBuilt: parseInt(formData.yearBuilt),
+      yearOfRenovated: formData.yearRenovated ? parseInt(formData.yearRenovated) : undefined,
       bedrooms: createBedroomsArray(),
     };
   };
@@ -572,11 +624,22 @@ export default function AddResidentialPropertyScreen() {
 
         {/* Year Built */}
         <Input
-          label="Year Built or Renovated *"
+          label="Year Built *"
           value={formData.yearBuilt}
           onChangeText={(value) => updateFormData('yearBuilt', value)}
           placeholder={`Enter year (1900-${currentYear})`}
           error={errors.yearBuilt}
+          keyboardType="numeric"
+          maxLength={4}
+        />
+
+        {/* Year Renovated */}
+        <Input
+          label="Year Renovated (Optional)"
+          value={formData.yearRenovated}
+          onChangeText={(value) => updateFormData('yearRenovated', value)}
+          placeholder={`Enter year (1900-${currentYear})`}
+          error={errors.yearRenovated}
           keyboardType="numeric"
           maxLength={4}
         />

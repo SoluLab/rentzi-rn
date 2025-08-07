@@ -58,6 +58,7 @@ interface FormData {
   zoningType: string;
   squareFootage: string;
   yearBuilt: string;
+  yearRenovated: string;
 }
 
 interface ValidationErrors {
@@ -69,6 +70,7 @@ interface ValidationErrors {
   zoningType?: string;
   squareFootage?: string;
   yearBuilt?: string;
+  yearRenovated?: string;
 }
 
 export default function AddCommercialPropertyScreen() {
@@ -117,7 +119,10 @@ export default function AddCommercialPropertyScreen() {
   }, []);
 
   // If editing, fetch property by id and pre-fill form
-  const [formData, setFormData] = useState<FormData>(data.propertyDetails);
+  const [formData, setFormData] = useState<FormData>({
+    ...data.propertyDetails,
+    yearRenovated: data.propertyDetails.yearRenovated || '',
+  });
   useEffect(() => {
     if (id) {
       const property = getPropertyById(id as string);
@@ -131,6 +136,7 @@ export default function AddCommercialPropertyScreen() {
           zoningType: property.data?.propertyDetails?.zoningType || "",
           yearBuilt:
             property.data?.propertyDetails?.yearBuilt?.toString() || "",
+          yearRenovated: property.data?.propertyDetails?.yearRenovated?.toString() || "",
           squareFootage: property.squareFootage?.toString() || "",
         });
       }
@@ -228,6 +234,18 @@ export default function AddCommercialPropertyScreen() {
     return undefined;
   };
 
+  const validateYearRenovated = (year: string): string | undefined => {
+    if (!year) {
+      return undefined; // Year renovated is optional
+    }
+    const cleanYear = year.replace(/\D/g, "");
+    const yearNumber = parseInt(cleanYear);
+    if (isNaN(yearNumber) || yearNumber < 1900 || yearNumber > currentYear) {
+      return `Year must be between 1900 and ${currentYear}`;
+    }
+    return undefined;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
 
@@ -240,6 +258,7 @@ export default function AddCommercialPropertyScreen() {
     newErrors.fullAddress = validateFullAddress(formData.fullAddress);
     newErrors.zoningType = validateZoningType(formData.zoningType);
     newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+    newErrors.yearRenovated = validateYearRenovated(formData.yearRenovated);
     newErrors.squareFootage = validateSquareFootage(formData.squareFootage);
 
     setErrors(newErrors);
@@ -274,6 +293,7 @@ export default function AddCommercialPropertyScreen() {
     newErrors.fullAddress = validateFullAddress(formData.fullAddress);
     newErrors.zoningType = validateZoningType(formData.zoningType);
     newErrors.yearBuilt = validateYearBuilt(formData.yearBuilt);
+    newErrors.yearRenovated = validateYearRenovated(formData.yearRenovated);
     newErrors.squareFootage = validateSquareFootage(formData.squareFootage);
 
     // Check if all required fields are filled and no validation errors
@@ -334,13 +354,16 @@ export default function AddCommercialPropertyScreen() {
 
     // Create bedrooms array for commercial properties (required by schema)
     const createCommercialBedroomsArray = () => {
+      const totalSqft = parseInt(formData.squareFootage);
+      const minRoomSize = 50;
+      
       // For commercial properties, create a single "office" type bedroom
       return [{
         roomType: 'master', // Default room type
         bedType: 'king', // Default bed type
         attachedBathroom: true, // Commercial properties typically have bathrooms
         walkInCloset: false, // Commercial properties don't typically have walk-in closets
-        roomSizeInSqft: parseInt(formData.squareFootage), // Use full area for commercial
+        roomSizeInSqft: Math.max(totalSqft, minRoomSize), // Use full area or minimum 50 sqft
         hasBalcony: false, // Default no balcony for commercial
       }];
     };
@@ -359,6 +382,7 @@ export default function AddCommercialPropertyScreen() {
         value: parseInt(formData.squareFootage),
       },
       yearOfBuilt: parseInt(formData.yearBuilt),
+      yearOfRenovated: formData.yearRenovated ? parseInt(formData.yearRenovated) : undefined,
       bedrooms: createCommercialBedroomsArray(),
     };
   };
@@ -557,11 +581,22 @@ export default function AddCommercialPropertyScreen() {
 
         {/* Year Built */}
         <Input
-          label="Year Built or Renovated *"
+          label="Year Built *"
           value={formData.yearBuilt}
           onChangeText={(value) => updateFormData("yearBuilt", value)}
           placeholder={`Enter year (1900-${currentYear})`}
           error={errors.yearBuilt}
+          keyboardType="numeric"
+          maxLength={4}
+        />
+
+        {/* Year Renovated */}
+        <Input
+          label="Year Renovated (Optional)"
+          value={formData.yearRenovated}
+          onChangeText={(value) => updateFormData("yearRenovated", value)}
+          placeholder={`Enter year (1900-${currentYear})`}
+          error={errors.yearRenovated}
           keyboardType="numeric"
           maxLength={4}
         />

@@ -128,6 +128,8 @@ export type OwnershipType =
   | "cooperative"
   | "condominium";
 
+export type AccessType = "Keycard" | "QR Scan" | "Manual Entry";
+
 // Paginated property list response type (for homeownerDashboard)
 export interface PaginatedPropertyListResponse {
   success: boolean;

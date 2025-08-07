@@ -20,6 +20,7 @@ import { radius } from "@/constants/radius";
 import { ChevronDown, Check } from "lucide-react-native";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
+import { AccessType } from "@/types/homeownerProperty";
 
 // Building amenities options
 const BUILDING_AMENITIES = [
@@ -31,14 +32,38 @@ const BUILDING_AMENITIES = [
   "ADA Compliant",
 ];
 
+// Smart building systems options
+const SMART_BUILDING_SYSTEMS = [
+  "Automated Lighting",
+  "Smart HVAC Controls",
+  "Building Management System",
+  "Energy Management",
+  "Security Automation",
+  "IoT Sensors",
+  "Climate Control",
+  "Smart Access Control",
+];
+
+// Business services provided options
+const BUSINESS_SERVICES = [
+  "Reception Services",
+  "Mail Handling",
+  "Conference Rooms",
+  "Cleaning Services",
+  "Maintenance Support",
+  "IT Support",
+  "Catering Services",
+  "Parking Management",
+];
+
 // Access type options
-const ACCESS_TYPES = ["Keycard", "Manual Entry", "QR Scan"];
+const ACCESS_TYPES: AccessType[] = ["Keycard", "QR Scan", "Manual Entry"];
 
 interface FeaturesFormData {
   buildingAmenities: string[];
-  smartBuildingSystems: string;
-  businessServicesProvided: string;
-  accessType: string;
+  smartBuildingSystems: string[];
+  businessServicesProvided: string[];
+  accessType: AccessType;
   propertyHighlights: string;
 }
 
@@ -87,7 +112,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     return undefined;
   };
 
-  const validateAccessType = (accessType: string): string | undefined => {
+  const validateAccessType = (accessType: AccessType): string | undefined => {
     if (!accessType) {
       return "Access type is required";
     }
@@ -151,6 +176,32 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     updateFormData("buildingAmenities", currentAmenities);
   };
 
+  const toggleSmartSystem = (system: string) => {
+    const currentSystems = [...formData.smartBuildingSystems];
+    const index = currentSystems.indexOf(system);
+
+    if (index > -1) {
+      currentSystems.splice(index, 1);
+    } else {
+      currentSystems.push(system);
+    }
+
+    updateFormData("smartBuildingSystems", currentSystems);
+  };
+
+  const toggleBusinessService = (service: string) => {
+    const currentServices = [...formData.businessServicesProvided];
+    const index = currentServices.indexOf(service);
+
+    if (index > -1) {
+      currentServices.splice(index, 1);
+    } else {
+      currentServices.push(service);
+    }
+
+    updateFormData("businessServicesProvided", currentServices);
+  };
+
   const transformFormDataToApiFormat = () => ({
     title: data.propertyDetails?.propertyTitle || "",
     type: "commercial",
@@ -205,7 +256,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     );
   };
 
-  const renderAccessTypeItem = ({ item }: { item: string }) => (
+  const renderAccessTypeItem = ({ item }: { item: AccessType }) => (
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => {
@@ -224,6 +275,42 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
       <TouchableOpacity
         style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
         onPress={() => toggleAmenity(item)}
+      >
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+          {isSelected && <Check size={16} color={colors.neutral.white} />}
+        </View>
+        <Typography variant="body" style={styles.amenityText}>
+          {item}
+        </Typography>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSmartSystemItem = ({ item }: { item: string }) => {
+    const isSelected = formData.smartBuildingSystems.includes(item);
+
+    return (
+      <TouchableOpacity
+        style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
+        onPress={() => toggleSmartSystem(item)}
+      >
+        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
+          {isSelected && <Check size={16} color={colors.neutral.white} />}
+        </View>
+        <Typography variant="body" style={styles.amenityText}>
+          {item}
+        </Typography>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderBusinessServiceItem = ({ item }: { item: string }) => {
+    const isSelected = formData.businessServicesProvided.includes(item);
+
+    return (
+      <TouchableOpacity
+        style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
+        onPress={() => toggleBusinessService(item)}
       >
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
           {isSelected && <Check size={16} color={colors.neutral.white} />}
@@ -278,42 +365,46 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
         </View>
 
         {/* Smart Building Systems */}
-        <Input
-          label="Smart Building Systems"
-          value={formData.smartBuildingSystems}
-          onChangeText={(value) =>
-            updateFormData("smartBuildingSystems", value)
-          }
-          placeholder="e.g., Automated lighting, Smart HVAC controls"
-          multiline
-          numberOfLines={3}
-        />
-        <Typography
-          variant="caption"
-          color="secondary"
-          style={styles.helperText}
-        >
-          Optional: Describe any smart building systems or technology features
-        </Typography>
+        <View style={styles.fieldContainer}>
+          <Typography variant="body" style={styles.label}>
+            Smart Building Systems
+          </Typography>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
+            Optional: Select any smart building systems or technology features
+          </Typography>
+          <View style={styles.amenitiesContainer}>
+            {SMART_BUILDING_SYSTEMS.map((system) => (
+              <View key={system} style={styles.amenityWrapper}>
+                {renderSmartSystemItem({ item: system })}
+              </View>
+            ))}
+          </View>
+        </View>
 
         {/* Business Services Provided */}
-        <Input
-          label="Business Services Provided"
-          value={formData.businessServicesProvided}
-          onChangeText={(value) =>
-            updateFormData("businessServicesProvided", value)
-          }
-          placeholder="e.g., Reception services, Mail handling, Conference rooms"
-          multiline
-          numberOfLines={3}
-        />
-        <Typography
-          variant="caption"
-          color="secondary"
-          style={styles.helperText}
-        >
-          Optional: List any business services included with the property
-        </Typography>
+        <View style={styles.fieldContainer}>
+          <Typography variant="body" style={styles.label}>
+            Business Services Provided
+          </Typography>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
+            Optional: Select any business services included with the property
+          </Typography>
+          <View style={styles.amenitiesContainer}>
+            {BUSINESS_SERVICES.map((service) => (
+              <View key={service} style={styles.amenityWrapper}>
+                {renderBusinessServiceItem({ item: service })}
+              </View>
+            ))}
+          </View>
+        </View>
 
         {/* Access Type */}
         <View style={styles.fieldContainer}>
