@@ -57,13 +57,6 @@ export const ENDPOINTS = {
     // Password Management
     FORGOT_PASSWORD: "/auth/forgot-password",
     RESET_PASSWORD: "/auth/reset-password",
-
-    // Profile Management
-    PROFILE: {
-      GET: "/profile",
-      UPDATE: "/profile",
-      CHANGE_PASSWORD: "/profile/change-password",
-    },
   },
 
   HOMEOWNER_PROPERTY: {
@@ -94,6 +87,15 @@ export const ENDPOINTS = {
     GET: "/profile",
     UPDATE: "/profile",
     CHANGE_PASSWORD: "/profile/change-password",
+  },
+
+  RENTER_INVESTOR: {
+    PROFILE: {
+      GET: "/profile",
+      UPDATE: "/profile",
+      CHANGE_PASSWORD: "/profile/change-password",
+      KYC_INITIALIZE: "/profile/kyc/initialize",
+    },
   },
 
   MARKETPLACE: {

@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Typography } from '@/components/ui/Typography';
 import { Card } from '@/components/ui/Card';
@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { BackButton } from '@/components/ui/BackButton';
 import { toast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
+import { useKYC } from '@/hooks/useKYC';
 import { colors, spacing, radius } from '@/constants';
 import {
   Shield,
@@ -34,7 +35,12 @@ import {
 
 export default function KYCVerificationScreen() {
   const router = useRouter();
-  const { user, setUser, isLoading } = useAuthStore();
+  const params = useLocalSearchParams();
+  const { user, setUser } = useAuthStore();
+  const { initializeKYC, isLoading, error } = useKYC();
+  
+  // Get userType from route params or default to 'homeowner'
+  const userType = (params.userType as 'homeowner' | 'investor') || 'homeowner';
   
   const [kycStatus, setKycStatus] = useState<'start' | 'pending' | 'complete'>('start');
   const [currentStep, setCurrentStep] = useState(1);
@@ -55,14 +61,24 @@ export default function KYCVerificationScreen() {
       setKycStatus('pending');
     } else if (user?.kycStatus === 'complete') {
       setKycStatus('complete');
-      // If already complete, navigate to homeowner tabs
-      router.replace('/(homeowner-tabs)');
+      // If already complete, navigate based on user type
+      if (userType === 'homeowner') {
+        router.replace('/(homeowner-tabs)');
+      } else {
+        router.back(); // Go back to property screen for investors
+      }
     }
-  }, [user?.kycStatus]);
+  }, [user?.kycStatus, userType]);
 
-  const handleStartKYC = () => {
-    setKycStatus('pending');
-    setCurrentStep(1);
+  const handleStartKYC = async () => {
+    if (userType === 'investor') {
+      // For investors, use the API-based KYC flow
+      await initializeKYC();
+    } else {
+      // For homeowners, use the demo flow
+      setKycStatus('pending');
+      setCurrentStep(1);
+    }
   };
 
   const handleNextStep = () => {
@@ -86,8 +102,12 @@ export default function KYCVerificationScreen() {
       
       toast.success('KYC verification completed successfully!');
       
-      // Navigate to homeowner tabs
-      router.replace('/(homeowner-tabs)');
+      // Navigate based on user type
+      if (userType === 'homeowner') {
+        router.replace('/(homeowner-tabs)');
+      } else {
+        router.back(); // Go back to property screen for investors
+      }
     } catch (error) {
       toast.error('KYC submission failed. Please try again.');
     }
@@ -119,7 +139,10 @@ export default function KYCVerificationScreen() {
             Complete KYC Verification
           </Typography>
           <Typography variant="body" style={styles.subtitle}>
-            As a homeowner, you need to complete KYC verification to list and manage properties on our platform.
+            {userType === 'homeowner' 
+              ? 'As a homeowner, you need to complete KYC verification to list and manage properties on our platform.'
+              : 'As an investor, you need to complete KYC verification to invest in properties on our platform.'
+            }
           </Typography>
         </View>
 
@@ -129,30 +152,61 @@ export default function KYCVerificationScreen() {
             Why KYC is Required
           </Typography>
           <View style={styles.benefitsList}>
-            <View style={styles.benefitItem}>
-              <CheckCircle2 size={20} color={colors.status.success} />
-              <Typography variant="body" style={styles.benefitText}>
-                List luxury properties on our platform
-              </Typography>
-            </View>
-            <View style={styles.benefitItem}>
-              <CheckCircle2 size={20} color={colors.status.success} />
-              <Typography variant="body" style={styles.benefitText}>
-                Receive rental payments securely
-              </Typography>
-            </View>
-            <View style={styles.benefitItem}>
-              <CheckCircle2 size={20} color={colors.status.success} />
-              <Typography variant="body" style={styles.benefitText}>
-                Access advanced property management tools
-              </Typography>
-            </View>
-            <View style={styles.benefitItem}>
-              <CheckCircle2 size={20} color={colors.status.success} />
-              <Typography variant="body" style={styles.benefitText}>
-                Build trust with potential renters
-              </Typography>
-            </View>
+            {userType === 'homeowner' ? (
+              <>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    List luxury properties on our platform
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Receive rental payments securely
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Access advanced property management tools
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Build trust with potential renters
+                  </Typography>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Invest in luxury properties on our platform
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Receive investment returns securely
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Access detailed property investment analytics
+                  </Typography>
+                </View>
+                <View style={styles.benefitItem}>
+                  <CheckCircle2 size={20} color={colors.status.success} />
+                  <Typography variant="body" style={styles.benefitText}>
+                    Build a diversified real estate portfolio
+                  </Typography>
+                </View>
+              </>
+            )}
           </View>
         </Card>
 
@@ -206,8 +260,9 @@ export default function KYCVerificationScreen() {
 
         {/* Start Button */}
         <Button
-          title="Start KYC Verification"
+          title={`Start KYC Verification${userType === 'investor' ? ' for Investment' : ''}`}
           onPress={handleStartKYC}
+          loading={isLoading}
           style={styles.startButton}
           leftIcon={<Shield size={20} color={colors.neutral.white} />}
         />
@@ -224,6 +279,7 @@ export default function KYCVerificationScreen() {
         <View style={styles.helpSection}>
           <Typography variant="caption" style={styles.helpText}>
             The verification process typically takes 1-2 business days. You'll be notified once approved.
+            {userType === 'investor' && ' After approval, you can start investing in properties immediately.'}
           </Typography>
         </View>
       </View>
@@ -320,7 +376,10 @@ export default function KYCVerificationScreen() {
             <View style={styles.nextStepItem}>
               <Shield size={20} color={colors.primary.gold} />
               <Typography variant="body" style={styles.nextStepText}>
-                Start listing your properties immediately after approval
+                {userType === 'homeowner' 
+                  ? 'Start listing your properties immediately after approval'
+                  : 'Start investing in properties immediately after approval'
+                }
               </Typography>
             </View>
           </View>
@@ -364,7 +423,10 @@ export default function KYCVerificationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <BackButton />
+        <BackButton 
+          iconColor={colors.text.primary}
+          backgroundColor={colors.neutral.white}
+        />
         
         {kycStatus === 'start' ? renderStartKYCScreen() : renderPendingKYCScreen()}
       </KeyboardAvoidingView>
@@ -417,7 +479,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -427,7 +489,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -490,7 +552,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -519,7 +581,7 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 8,
-    backgroundColor: colors.background.light,
+    backgroundColor: colors.background.secondary,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -535,7 +597,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
@@ -559,7 +621,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
