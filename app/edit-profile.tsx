@@ -26,7 +26,7 @@ import { countryCodes } from '@/components/ui/PhoneInput';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { profileData, isLoading: profileLoading, updateProfile, isUpdating } = useHomeownerProfile();
+  const { profile, isLoadingProfile, updateProfile, isUpdatingProfile } = useHomeownerProfile();
   
   // Initialize state with profile data
   const [firstName, setFirstName] = useState('');
@@ -38,18 +38,23 @@ export default function EditProfileScreen() {
 
   // Update state when profile data is loaded
   useEffect(() => {
-    if (profileData) {
-      setFirstName(profileData.name.firstName || '');
-      setLastName(profileData.name.lastName || '');
-      setPhoneNumber(profileData.phone.mobile || '');
+    if (profile) {
+      setFirstName(profile.name.firstName || '');
+      setLastName(profile.name.lastName || '');
+      setPhoneNumber(profile.phone.mobile || '');
       
       // Set country code based on profile data
-      const countryCode = countryCodes.find(c => c.phoneCode === profileData.phone.countryCode);
+      const countryCode = countryCodes.find(c => c.phoneCode === profile.phone.countryCode);
       if (countryCode) {
         setSelectedCountryCode(countryCode);
       }
+      
+      // Set profile image if available
+      if (profile.avatar) {
+        setProfileImage(profile.avatar);
+      }
     }
-  }, [profileData]);
+  }, [profile]);
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -154,7 +159,7 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {profileLoading ? (
+          {isLoadingProfile ? (
             <View style={styles.loadingContainer}>
               <Typography variant="body" color="secondary" align="center">
                 Loading profile data...
@@ -172,6 +177,7 @@ export default function EditProfileScreen() {
                     source={{
                       uri:
                         profileImage ||
+                        profile?.avatar ||
                         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
                     }}
                     style={styles.profileImage}
@@ -220,7 +226,7 @@ export default function EditProfileScreen() {
                 <Button
                   title="Save Changes"
                   onPress={handleSave}
-                  loading={isUpdating}
+                  loading={isUpdatingProfile}
                   variant="primary"
                   style={styles.saveButton}
                 />

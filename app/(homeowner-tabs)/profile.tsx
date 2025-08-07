@@ -86,7 +86,7 @@ export default function HomeownerProfileScreen() {
       icon: Shield,
       title: 'Security & Privacy',
       subtitle: 'Password and security settings',
-      onPress: () => console.log('Security settings'),
+      onPress: () => router.push('/change-password'),
     },
     {
       icon: FileText,

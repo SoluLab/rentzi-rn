@@ -42,6 +42,7 @@ export interface UpdateProfileRequest {
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;
+  confirmPassword: string;
 }
 
 // Get Profile
@@ -92,13 +93,13 @@ export const useChangeHomeownerPassword = (
   options?: Omit<UseMutationOptions<{ message: string }, ApiError, ChangePasswordRequest>, "mutationFn">
 ) => {
   return useMutation<{ message: string }, ApiError, ChangePasswordRequest>({
-    mutationFn: async ({ currentPassword, newPassword }) => {
+    mutationFn: async ({ currentPassword, newPassword, confirmPassword }) => {
       const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.HOMEOWNER_PROFILE.CHANGE_PASSWORD,
-        data: { currentPassword, newPassword },
+        data: { currentPassword, newPassword, confirmPassword },
         auth: true,
       });
       return response;
