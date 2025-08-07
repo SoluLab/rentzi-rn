@@ -1,259 +1,44 @@
-import React, { useState, useEffect } from "react";
-import { View, StyleSheet, Alert } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import React from "react";
+import { View, StyleSheet } from "react-native";
 import { Header } from "@/components/ui/Header";
 import { Typography } from "@/components/ui/Typography";
 import { OTPInput } from "@/components/ui/OTPInput";
 import { Button } from "@/components/ui/Button";
-import { Toast } from "@/components/ui/Toast";
-import { validateOTP } from "@/utils/validation";
-import { useVerifyOtp, useVerifyLoginOtp, useResendOtp } from "@/services/auth";
-import { toast } from "@/components/ui/Toast";
+import { OTPVerificationHeader } from "@/components/ui/auth";
+import { useOTPVerification } from "@/hooks/useOTPVerification";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
-import { Ionicons } from "@expo/vector-icons";
-import { useRenterInvestorVerifyLoginOtp } from "@/services/renterInvestorAuth";
-import { RenterInvestorVerifyLoginOtpRequest, RenterInvestorVerifyLoginOtpResponse } from "@/types/renterInvestorAuth";
-import { useRenterInvestorResendOtp } from "@/services/renterInvestorAuth";
-import { RenterInvestorResendOtpRequest, RenterInvestorResendOtpResponse } from "@/types/renterInvestorAuth";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 export default function OTPVerificationScreen() {
-  const router = useRouter();
-  const { email, phone, type, roleType } = useLocalSearchParams<{
-    email: string;
-    phone: string;
-    type: "register" | "login";
-    roleType: string;
-  }>();
-  // Determine userType for API call based on roleType
-  const userType = roleType === "homeowner" ? "homeowner" : "renter_investor";
-  const verifyOtpMutation = useVerifyOtp(userType);
-  const verifyLoginOtpMutation = useVerifyLoginOtp(userType);
-  const renterInvestorVerifyLoginOtpMutation = useRenterInvestorVerifyLoginOtp();
-  const renterInvestorResendOtpMutation = useRenterInvestorResendOtp({
-    onSuccess: (response) => {
-      if (response.success) {
-        toast.success(response.message || "OTP resent successfully");
-      } else {
-        toast.error(response.message || "Failed to resend OTP");
-      }
-    },
-    onError: (error: any) => {
-      const errorMessage =
-        error?.data?.message ||
-        error?.message ||
-        "Failed to resend OTP. Please try again.";
-      toast.error(errorMessage);
-    },
-  });
-  const isLoading =
-    verifyOtpMutation.status === "pending" ||
-    verifyOtpMutation.isPending ||
-    verifyLoginOtpMutation.status === "pending" ||
-    verifyLoginOtpMutation.isPending ||
-    renterInvestorVerifyLoginOtpMutation.status === "pending" ||
-    renterInvestorVerifyLoginOtpMutation.isPending ||
-    renterInvestorResendOtpMutation.status === "pending" ||
-    renterInvestorResendOtpMutation.isPending;
-
-  const [otp, setOtp] = useState("");
-  const [otpError, setOtpError] = useState("");
-  const [timeLeft, setTimeLeft] = useState(60); // 1 minute for resend OTP
-  const resendOtpMutation = useResendOtp(userType, {
-    onSuccess: (response) => {
-      if (response.success) {
-        toast.success(response.message || "OTP resent successfully");
-      } else {
-        toast.error(response.message || "Failed to resend OTP");
-      }
-    },
-    onError: (error: any) => {
-      const errorMessage = 
-        error?.data?.message || 
-        error?.message || 
-        "Failed to resend OTP. Please try again.";
-      toast.error(errorMessage);
-    }
-  });
-  const isResending = resendOtpMutation.isPending;
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
-  };
-
-  const handleVerifyOTP = async () => {
-    // Clear any previous errors
-    setOtpError("");
-    
-
-    // Validate OTP
-    const otpValidation = validateOTP(otp);
-    if (!otpValidation.isValid) {
-      setOtpError(otpValidation.error!);
-      return;
-    }
-
-    if (timeLeft <= 0) {
-      setOtpError("OTP expired. Request a new one");
-      return;
-    }
-
-    try {
-      let response;
-      if (type === "login" && userType === "renter_investor") {
-        // Use new renter/investor verify login OTP API
-        response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
-          identifier: email as string,
-          otp,
-        });
-        if (response.success) {
-          toast.success("Verification successful!");
-          // Save token or user info as needed here
-          router.replace("/(tabs)");
-        } else {
-          const errorMessage = response.message || "Verification failed. Please check your OTP code.";
-          toast.error(errorMessage);
-          setOtpError(errorMessage);
-        }
-        return;
-      }
-      if (phone) {
-        // Parse the phone object from JSON string
-        const phoneObj = JSON.parse(phone);
-        // If phone is present, use mobile verification
-        response = await verifyLoginOtpMutation.mutateAsync({
-          identifier: {
-            countryCode: phoneObj.countryCode,
-            mobile: phoneObj.mobile,
-          },
-          otp,
-        });
-      } else {
-        // Otherwise use email verification
-        response = await verifyOtpMutation.mutateAsync({
-          identifier: email as string,
-          otp,
-        });
-      }
-
-      // Check the new response format
-      if (response.success) {
-        toast.success("Verification successful!");
-
-        // Handle navigation based on type and role
-        if (type === "register") {
-          // For registration flow, redirect to login
-          router.replace("/(auth)/login");
-        } else {
-          // For login flow, route based on roleType parameter
-          if (roleType === "homeowner") {
-            router.replace("/(homeowner-tabs)");
-          } else {
-            router.replace("/(tabs)");
-          }
-        }
-      } else {
-        // Handle unsuccessful response
-        const errorMessage =
-          response.message ||
-          "Verification failed. Please check your OTP code.";
-        toast.error(errorMessage);
-        setOtpError(errorMessage);
-      }
-    } catch (error: any) {
-      let errorMessage = "Verification failed. Please check your OTP code.";
-
-      // Handle different error formats
-      if (error?.data?.message) {
-        errorMessage = error.data.message;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      // Map specific error messages
-      if (errorMessage.includes("Invalid or expired OTP")) {
-        errorMessage = "Invalid or expired OTP. Please try again.";
-      } else if (errorMessage.includes("expired")) {
-        errorMessage = "OTP expired. Request a new one";
-      } else if (errorMessage.includes("Incorrect OTP")) {
-        errorMessage = "Incorrect OTP entered";
-      }
-
-      toast.error(errorMessage);
-      setOtpError(errorMessage);
-    }
-  };
-
-  const handleResendOTP = async () => {
-    // Don't allow resend if timer is active or already resending
-    if (timeLeft > 0 || isResending) {
-      return;
-    }
-
-    try {
-      if (userType === "renter_investor" && type === "login") {
-        await renterInvestorResendOtpMutation.mutateAsync({
-          identifier: email as string,
-          type: "login",
-        });
-        setTimeLeft(60);
-        setOtpError("");
-        return;
-      }
-      // fallback to original resendOtpMutation for other flows
-      await resendOtpMutation.mutateAsync({
-        email: email as string,
-      });
-      setTimeLeft(60);
-      setOtpError("");
-    } catch (error) {
-      // Error handling is done via mutation callbacks
-      console.error("Resend OTP failed:", error);
-    }
-  };
+  const {
+    otp,
+    otpError,
+    timeLeft,
+    isLoading,
+    isResending,
+    setOtp,
+    handleVerifyOTP,
+    handleResendOTP,
+    formatTime,
+    params,
+  } = useOTPVerification();
 
   return (
-    <ScreenContainer>
-      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-        <Header title="Verify OTP" showBackButton />
-
-        <View style={styles.container}>
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name={"call-outline"}
-                size={48}
-                color={colors.primary.gold}
-              />
-            </View>
-          </View>
-          <Typography variant="h4" style={styles.title}>
-            Enter Verification Code
-          </Typography>
-
-          <Typography variant="body" style={styles.subtitle}>
-            We've sent a 6-digit code to{" "}
-            {phone
-              ? `${JSON.parse(phone).countryCode} ${JSON.parse(phone).mobile}`
-              : email}
-          </Typography>
+    <View style={styles.container}>
+      <Header title="Verify OTP" />
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.form}>
+          <OTPVerificationHeader 
+            email={Array.isArray(params.email) ? params.email[0] : params.email || ''}
+            phone={Array.isArray(params.phone) ? params.phone[0] : params.phone || ''} 
+          />
 
           <View style={styles.otpContainer}>
             <OTPInput
@@ -265,7 +50,7 @@ export default function OTPVerificationScreen() {
           </View>
 
           <View style={styles.timerContainer}>
-            <Typography variant="body2" style={styles.timerText}>
+            <Typography variant="body2" color="secondary" align="center">
               Time remaining: {formatTime(timeLeft)}
             </Typography>
           </View>
@@ -287,58 +72,35 @@ export default function OTPVerificationScreen() {
             style={styles.resendButton}
           />
         </View>
-      </View>
-    </ScreenContainer>
+      </KeyboardAwareScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: spacing.md,
+    backgroundColor: colors.background.primary,
   },
-  title: {
-    textAlign: "center",
-    marginBottom: spacing.md,
-    color: colors.text.primary,
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "flex-start",
   },
-  subtitle: {
-    textAlign: "center",
-    marginBottom: spacing.xl,
-    color: colors.text.secondary,
+  form: {
+    gap: spacing.xs,
+    paddingHorizontal: spacing.layout.screenPadding,
+    paddingVertical: spacing.xl,
   },
   otpContainer: {
-    marginBottom: spacing.lg,
-  },
-  errorText: {
-    color: colors.status.error,
-    textAlign: "center",
     marginBottom: spacing.md,
   },
   timerContainer: {
-    alignItems: "center",
     marginBottom: spacing.xl,
-  },
-  timerText: {
-    color: colors.text.secondary,
   },
   verifyButton: {
     marginBottom: spacing.md,
   },
   resendButton: {
     marginBottom: spacing.lg,
-  },
-
-  header: {
-    alignItems: "center",
-
-    marginVertical: spacing.md,
-  },
-  iconContainer: {
-    width: 80,
-    height: 80,
-
-    alignItems: "center",
-    justifyContent: "center",
   },
 });

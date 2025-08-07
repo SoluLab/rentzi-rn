@@ -10,7 +10,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useGetProfile } from '@/services/auth';
+import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
 
 import {
   User,
@@ -31,11 +31,16 @@ import {
   Upload,
   Eye,
 } from 'lucide-react-native';
+
 export default function HomeownerProfileScreen() {
   const router = useRouter();
   const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { data: profileData, isLoading, error } = useGetProfile('homeowner');
+  const { 
+    profile, 
+    isLoadingProfile, 
+    profileError,
+  } = useHomeownerProfile();
 
   const handleLogout = () => {
     logout();
@@ -43,7 +48,7 @@ export default function HomeownerProfileScreen() {
   };
 
   const handleProfilePictureUpload = () => {
-    // TODO: Implement profile picture upload
+    // TODO: Implement profile picture upload with image picker
     console.log('Profile picture upload');
   };
   const profileMenuItems = [
@@ -111,26 +116,27 @@ export default function HomeownerProfileScreen() {
           <TouchableOpacity onPress={() => router.push('/edit-profile')}>
             <Card style={styles.profileCard}>
               <View style={styles.profileHeader}>
-                <TouchableOpacity onPress={handleProfilePictureUpload}>
-                  <Image
-                    source={{
-                      uri:
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
-                    }}
-                    style={styles.avatar}
-                  />
-                  <View style={styles.cameraOverlay}>
-                    <Camera size={16} color={colors.neutral.white} />
-                  </View>
+                                  <TouchableOpacity onPress={handleProfilePictureUpload}>
+                    <Image
+                      source={{
+                        uri: profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
+                      }}
+                      style={styles.avatar}
+                    />
+                                      <View style={styles.cameraOverlay}>
+                      <Camera size={16} color={colors.neutral.white} />
+                    </View>
                 </TouchableOpacity>
-                <View style={styles.profileInfo}>
-                  <Typography variant="h4">{profileData?.data?.name || 'Loading...'}</Typography>
-                  <Typography variant="body" color="secondary">
-                    {profileData?.data?.email || 'Loading...'}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    {profileData?.data?.phone?.countryCode} {profileData?.data?.phone?.mobile}
-                  </Typography>
+                                  <View style={styles.profileInfo}>
+                    <Typography variant="h4">
+                      {profile?.name ? `${profile.name.firstName} ${profile.name.lastName}` : 'Loading...'}
+                    </Typography>
+                    <Typography variant="body" color="secondary">
+                      {profile?.email || 'Loading...'}
+                    </Typography>
+                    <Typography variant="caption" color="secondary">
+                      {profile?.phone ? `${profile.phone.countryCode} ${profile.phone.mobile}` : 'Loading...'}
+                    </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>
                       <Typography variant="label" color="inverse">

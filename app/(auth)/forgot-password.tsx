@@ -1,28 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
 import { View, StyleSheet, Platform, StatusBar } from "react-native";
-import { useFocusEffect, useRouter, useLocalSearchParams } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { toast } from "@/components/ui/Toast";
+import { Header } from "@/components/ui/Header";
+import { ForgotPasswordHeader } from "@/components/ui/auth";
+import { useForgotPasswordForm } from "@/hooks/useForgotPassword";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
-import { validateEmail } from "@/utils/validation";
-import { Header } from "@/components/ui/Header";
-import { AUTH, ERROR_MESSAGES } from "@/constants/strings";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { useForgotPassword } from "@/services/auth";
-import { useRenterInvestorForgotPassword } from "@/services/renterInvestorAuth";
 
 export default function ForgotPasswordScreen() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const roleType = params.roleType as string | undefined;
-  console.log('[ForgotPasswordScreen] roleType:', roleType);
-  const forgotPasswordMutation = useForgotPassword();
-  const renterInvestorForgotPasswordMutation = useRenterInvestorForgotPassword();
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const {
+    email,
+    error,
+    isLoading,
+    setEmail,
+    handleSendOTP,
+  } = useForgotPasswordForm();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -39,53 +35,6 @@ export default function ForgotPasswordScreen() {
     }, [])
   );
 
-  const validateForm = () => {
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) {
-      setError(emailValidation.error!);
-      return false;
-    }
-    setError("");
-    return true;
-  };
-
-  const handleSendOTP = async () => {
-    if (!validateForm()) return;
-    try {
-      let response;
-      if (roleType === "renter_investor") {
-        response = await renterInvestorForgotPasswordMutation.mutateAsync({ email });
-      } else {
-        response = await forgotPasswordMutation.mutateAsync({ email });
-      }
-      if (response.success) {
-        toast.success(
-          response.data?.message || AUTH.FORGOT_PASSWORD.SUBTITLE_CODE_SENT_OTP
-        );
-        router.push({
-          pathname: "/(auth)/forgot-password-otp",
-          params: { email: email, roleType: roleType },
-        });
-      } else {
-        toast.error(response.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED);
-        setError(response.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED);
-      }
-    } catch (error: any) {
-      console.log("ForgotPassword error:", error);
-      const errorMessage =
-        error.message || ERROR_MESSAGES.AUTH.CODE_SEND_FAILED;
-      toast.error(errorMessage);
-      setError(errorMessage);
-    }
-  };
-
-  const updateEmail = (value: string) => {
-    setEmail(value);
-    if (error) {
-      setError("");
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Header title="Forgot Password" />
@@ -96,31 +45,13 @@ export default function ForgotPasswordScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Form */}
         <View style={styles.form}>
-          <Typography
-            variant="h4"
-            color="primary"
-            align="center"
-            style={styles.formTitle}
-          >
-            Reset Passwords
-          </Typography>
-
-          <Typography
-            variant="body2"
-            color="secondary"
-            align="center"
-            style={styles.description}
-          >
-            Enter your email address and we'll send you a verification code to
-            reset your password.
-          </Typography>
+          <ForgotPasswordHeader />
 
           <Input
             label="Email Address"
             value={email}
-            onChangeText={updateEmail}
+            onChangeText={setEmail}
             placeholder="Enter your email"
             keyboardType="email-address"
             autoCapitalize="none"
@@ -130,8 +61,8 @@ export default function ForgotPasswordScreen() {
           <Button
             title="Send Verification Code"
             onPress={handleSendOTP}
-            loading={forgotPasswordMutation.status === "pending"}
-            disabled={!email || forgotPasswordMutation.status === "pending"}
+            loading={isLoading}
+            disabled={!email || isLoading}
             style={styles.sendButton}
             variant="primary"
           />
@@ -150,20 +81,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "flex-start",
   },
-  title: {
-    marginBottom: spacing.sm,
-  },
   form: {
     gap: spacing.xs,
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.xl,
-  },
-  formTitle: {
-    marginBottom: spacing.md,
-  },
-  description: {
-    marginBottom: spacing.lg,
-    lineHeight: 20,
   },
   sendButton: {
     marginTop: spacing.md,
