@@ -12,6 +12,7 @@ export interface HomeownerProfileData {
   };
   _id: string;
   email: string;
+  avatar?: string;
   isActive: boolean;
   isEmailVerified: boolean;
   isPhoneVerified: boolean;

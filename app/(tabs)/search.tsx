@@ -439,7 +439,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   notificationButton: {
     position: 'relative',

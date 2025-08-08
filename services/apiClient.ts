@@ -141,20 +141,15 @@ console.log("[API Call] Config:", {
     });
     */}
     
+    console.log("------------------------------------------------");
 
     console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
-    //console.log("[API Call] Request Method:", method);
+    console.log("[API Call] Request Method:", method);
     //console.log("[API Call] Platform:", Platform.OS);
-    console.log("[API Call] Request Data:", data);
-
+    console.log("[API Call] Request Data:", JSON.stringify(data, null, 2));
     const response: AxiosResponse<T> = await axios(axiosConfig);
-
-    console.log("[API Call] Response received:", {
-      //status: response.status,
-      //statusText: response.statusText,
-      //headers: response.headers,
-      data: response.data
-    });
+    console.log("[API Call] Response Received:", JSON.stringify(response.data, null, 2));
+    console.log("------------------------------------------------");
 
     return response.data;
   } catch (error: any) {
@@ -210,58 +205,24 @@ console.log("[API Call] Config:", {
 const getAuthToken = async (): Promise<string | null> => {
   try {
     const token = await AsyncStorage.getItem("token");
-    return token;
-  } catch (err) {
-    return null;
-  }
-};
-
-// Network connectivity test function
-export const testNetworkConnectivity = async (url: string): Promise<boolean> => {
-  try {
-    console.log("[Network Test] Testing connectivity to:", url);
+    console.log("[API Client] Retrieved token:", token ? "Token exists" : "No token found");
     
-    // For signin endpoints, make a POST request with test credentials
-    if (url.includes('/auth/signin')) {
-      const testCredentials = {
-        identifier: "test@example.com",
-        password: "testpassword"
-      };
-      
-      const response = await axios.post(url, testCredentials, {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Rentzi-App/1.0'
-        }
-      });
-      console.log("[Network Test] Success:", response.status);
-      return true;
-    } else {
-      // For other endpoints, make a GET request
-      const response = await axios.get(url, {
-        timeout: 5000,
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Rentzi-App/1.0'
-        }
-      });
-      console.log("[Network Test] Success:", response.status);
-      return true;
-    }
-  } catch (error: any) {
-    console.log("[Network Test] Failed:", error.message);
-    if (axios.isAxiosError(error)) {
-      console.log("[Network Test] Error code:", error.code);
-      console.log("[Network Test] Error status:", error.response?.status);
-      
-      // Consider 401 as success for signin endpoint (server is reachable)
-      if (url.includes('/auth/signin') && error.response?.status === 401) {
-        console.log("[Network Test] 401 is expected for signin without valid credentials - server is reachable");
-        return true;
+    if (token) {
+      try {
+        // Decode JWT token to get user type (for debugging)
+        const payload = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payload));
+        console.log("[API Client] Token payload:", decodedPayload);
+        console.log("[API Client] User type in token:", decodedPayload.userType);
+      } catch (decodeError) {
+        console.log("[API Client] Could not decode token payload");
       }
     }
-    return false;
+    
+    return token;
+  } catch (err) {
+    console.log("[API Client] Error retrieving token:", err);
+    return null;
   }
 };
 

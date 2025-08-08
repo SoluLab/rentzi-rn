@@ -96,5 +96,7 @@ export interface PaymentTransaction {
 // Export all types
 export * from "./auth";
 export * from "./homeownerProperty";
-export * from "./marketplace";
+export * from "./renterMarketplace";
 export * from "./homeownerProfile";
+export * from "./renterInvestorProfile";
+export * from "./kyc";

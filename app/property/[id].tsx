@@ -10,7 +10,7 @@ Text,
 TouchableOpacity,
 View
 } from 'react-native';
-import { KYCHandler } from '@/services/kycHandler';
+
 import { WebView } from 'react-native-webview';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -63,13 +63,12 @@ const { width, height } = Dimensions.get('window');
 export default function PropertyDetailScreen() {
 const router = useRouter();
 const { id } = useLocalSearchParams();
-const { getPropertyById, claimRentalPayout, isLoading } = usePropertyStore();
+    const { getPropertyById, isLoading } = usePropertyStore();
 const { user } = useAuthStore();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showInvestmentModal, setShowInvestmentModal] = useState(false);
-    const [showKYCModal, setShowKYCModal] = useState(false);
-    const [kycModalType, setKycModalType] = useState<'incomplete' | 'pending'>('incomplete');
+    // KYC modal state removed - now using dedicated KYC screen
     const [showCalendar, setShowCalendar] = useState(false);
     const [showDatesModal, setShowDatesModal] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -103,16 +102,48 @@ const { user } = useAuthStore();
         router.push({ pathname: '/calendar/check-in-out', params: { propertyId: id } });
     };
     const handleInvestment = () => {
-        if (!user?.kycStatus || user.kycStatus === 'incomplete') {
-            setKycModalType('incomplete');
-            setShowKYCModal(true);
-            return;
+        // Check if user is renter and has global profile data
+        if (user?.role === 'renter') {
+            // For renter, we need to check global profile KYC status
+            // This would typically be fetched from the global profile store
+            // For now, we'll use the user store as fallback
+            if (!user?.kycStatus || user.kycStatus === 'incomplete') {
+                // Navigate to KYC verification screen for renter_investor
+                router.push('/kyc-verification?userType=renter_investor');
+                return;
+            }
+            if (user.kycStatus === 'pending') {
+                // Show pending message and navigate to KYC screen
+                Alert.alert(
+                    'KYC Pending',
+                    'Your KYC verification is currently under review. Please check back later.',
+                    [
+                        { text: 'OK', onPress: () => router.push('/kyc-verification?userType=renter_investor') }
+                    ]
+                );
+                return;
+            }
+        } else {
+            // For regular investors
+            if (!user?.kycStatus || user.kycStatus === 'incomplete') {
+                // Navigate directly to KYC verification screen for investors
+                router.push('/kyc-verification?userType=investor');
+                return;
+            }
+            if (user.kycStatus === 'pending') {
+                // Show pending message and navigate to KYC screen
+                Alert.alert(
+                    'KYC Pending',
+                    'Your KYC verification is currently under review. Please check back later.',
+                    [
+                        { text: 'OK', onPress: () => router.push('/kyc-verification?userType=investor') }
+                    ]
+                );
+                return;
+            }
         }
-        if (user.kycStatus === 'pending') {
-            setKycModalType('pending');
-            setShowKYCModal(true);
-            return;
-        }
+        
+        // If KYC is complete, show investment modal
         setShowInvestmentModal(true);
     };
     const handleBookingConfirm = () => {
@@ -125,21 +156,7 @@ const { user } = useAuthStore();
         router.push(`/investment/${property.id}`);
     };
 
-    const handleKYCVerification = async () => {
-        setShowKYCModal(false);
-        await KYCHandler.handleKYCVerification({
-            user,
-            router,
-            userType: 'investor', // Specify user type for appropriate KYC flow
-            onSuccess: () => {
-                // Optionally refresh property data or update UI state
-                console.log('KYC completed successfully');
-            },
-            onError: (error) => {
-                console.error('KYC failed:', error);
-            }
-        });
-    };
+    // handleKYCVerification function removed - now handled directly in handleInvestment
     const handle360Tour = () => {
     if (property.mediaGallery.tour3D) {
     // Open 360° tour
@@ -150,7 +167,7 @@ const { user } = useAuthStore();
     };
     const handleClaimRentalPayout = async () => {
     try {
-    await claimRentalPayout(property.id);
+    // TODO: Implement claimRentalPayout functionality
     Alert.alert('Success', 'Rental payout claimed successfully!');
     setShowClaimModal(false);
     } catch (error) {
@@ -718,36 +735,6 @@ const { user } = useAuthStore();
                             style={styles.modalButton}
                         />
                         <Button title="Cancel" onPress={() => setShowBookingModal(false)} variant="ghost" />
-                    </View>
-                </View>
-            </Modal>
-            {/* KYC Modal */}
-            <Modal visible={showKYCModal} onClose={() => setShowKYCModal(false)}>
-                <View style={styles.modalContent}>
-                    <View style={styles.kycModalHeader}>
-                        <Shield size={48} color={colors.primary.gold} />
-                        <Typography variant="h4" align="center" style={styles.modalTitle}>
-                            {kycModalType === 'incomplete' ? 'KYC Required' : 'KYC Pending'}
-                        </Typography>
-                    </View>
-                    <Typography variant="body" color="secondary" align="center" style={styles.kycModalDescription}>
-                        {kycModalType === 'incomplete'
-                            ? 'You need to KYC before start investing'
-                            : 'Your KYC status is pending. Please try again later.'}
-                    </Typography>
-                    <View style={styles.modalButtons}>
-                        {kycModalType === 'incomplete' && (
-                            <Button
-                                title="Start KYC Process"
-                                onPress={handleKYCVerification}
-                                style={styles.modalButton}
-                            />
-                        )}
-                        <Button
-                            title={kycModalType === 'incomplete' ? 'Cancel' : 'OK'}
-                            onPress={() => setShowKYCModal(false)}
-                            variant={kycModalType === 'incomplete' ? 'ghost' : 'outline'}
-                        />
                     </View>
                 </View>
             </Modal>

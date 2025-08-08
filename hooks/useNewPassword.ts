@@ -68,15 +68,11 @@ export const useNewPassword = (): UseNewPasswordReturn => {
         });
       } else {
         // Homeowner logic (default)
-        const resetPayload: any = {
+        await resetPasswordMutation.mutateAsync({
           email,
-          code,
-          newPassword: password,
-        };
-        if (verificationId) {
-          resetPayload.verificationId = Number(verificationId);
-        }
-        await resetPasswordMutation.mutateAsync(resetPayload);
+          password,
+          otp: code,
+        });
       }
 
       toast.success(TOAST_MESSAGES.AUTH.FORGOT_PASSWORD.RESET_SUCCESS);

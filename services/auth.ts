@@ -49,6 +49,12 @@ export const useLogin = (
         auth: false,
       });
       console.log("[API Client] Login response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Login failed");
+      }
+      
       return response;
     },
     onSuccess: () => {
@@ -123,6 +129,12 @@ export const useSignup = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Registration failed");
+      }
+      
       return response;
     },
     ...options,
@@ -146,22 +158,28 @@ export const useVerifyOtp = (
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_OTP,
         data: { email: identifier, otp },
-        auth: true, // Enable authentication to include Bearer token
+        auth: false, // Enable authentication to include Bearer token
       });
       console.log("useVerifyOtp response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
     ...options,
   });
 };
 
-// Verify Login OTP for Mobile
+// Verify Login OTP for Email (like renter/investor)
 export const useVerifyLoginOtp = (
   options?: Omit<
     UseMutationOptions<
       any,
       ApiError,
-      { identifier: { countryCode: string; mobile: string }; otp: string }
+      { identifier: string; otp: string }
     >,
     "mutationFn"
   >
@@ -171,7 +189,7 @@ export const useVerifyLoginOtp = (
   return useMutation<
     any,
     ApiError,
-    { identifier: { countryCode: string; mobile: string }; otp: string }
+    { identifier: string; otp: string }
   >({
     mutationFn: async ({ identifier, otp }) => {
       console.log("useVerifyLoginOtp called with:", {
@@ -189,15 +207,21 @@ export const useVerifyLoginOtp = (
         auth: false,
       });
 
-      // Store tokens on successful response
-      if (response?.data?.token) {
-        await AsyncStorage.setItem("token", response.data.token);
-      }
-
       console.log("useVerifyLoginOtp response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store token after successful OTP verification
+      if (response?.data?.token) {
+        AsyncStorage.setItem("token", response.data.token);
+        console.log("[Homeowner Auth] Stored JWT token from API response");
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.auth() });
       queryClient.invalidateQueries({ queryKey: queryKeys.user() });
     },
@@ -246,9 +270,8 @@ export const useResetPassword = (
       ApiError,
       {
         email: string;
-        code: string;
-        newPassword: string;
-        verificationId: number;
+        otp: string;
+        password: string;
       }
     >,
     "mutationFn"
@@ -257,17 +280,23 @@ export const useResetPassword = (
   return useMutation<
     any,
     ApiError,
-    { email: string; code: string; newPassword: string; verificationId: number }
+    { email: string; otp: string; password: string; }
   >({
-    mutationFn: async ({ email, code, newPassword, verificationId }) => {
+    mutationFn: async ({ email, otp, password }) => {
       const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.RESET_PASSWORD,
-        data: { email, code, newPassword, verificationId },
+        data: { email, otp, password },
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Password reset failed");
+      }
+      
       return response;
     },
     ...options,
@@ -293,48 +322,20 @@ export const useForgotPassword = (
         auth: false,
       });
       console.log("[API Client] ForgotPassword response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Forgot password request failed");
+      }
+      
       return response;
     },
     ...options,
   });
 };
 
-// Get profile
-export const useGetProfile = (
-  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">
-) => {
-  const baseURL = getHomeownerAuthBaseURL();
-
-  return useQuery<any, ApiError>({
-    queryKey: [...queryKeys.all, "profile"],
-    queryFn: () =>
-      apiGet({
-        baseURL,
-        endpoint: ENDPOINTS.AUTH.PROFILE.GET,
-        auth: true,
-      }),
-    ...options,
-  });
-};
-
-// Update profile
-export const useUpdateProfile = (
-  options?: Omit<UseMutationOptions<any, ApiError, any>, "mutationFn">
-) => {
-  return useMutation<any, ApiError, any>({
-    mutationFn: async (data) => {
-      const baseURL = getHomeownerAuthBaseURL();
-
-      return apiPut({
-        baseURL,
-        endpoint: ENDPOINTS.AUTH.PROFILE.UPDATE,
-        data,
-        auth: true,
-      });
-    },
-    ...options,
-  });
-};
+// Note: Profile endpoints are handled by HOMEOWNER_PROFILE, not AUTH.PROFILE
+// These functions are removed as they use incorrect endpoints
 
 // Resend OTP
 export const useResendOtp = (
@@ -353,6 +354,12 @@ export const useResendOtp = (
         data: { email },
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Resend OTP failed");
+      }
+      
       return response;
     },
     ...options,

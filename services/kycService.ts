@@ -5,21 +5,9 @@ const { SNSMobileSDKModule } = NativeModules;
 // Import the SumSub SDK properly
 const SumSubSDK = require('@sumsub/react-native-mobilesdk-module');
 
-export interface KYCConfig {
-  accessToken: string;
-  userId?: string;
-  flowName?: string;
-  locale?: string;
-  theme?: 'light' | 'dark' | 'system';
-}
+import { KYCConfig, KYCResult } from "@/types/kyc";
 
-export interface KYCResult {
-  success: boolean;
-  token?: string;
-  userId?: string;
-  errorMsg?: string;
-  errorType?: string;
-}
+export type { KYCConfig, KYCResult };
 
 export class KYCService {
   /**
@@ -67,10 +55,23 @@ export class KYCService {
       
       console.log('KYC SDK result:', result);
 
+      // Check if the verification was actually completed
+      // The result should contain information about completion status
+      const isCompleted = result && (
+        result.status === 'completed' || 
+        result.isCompleted === true ||
+        result.verificationCompleted === true ||
+        (result.type && result.type === 'idCheck.onApproved')
+      );
+
       return {
-        success: true,
+        success: isCompleted,
         token: result.token,
         userId: result.userId,
+        isCompleted: isCompleted,
+        status: result.status || result.type,
+        errorMsg: isCompleted ? undefined : 'KYC verification was not completed',
+        errorType: isCompleted ? undefined : 'INCOMPLETE_VERIFICATION'
       };
 
     } catch (error: any) {

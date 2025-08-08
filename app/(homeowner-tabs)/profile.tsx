@@ -36,11 +36,16 @@ export default function HomeownerProfileScreen() {
   const router = useRouter();
   const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { 
-    profile, 
-    isLoadingProfile, 
+  const {
+    profile,
+    isLoadingProfile,
     profileError,
   } = useHomeownerProfile();
+
+  console.log('HomeownerProfileScreen - Hook called');
+  console.log('HomeownerProfileScreen - profile:', profile);
+  console.log('HomeownerProfileScreen - isLoadingProfile:', isLoadingProfile);
+  console.log('HomeownerProfileScreen - profileError:', profileError);
 
   const handleLogout = () => {
     logout();
@@ -56,7 +61,7 @@ export default function HomeownerProfileScreen() {
       icon: User,
       title: 'Personal Information',
       subtitle: 'Update your profile details',
-      onPress: () => router.push('/edit-profile'),
+      onPress: () => router.push('/edit-profile?role=homeowner'),
     },
     {
       icon: Building2,
@@ -86,7 +91,7 @@ export default function HomeownerProfileScreen() {
       icon: Shield,
       title: 'Security & Privacy',
       subtitle: 'Password and security settings',
-      onPress: () => router.push('/change-password'),
+      onPress: () => router.push('/change-password?role=homeowner'),
     },
     {
       icon: FileText,
@@ -113,44 +118,39 @@ export default function HomeownerProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
         <View style={styles.section}>
-          <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+          <TouchableOpacity onPress={() => router.push('/edit-profile?role=homeowner')}>
             <Card style={styles.profileCard}>
               <View style={styles.profileHeader}>
-                                  <TouchableOpacity onPress={handleProfilePictureUpload}>
-                    <Image
-                      source={{
-                        uri: profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
-                      }}
-                      style={styles.avatar}
-                    />
-                                      <View style={styles.cameraOverlay}>
-                      <Camera size={16} color={colors.neutral.white} />
-                    </View>
+                <TouchableOpacity onPress={handleProfilePictureUpload}>
+                  <Image
+                    source={{
+                      uri: profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
+                    }}
+                    style={styles.avatar}
+                  />
+                  <View style={styles.cameraOverlay}>
+                    <Camera size={16} color={colors.neutral.white} />
+                  </View>
                 </TouchableOpacity>
-                                  <View style={styles.profileInfo}>
-                    <Typography variant="h4">
-                      {profile?.name ? `${profile.name.firstName} ${profile.name.lastName}` : 'Loading...'}
-                    </Typography>
-                    <Typography variant="body" color="secondary">
-                      {profile?.email || 'Loading...'}
-                    </Typography>
-                    <Typography variant="caption" color="secondary">
-                      {profile?.phone ? `${profile.phone.countryCode} ${profile.phone.mobile}` : 'Loading...'}
-                    </Typography>
+                <View style={styles.profileInfo}>
+                  <Typography variant="h4">
+                    {profile?.name ? `${profile.name.firstName} ${profile.name.lastName}` : 'Loading...'}
+                  </Typography>
+                  <Typography variant="body" color="secondary">
+                    {profile?.email || 'Loading...'}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {profile?.phone ? `${profile.phone.countryCode} ${profile.phone.mobile}` : 'Loading...'}
+                  </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>
                       <Typography variant="label" color="inverse">
                         PROPERTY OWNER
                       </Typography>
                     </View>
-                    <View style={[styles.roleBadge, { backgroundColor: colors.status.success }]}>
-                      <Typography variant="label" color="inverse">
-                        VERIFIED
-                      </Typography>
-                    </View>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+                <TouchableOpacity onPress={() => router.push('/edit-profile?role=homeowner')}>
                   <Edit size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
               </View>
@@ -267,7 +267,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,
