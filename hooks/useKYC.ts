@@ -69,7 +69,7 @@ export const useKYC = (): UseKYCReturn => {
 
       console.log('📊 KYC SDK result:', result);
 
-      if (result.success) {
+      if (result.success && result.isCompleted) {
         // Update user KYC status to complete
         if (user) {
           const updatedUser = { ...user, kycStatus: 'complete' as const };
@@ -80,12 +80,18 @@ export const useKYC = (): UseKYCReturn => {
         
         // Navigate back to the previous screen (property detail)
         router.back();
+      } else if (result.success && !result.isCompleted) {
+        // SDK launched successfully but user didn't complete the verification
+        console.log('KYC SDK closed without completion');
+        // Don't show any toast or update user status
+        // Just navigate back silently
+        router.back();
       } else {
         throw new Error(result.errorMsg || 'KYC verification failed');
       }
 
     } catch (err: any) {
-      console.error('❌ KYC SDK launch failed:', err);
+      //console.error('❌ KYC SDK launch failed:', err);
       const errorMessage = err.message || 'Failed to launch KYC verification';
       setError(errorMessage);
       toast.error(errorMessage);

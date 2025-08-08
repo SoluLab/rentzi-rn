@@ -20,6 +20,7 @@ interface UseRegisterFormReturn {
   acceptedTerms: boolean;
   errors: Record<string, string>;
   isLoading: boolean;
+  isFormValid: boolean;
   updateField: (field: keyof RegisterFormData, value: any) => void;
   setSelectedCountryCode: (countryCode: CountryCode) => void;
   setAcceptedTerms: (accepted: boolean) => void;
@@ -60,6 +61,24 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
   const renterInvestorRegisterMutation = useRenterInvestorRegister();
 
   const isLoading = signupMutation.isPending || renterInvestorRegisterMutation.isPending;
+
+  // Check if form is valid (all required fields filled and terms accepted)
+  const isFormValid = useCallback((): boolean => {
+    const hasRequiredFields = 
+      formData.firstName.trim() !== "" &&
+      formData.lastName.trim() !== "" &&
+      formData.email.trim() !== "" &&
+      formData.mobileNumber.trim() !== "" &&
+      formData.password.trim() !== "" &&
+      formData.confirmPassword.trim() !== "";
+    
+    const hasValidPassword = formData.password.length >= 6 && !/\s/.test(formData.password);
+    const passwordsMatch = formData.password === formData.confirmPassword;
+    const hasValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+    const termsAccepted = acceptedTerms;
+    
+    return hasRequiredFields && hasValidPassword && passwordsMatch && hasValidEmail && termsAccepted;
+  }, [formData, acceptedTerms]);
 
   // Initialize country code based on device locale
   useEffect(() => {
@@ -197,6 +216,7 @@ export const useRegisterForm = (roleType?: string): UseRegisterFormReturn => {
     acceptedTerms,
     errors,
     isLoading,
+    isFormValid: isFormValid(),
     updateField,
     setSelectedCountryCode,
     setAcceptedTerms,

@@ -2,32 +2,19 @@ import { apiPost } from './apiClient';
 import { getRenterAuthBaseURL } from '@/constants/urls';
 import { ENDPOINTS } from '@/constants/urls';
 
-export interface KYCInitializeRequest {
-  // Add any request parameters if needed
-}
+import { 
+  KYCInitializeRequest, 
+  KYCInitializeData, 
+  KYCInitializeResponse, 
+  KYCInitializeApiResponse 
+} from "@/types/kyc";
 
-export interface KYCInitializeData {
-  accessToken: string;
-  sdkConfig: {
-    accessToken: string;
-    appToken: string;
-    baseUrl: string;
-    flowName: string;
-  };
-  applicantId: string;
-}
-
-export interface KYCInitializeResponse {
-  success: boolean;
-  message: string;
-  data: KYCInitializeData;
-}
-
-export interface KYCInitializeApiResponse {
-  success: boolean;
-  message: string;
-  data: KYCInitializeData;
-}
+export type { 
+  KYCInitializeRequest, 
+  KYCInitializeData, 
+  KYCInitializeResponse, 
+  KYCInitializeApiResponse 
+};
 
 export class KYCApiService {
   /**

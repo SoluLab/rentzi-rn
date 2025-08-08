@@ -18,8 +18,10 @@ import { Input } from '@/components/ui/Input';
 import { BackButton } from '@/components/ui/BackButton';
 import { toast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
+import { useGlobalProfile } from '@/hooks/useGlobalProfile';
 import { useKYC } from '@/hooks/useKYC';
 import { colors, spacing, radius } from '@/constants';
+import { KYC_STATUS } from '@/types/kyc';
 import {
   Shield,
   FileText,
@@ -37,10 +39,11 @@ export default function KYCVerificationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user, setUser } = useAuthStore();
+  const { profileData, fetchProfile, isLoading: isProfileLoading } = useGlobalProfile();
   const { initializeKYC, isLoading, error } = useKYC();
   
   // Get userType from route params or default to 'homeowner'
-  const userType = (params.userType as 'homeowner' | 'investor') || 'homeowner';
+  const userType = (params.userType as 'homeowner' | 'investor' | 'renter_investor') || 'homeowner';
   
   const [kycStatus, setKycStatus] = useState<'start' | 'pending' | 'complete'>('start');
   const [currentStep, setCurrentStep] = useState(1);
@@ -56,22 +59,47 @@ export default function KYCVerificationScreen() {
   });
 
   useEffect(() => {
-    // Check if user already has KYC status
-    if (user?.kycStatus === 'pending') {
-      setKycStatus('pending');
-    } else if (user?.kycStatus === 'complete') {
-      setKycStatus('complete');
-      // If already complete, navigate based on user type
-      if (userType === 'homeowner') {
-        router.replace('/(homeowner-tabs)');
-      } else {
+    // Fetch global profile data for renter_investor
+    if (userType === 'renter_investor') {
+      fetchProfile();
+    }
+  }, [userType, fetchProfile]);
+
+  useEffect(() => {
+    // Determine KYC status based on user type and data
+    if (userType === 'renter_investor' && profileData) {
+      const kycStatusFromProfile = profileData.kyc.status;
+      
+      if (kycStatusFromProfile === KYC_STATUS.PENDING) {
+        setKycStatus('start');
+      } else if (kycStatusFromProfile === KYC_STATUS.IN_PROGRESS) {
+        setKycStatus('pending');
+      } else if (kycStatusFromProfile === KYC_STATUS.VERIFIED) {
+        setKycStatus('complete');
+        // If already complete, navigate back to property screen
+        router.back();
+      }
+    } else if (userType === 'investor') {
+      // For regular investors, check user store
+      if (user?.kycStatus === 'pending') {
+        setKycStatus('pending');
+      } else if (user?.kycStatus === 'complete') {
+        setKycStatus('complete');
         router.back(); // Go back to property screen for investors
       }
+    } else if (userType === 'homeowner') {
+      // For homeowners, check user store
+      if (user?.kycStatus === 'pending') {
+        setKycStatus('pending');
+      } else if (user?.kycStatus === 'complete') {
+        setKycStatus('complete');
+        router.replace('/(homeowner-tabs)');
+      }
     }
-  }, [user?.kycStatus, userType]);
+  }, [user?.kycStatus, userType, profileData, router]);
 
   const handleStartKYC = async () => {
-    if (userType === 'investor') {
+    if (userType === 'renter_investor' || userType === 'investor') {
       // For investors, use the API-based KYC flow
       await initializeKYC();
     } else {
@@ -113,18 +141,22 @@ export default function KYCVerificationScreen() {
     }
   };
 
-  const handleDemoTogglePending = () => {
-    if (kycStatus === 'pending') {
-      setKycStatus('start');
-      toast.info('Switched to Start KYC view');
-    } else {
-      setKycStatus('pending');
-      toast.info('Switched to Pending KYC view');
-    }
-  };
-
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // Helper function to get user type display name
+  const getUserTypeDisplayName = () => {
+    switch (userType) {
+      case 'renter_investor':
+        return 'Renter & Investor';
+      case 'investor':
+        return 'Investor';
+      case 'homeowner':
+        return 'Homeowner';
+      default:
+        return 'User';
+    }
   };
 
   const renderStartKYCScreen = () => (
@@ -141,7 +173,7 @@ export default function KYCVerificationScreen() {
           <Typography variant="body" style={styles.subtitle}>
             {userType === 'homeowner' 
               ? 'As a homeowner, you need to complete KYC verification to list and manage properties on our platform.'
-              : 'As an investor, you need to complete KYC verification to invest in properties on our platform.'
+              : `As a ${getUserTypeDisplayName().toLowerCase()}, you need to complete KYC verification to invest in properties on our platform.`
             }
           </Typography>
         </View>
@@ -260,26 +292,18 @@ export default function KYCVerificationScreen() {
 
         {/* Start Button */}
         <Button
-          title={`Start KYC Verification${userType === 'investor' ? ' for Investment' : ''}`}
+          title={`Start KYC Verification${userType !== 'homeowner' ? ' for Investment' : ''}`}
           onPress={handleStartKYC}
-          loading={isLoading}
+          loading={isLoading || isProfileLoading}
           style={styles.startButton}
           leftIcon={<Shield size={20} color={colors.neutral.white} />}
-        />
-
-        {/* Demo Button */}
-        <Button
-          title="Demo: Toggle Pending Status"
-          onPress={handleDemoTogglePending}
-          variant="outline"
-          style={styles.demoButton}
         />
 
         {/* Help Text */}
         <View style={styles.helpSection}>
           <Typography variant="caption" style={styles.helpText}>
             The verification process typically takes 1-2 business days. You'll be notified once approved.
-            {userType === 'investor' && ' After approval, you can start investing in properties immediately.'}
+            {userType !== 'homeowner' && ' After approval, you can start investing in properties immediately.'}
           </Typography>
         </View>
       </View>
@@ -384,22 +408,6 @@ export default function KYCVerificationScreen() {
             </View>
           </View>
         </Card>
-
-        {/* Demo Complete Button */}
-        <Button
-          title="Demo: Complete KYC"
-          onPress={handleSubmitKYC}
-          loading={isLoading}
-          style={styles.completeButton}
-        />
-
-        {/* Demo Toggle Button */}
-        <Button
-          title="Demo: Back to Start Screen"
-          onPress={handleDemoTogglePending}
-          variant="outline"
-          style={styles.demoButton}
-        />
 
         {/* Contact Support */}
         <View style={styles.supportSection}>

@@ -7,6 +7,7 @@ import {
   Image,
   TextInput,
   FlatList,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +23,7 @@ import { usePropertyStore } from '@/stores/propertyStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useGlobalProfile } from '@/hooks/useGlobalProfile';
 import { toast } from '@/components/ui/Toast';
 import {
   Search,
@@ -51,13 +53,17 @@ export default function ExploreScreen() {
   const { unreadCount } = useNotificationStore();
   const { user } = useAuthStore();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
+  const { profileData, isLoading: profileLoading, fetchProfile, refreshProfile } = useGlobalProfile();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [selectedTab, setSelectedTab] = useState<'Commercial' | 'Residential'>('Residential');
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     fetchProperties();
-  }, [fetchProperties]);
+    // Fetch profile data when dashboard loads
+    fetchProfile();
+  }, [fetchProperties, fetchProfile]);
   // Debounced search
   const handleSearch = useCallback(
     (query: string) => {
@@ -84,6 +90,18 @@ export default function ExploreScreen() {
   };
   const handleTabChange = (tab: 'Commercial' | 'Residential') => {
     setSelectedTab(tab);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchProperties(),
+        refreshProfile(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
   // Filter properties based on selected tab
   const getFilteredPropertiesByTab = () => {
@@ -397,6 +415,14 @@ export default function ExploreScreen() {
                 keyExtractor={(item) => item.id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.propertiesList}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={onRefresh}
+                    colors={[colors.primary.gold]}
+                    tintColor={colors.primary.gold}
+                  />
+                }
               />
             ) : (
               renderSuggestions()
@@ -497,7 +523,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral.white,
     borderRadius: 16,
     padding: spacing.md,
-    shadowColor: colors.primary.black,
+    shadowColor: colors.neutral.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,

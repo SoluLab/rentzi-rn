@@ -32,6 +32,7 @@ export default function RegisterScreen() {
     acceptedTerms,
     errors,
     isLoading,
+    isFormValid,
     updateField,
     setSelectedCountryCode,
     setAcceptedTerms,
@@ -138,7 +139,7 @@ export default function RegisterScreen() {
             title={staticText.auth.createAccount}
             onPress={handleRegister}
             loading={isLoading}
-            disabled={isLoading}
+            disabled={isLoading || !isFormValid}
             style={styles.registerButton}
           />
           

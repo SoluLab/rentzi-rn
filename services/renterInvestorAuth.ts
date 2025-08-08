@@ -48,6 +48,12 @@ export const useRenterInvestorLogin = (
         auth: false,
       });
       console.log("useRenterInvestorLogin response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Login failed");
+      }
+      
       return response;
     },
     onSuccess: (response) => {
@@ -85,12 +91,19 @@ export const useRenterInvestorVerifyLoginOtp = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
     onSuccess: (response) => {
       // Store token after successful OTP verification
       if (response?.data?.token) {
         AsyncStorage.setItem("token", response.data.token);
+        console.log("[Renter/Investor Auth] Stored JWT token from API response");
       }
       queryClient.invalidateQueries();
     },
@@ -123,6 +136,12 @@ export const useRenterInvestorResendOtp = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Resend OTP failed");
+      }
+      
       return response;
     },
     onSuccess: () => {
@@ -161,12 +180,19 @@ export const useRenterInvestorRegister = (
         data: finalPayload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Registration failed");
+      }
+      
       return response;
     },
     onSuccess: (response) => {
       // Store token after successful registration
       if (response?.data?.token) {
         AsyncStorage.setItem("token", response.data.token);
+        console.log("[Renter/Investor Auth] Stored JWT token from registration API response");
       }
       queryClient.invalidateQueries();
     },
@@ -198,6 +224,12 @@ export const useRenterInvestorForgotPassword = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Forgot password request failed");
+      }
+      
       return response;
     },
     onSuccess: () => {
@@ -231,6 +263,12 @@ export const useRenterInvestorResetPassword = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Password reset failed");
+      }
+      
       return response;
     },
     onSuccess: () => {
@@ -264,6 +302,12 @@ export const useRenterInvestorVerifyForgotPasswordOtp = (
         data: payload,
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
     onSuccess: () => {

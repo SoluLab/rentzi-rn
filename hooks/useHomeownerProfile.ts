@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useGetHomeownerProfile, useUpdateHomeownerProfile, useChangeHomeownerPassword } from '@/services/homeownerProfile';
-import { UpdateProfileRequest, ChangePasswordRequest } from '@/services/homeownerProfile';
+import { UpdateProfileRequest, ChangePasswordRequest } from '@/types/homeownerProfile';
 import { toast } from '@/components/ui/Toast';
 import { TOAST_MESSAGES } from '@/constants/toastMessages';
 
@@ -11,6 +11,12 @@ export const useHomeownerProfile = () => {
     error: profileError,
     refetch: refetchProfile,
   } = useGetHomeownerProfile();
+
+  console.log('useHomeownerProfile - Hook called');
+  console.log('useHomeownerProfile - isLoadingProfile:', isLoadingProfile);
+  console.log('useHomeownerProfile - profileError:', profileError);
+  console.log('useHomeownerProfile - profileData:', profileData);
+  console.log('useHomeownerProfile - profileData?.data:', profileData?.data);
 
   const updateProfileMutation = useUpdateHomeownerProfile({
     onSuccess: () => {

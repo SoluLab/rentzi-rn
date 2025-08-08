@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Typography } from '@/components/ui/Typography';
 import { Input } from '@/components/ui/Input';
@@ -22,11 +22,36 @@ import { spacing } from '@/constants/spacing';
 import { validateFullName } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
 import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
+import { useGlobalProfile } from '@/hooks/useGlobalProfile';
+import { useAuthStore } from '@/stores/authStore';
 import { countryCodes } from '@/components/ui/PhoneInput';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { profile, isLoadingProfile, updateProfile, isUpdatingProfile } = useHomeownerProfile();
+  const params = useLocalSearchParams();
+  const { user } = useAuthStore();
+  
+  // Determine user type and use appropriate hooks
+  const { profile: homeownerProfile, isLoadingProfile: isHomeownerLoading, updateProfile: updateHomeownerProfile, isUpdatingProfile } = useHomeownerProfile();
+  const { profileData: renterProfile, isLoading: isRenterLoading, updateProfile: updateRenterProfile } = useGlobalProfile();
+  
+  // Determine user type - Priority: URL params > Auth store > Profile data
+  const urlRole = params.role as string;
+  const userRole = user?.role;
+  const isHomeowner = urlRole === 'homeowner' || userRole === 'homeowner' || (homeownerProfile && !renterProfile);
+  
+  // Use the appropriate profile data based on user type
+  // If homeowner profile exists, use it regardless of user role detection
+  const profile = homeownerProfile || renterProfile;
+  const isLoadingProfile = isHomeowner ? isHomeownerLoading : isRenterLoading;
+  const isUpdating = isHomeowner ? isUpdatingProfile : isRenterLoading;
+  
+  console.log('EditProfile - URL role param:', urlRole);
+  console.log('EditProfile - User role:', user?.role);
+  console.log('EditProfile - Is homeowner:', isHomeowner);
+  console.log('EditProfile - Homeowner profile:', homeownerProfile);
+  console.log('EditProfile - Renter profile:', renterProfile);
+  console.log('EditProfile - Selected profile:', profile);
   
   // Initialize state with profile data
   const [firstName, setFirstName] = useState('');
@@ -38,23 +63,56 @@ export default function EditProfileScreen() {
 
   // Update state when profile data is loaded
   useEffect(() => {
+    console.log('EditProfile - Profile data received:', profile);
+    console.log('EditProfile - Is homeowner:', isHomeowner);
+    console.log('EditProfile - Is loading:', isLoadingProfile);
+    
     if (profile) {
-      setFirstName(profile.name.firstName || '');
-      setLastName(profile.name.lastName || '');
-      setPhoneNumber(profile.phone.mobile || '');
+      console.log('EditProfile - Setting profile data:', {
+        firstName: profile.name?.firstName,
+        lastName: profile.name?.lastName,
+        mobile: profile.phone?.mobile,
+        countryCode: profile.phone?.countryCode,
+        email: profile.email
+      });
+      
+      setFirstName(profile.name?.firstName || '');
+      setLastName(profile.name?.lastName || '');
+      setPhoneNumber(profile.phone?.mobile || '');
       
       // Set country code based on profile data
-      const countryCode = countryCodes.find(c => c.phoneCode === profile.phone.countryCode);
+      const countryCode = countryCodes.find(c => c.phoneCode === profile.phone?.countryCode);
       if (countryCode) {
         setSelectedCountryCode(countryCode);
       }
       
-      // Set profile image if available
-      if (profile.avatar) {
-        setProfileImage(profile.avatar);
+      // Set profile image from profile data or use default
+      const avatar = 'avatar' in profile ? profile.avatar : undefined;
+      setProfileImage(avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40');
+    } else if (homeownerProfile && typeof homeownerProfile === 'object') {
+      // Fallback: if no profile is selected but homeowner profile exists, use it
+      console.log('EditProfile - Using homeowner profile as fallback');
+      setFirstName((homeownerProfile as any).name?.firstName || '');
+      setLastName((homeownerProfile as any).name?.lastName || '');
+      setPhoneNumber((homeownerProfile as any).phone?.mobile || '');
+      
+      const countryCode = countryCodes.find(c => c.phoneCode === (homeownerProfile as any).phone?.countryCode);
+      if (countryCode) {
+        setSelectedCountryCode(countryCode);
       }
+      
+      const avatar = 'avatar' in homeownerProfile ? (homeownerProfile as any).avatar : undefined;
+      setProfileImage(avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40');
+    } else {
+      console.log('EditProfile - No profile data available');
+      // Reset form fields if no profile data
+      setFirstName('');
+      setLastName('');
+      setPhoneNumber('');
+      setSelectedCountryCode(countryCodes.find(c => c.code === "US") || countryCodes[0]);
+      setProfileImage('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40');
     }
-  }, [profile]);
+  }, [profile, homeownerProfile, isHomeowner, isLoadingProfile]);
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -66,13 +124,14 @@ export default function EditProfileScreen() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSave = async () => {
     if (!validateForm()) {
       toast.error('Please fix the errors below');
       return;
     }
     
-    const payload: any = {
+    const payload = {
       name: {
         firstName,
         lastName,
@@ -84,12 +143,21 @@ export default function EditProfileScreen() {
     };
     
     try {
-      await updateProfile(payload);
-      // The hook will automatically refetch profile data and show success toast
-      // Then navigate back to profile screen
-      router.back();
+      // Determine which update function to use based on user role
+      console.log('EditProfile - Saving with role:', urlRole || userRole);
+      console.log('EditProfile - Is homeowner determined:', isHomeowner);
+      
+      if (isHomeowner) {
+        await updateHomeownerProfile(payload);
+        // The hook will automatically refetch profile data and show success toast
+        router.back();
+      } else {
+        await updateRenterProfile(payload);
+        // The hook will automatically refetch profile data and show success toast
+        router.back();
+      }
     } catch (error: any) {
-      // Error handling is already done in the hook
+      // Error handling is already done in the hooks
       console.error('Profile update error:', error);
     }
   };
@@ -159,15 +227,7 @@ export default function EditProfileScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {isLoadingProfile ? (
-            <View style={styles.loadingContainer}>
-              <Typography variant="body" color="secondary" align="center">
-                Loading profile data...
-              </Typography>
-            </View>
-          ) : (
-            <>
-              {/* Profile Picture Section */}
+              {/* Profile Picture Section - For all users */}
               <View style={styles.section}>
                 <Typography variant="h4" style={styles.sectionTitle}>
                   Profile Picture
@@ -177,7 +237,6 @@ export default function EditProfileScreen() {
                     source={{
                       uri:
                         profileImage ||
-                        profile?.avatar ||
                         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40',
                     }}
                     style={styles.profileImage}
@@ -226,13 +285,11 @@ export default function EditProfileScreen() {
                 <Button
                   title="Save Changes"
                   onPress={handleSave}
-                  loading={isUpdatingProfile}
+                  loading={isUpdating}
                   variant="primary"
                   style={styles.saveButton}
                 />
               </View>
-            </>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -241,7 +298,6 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   keyboardView: {
     flex: 1,

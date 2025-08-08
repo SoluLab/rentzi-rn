@@ -124,12 +124,18 @@ export const useMobileVerification = (): UseMobileVerificationReturn => {
         });
       } else {
         // For homeowner registration
-        const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+        // const phone = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+        // response = await homeownerVerifyLoginOtpMutation.mutateAsync({
+        //   identifier: {
+        //     countryCode: "+1", // Default country code for homeowner
+        //     mobile: phone || "",
+        //   },
+        //   otp,
+        // });
+        
+        
         response = await homeownerVerifyLoginOtpMutation.mutateAsync({
-          identifier: {
-            countryCode: "+1", // Default country code for homeowner
-            mobile: phone || "",
-          },
+          identifier,
           otp,
         });
       }

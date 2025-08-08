@@ -9,67 +9,59 @@ import { apiGet, apiPut, apiPost } from "./apiClient";
 import { ENDPOINTS, getHomeownerAuthBaseURL } from "@/constants/urls";
 import { ApiError } from "@/types";
 import { queryKeys } from "./apiClient";
-
-// Types for profile management
-export interface HomeownerProfile {
-  id: string;
-  name: {
-    firstName: string;
-    lastName: string;
-  };
-  email: string;
-  phone: {
-    countryCode: string;
-    mobile: string;
-  };
-  avatar?: string;
-  isVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UpdateProfileRequest {
-  name?: {
-    firstName: string;
-    lastName: string;
-  };
-  phone?: {
-    countryCode: string;
-    mobile: string;
-  };
-}
-
-export interface ChangePasswordRequest {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
+import { HomeownerProfileData, UpdateProfileRequest, ChangePasswordRequest } from "@/types/homeownerProfile";
 
 // Get Profile
 export const useGetHomeownerProfile = (
-  options?: Omit<UseQueryOptions<{ data: HomeownerProfile }, ApiError>, "queryKey" | "queryFn">
+  options?: Omit<UseQueryOptions<{ data: HomeownerProfileData }, ApiError>, "queryKey" | "queryFn">
 ) => {
   const baseURL = getHomeownerAuthBaseURL();
 
-  return useQuery<{ data: HomeownerProfile }, ApiError>({
+  return useQuery<{ data: HomeownerProfileData }, ApiError>({
     queryKey: [...queryKeys.all, "homeowner", "profile"],
-    queryFn: () =>
-      apiGet({
-        baseURL,
-        endpoint: ENDPOINTS.HOMEOWNER_PROFILE.GET,
-        auth: true,
-      }),
+    queryFn: async () => {
+      console.log('HomeownerProfile - Making API call to:', `${baseURL}${ENDPOINTS.HOMEOWNER_PROFILE.GET}`);
+      
+      try {
+        const response = await apiGet({
+          baseURL,
+          endpoint: ENDPOINTS.HOMEOWNER_PROFILE.GET,
+          auth: true,
+        });
+        
+        console.log('HomeownerProfile - Raw API response:', response);
+        
+        // Handle the double-nested response structure
+        // API returns: { data: { data: { profileData }, message, success } }
+        // We need to extract: { data: profileData }
+        if (response?.data?.data) {
+          console.log('HomeownerProfile - Extracted data:', response.data.data);
+          return { data: response.data.data };
+        }
+        
+        console.log('HomeownerProfile - Using original response:', response);
+        return response;
+      } catch (error) {
+        console.error('HomeownerProfile - API call failed:', error);
+        throw error;
+      }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - data is considered fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes - cache data for 10 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window gains focus
+    refetchOnMount: true, // Always refetch when component mounts to ensure fresh data
+    enabled: true, // Always enable the query
     ...options,
   });
 };
 
 // Update Profile
 export const useUpdateHomeownerProfile = (
-  options?: Omit<UseMutationOptions<{ data: HomeownerProfile }, ApiError, UpdateProfileRequest>, "mutationFn">
+  options?: Omit<UseMutationOptions<{ data: HomeownerProfileData }, ApiError, UpdateProfileRequest>, "mutationFn">
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ data: HomeownerProfile }, ApiError, UpdateProfileRequest>({
+  return useMutation<{ data: HomeownerProfileData }, ApiError, UpdateProfileRequest>({
     mutationFn: async (data) => {
       const baseURL = getHomeownerAuthBaseURL();
 
