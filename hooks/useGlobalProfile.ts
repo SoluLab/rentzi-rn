@@ -1,13 +1,17 @@
 import { useCallback } from 'react';
 import { useProfileStore } from '@/stores/profileStore';
-import { getRenterInvestorProfile, updateRenterInvestorProfile } from '@/services/renterInvestorProfile';
-import { toast } from '@/components/ui/Toast';
+import { useGetRenterInvestorProfile, useUpdateRenterInvestorProfile } from '@/services/renterInvestorProfile';
 import { UpdateRenterInvestorProfileRequest } from '@/types/renterInvestorProfile';
 
-export const useGlobalProfile = () => {
+export const useGlobalProfile = (
+  options?: {
+    onProfileUpdateSuccess?: () => void;
+    onProfileUpdateError?: (error: any) => void;
+  }
+) => {
   const {
     profileData,
-    isLoading,
+    isLoading: storeLoading,
     isError,
     error,
     setProfileData,
@@ -18,63 +22,69 @@ export const useGlobalProfile = () => {
     updateLastFetched,
   } = useProfileStore();
 
+  const {
+    data: queryData,
+    isLoading: queryLoading,
+    error: queryError,
+    refetch: refetchProfile,
+  } = useGetRenterInvestorProfile({
+    onSuccess: (data) => {
+      if (data?.success === true && data?.data) {
+        setProfileData(data.data);
+        updateLastFetched();
+      }
+    },
+    onError: (error) => {
+      setError(error);
+    },
+  });
+
+  const updateProfileMutation = useUpdateRenterInvestorProfile({
+    onSuccess: (data) => {
+      if (data?.success === true && data?.data) {
+        setProfileData(data.data);
+        updateLastFetched();
+      }
+      options?.onProfileUpdateSuccess?.();
+    },
+    onError: (error) => {
+      setError(error);
+      options?.onProfileUpdateError?.(error);
+    },
+  });
+
   const fetchProfile = useCallback(async (forceRefresh = false) => {
     // Don't fetch if data is fresh and not forcing refresh
     if (!forceRefresh && !isDataStale() && profileData) {
       return profileData;
     }
 
-    setLoading(true);
-    clearError();
-
     try {
-      const response = await getRenterInvestorProfile();
-      const profile = response.data;
-      
-      setProfileData(profile);
-      updateLastFetched();
-      
-      return profile;
+      await refetchProfile();
+      return profileData;
     } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Failed to fetch profile';
-      setError(error);
-      toast.error(errorMessage);
       throw error;
     }
-  }, [profileData, isDataStale, setProfileData, setLoading, setError, clearError, updateLastFetched]);
+  }, [profileData, isDataStale, refetchProfile]);
 
   const refreshProfile = useCallback(async () => {
     return fetchProfile(true);
   }, [fetchProfile]);
 
   const updateProfile = useCallback(async (data: UpdateRenterInvestorProfileRequest) => {
-    setLoading(true);
-    clearError();
+    updateProfileMutation.mutate(data);
+  }, [updateProfileMutation]);
 
-    try {
-      const response = await updateRenterInvestorProfile(data);
-      const updatedProfile = response.data;
-      
-      setProfileData(updatedProfile);
-      updateLastFetched();
-      
-      toast.success('Profile updated successfully');
-      return updatedProfile;
-    } catch (error: any) {
-      const errorMessage = error?.data?.message || error?.message || 'Failed to update profile';
-      setError(error);
-      toast.error(errorMessage);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [setProfileData, setLoading, setError, clearError, updateLastFetched]);
+  // Use query data if available, otherwise fall back to store data
+  const finalProfileData = queryData?.data || profileData;
+  const finalLoading = queryLoading || storeLoading;
+  const finalError = queryError || error;
 
   return {
-    profileData,
-    isLoading,
+    profileData: finalProfileData,
+    isLoading: finalLoading,
     isError,
-    error,
+    error: finalError,
     fetchProfile,
     refreshProfile,
     updateProfile,

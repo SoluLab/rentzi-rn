@@ -9,15 +9,19 @@ import { apiGet, apiPut, apiPost } from "./apiClient";
 import { ENDPOINTS, getHomeownerAuthBaseURL } from "@/constants/urls";
 import { ApiError } from "@/types";
 import { queryKeys } from "./apiClient";
-import { HomeownerProfileData, UpdateProfileRequest, ChangePasswordRequest } from "@/types/homeownerProfile";
+import { HomeownerProfileData, UpdateProfileRequest, ChangePasswordRequest, HomeownerProfileResponse } from "@/types/homeownerProfile";
+import { toast } from "@/components/ui/Toast";
 
 // Get Profile
 export const useGetHomeownerProfile = (
-  options?: Omit<UseQueryOptions<{ data: HomeownerProfileData }, ApiError>, "queryKey" | "queryFn">
+  options?: Omit<UseQueryOptions<HomeownerProfileResponse, ApiError>, "queryKey" | "queryFn"> & {
+    onSuccess?: (data: HomeownerProfileResponse) => void;
+    onError?: (error: ApiError) => void;
+  }
 ) => {
   const baseURL = getHomeownerAuthBaseURL();
 
-  return useQuery<{ data: HomeownerProfileData }, ApiError>({
+  return useQuery<HomeownerProfileResponse, ApiError>({
     queryKey: [...queryKeys.all, "homeowner", "profile"],
     queryFn: async () => {
       console.log('HomeownerProfile - Making API call to:', `${baseURL}${ENDPOINTS.HOMEOWNER_PROFILE.GET}`);
@@ -51,17 +55,39 @@ export const useGetHomeownerProfile = (
     refetchOnWindowFocus: false, // Don't refetch when window gains focus
     refetchOnMount: true, // Always refetch when component mounts to ensure fresh data
     enabled: true, // Always enable the query
+    onSuccess: (data: HomeownerProfileResponse) => {
+      // Check if the API response indicates success
+      if (data?.success === true) {
+        console.log('HomeownerProfile - Profile fetched successfully:', data);
+        options?.onSuccess?.(data);
+      } else {
+        // API returned success: false, show error
+        const errorMessage = data?.message || "Failed to fetch profile";
+        console.error('HomeownerProfile - Profile fetch failed:', data);
+        toast.error(errorMessage);
+        options?.onError?.({ message: errorMessage } as ApiError);
+      }
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error?.data?.message || error?.message || "Failed to fetch profile";
+      console.error('HomeownerProfile - Profile fetch failed:', error);
+      toast.error(errorMessage);
+      options?.onError?.(error);
+    },
     ...options,
   });
 };
 
 // Update Profile
 export const useUpdateHomeownerProfile = (
-  options?: Omit<UseMutationOptions<{ data: HomeownerProfileData }, ApiError, UpdateProfileRequest>, "mutationFn">
+  options?: Omit<UseMutationOptions<HomeownerProfileResponse, ApiError, UpdateProfileRequest>, "mutationFn"> & {
+    onSuccess?: (data: HomeownerProfileResponse) => void;
+    onError?: (error: ApiError) => void;
+  }
 ) => {
   const queryClient = useQueryClient();
 
-  return useMutation<{ data: HomeownerProfileData }, ApiError, UpdateProfileRequest>({
+  return useMutation<HomeownerProfileResponse, ApiError, UpdateProfileRequest>({
     mutationFn: async (data) => {
       const baseURL = getHomeownerAuthBaseURL();
 
@@ -73,8 +99,26 @@ export const useUpdateHomeownerProfile = (
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (data: HomeownerProfileResponse) => {
       queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "homeowner", "profile"] });
+      
+      // Check if the API response indicates success
+      if (data?.success === true) {
+        toast.success(data.message || "Profile updated successfully");
+        console.log('HomeownerProfile - Profile updated successfully:', data);
+        options?.onSuccess?.(data);
+      } else {
+        // API returned success: false, show error
+        const errorMessage = data?.message || "Failed to update profile";
+        toast.error(errorMessage);
+        options?.onError?.({ message: errorMessage } as ApiError);
+      }
+    },
+    onError: (error: ApiError) => {
+      const errorMessage = error?.data?.message || error?.message || "Failed to update profile";
+      console.error('HomeownerProfile - Profile update failed:', error);
+      toast.error(errorMessage);
+      options?.onError?.(error);
     },
     ...options,
   });
@@ -82,20 +126,42 @@ export const useUpdateHomeownerProfile = (
 
 // Change Password
 export const useChangeHomeownerPassword = (
-  options?: Omit<UseMutationOptions<{ message: string }, ApiError, ChangePasswordRequest>, "mutationFn">
+  options?: {
+    onSuccess?: (response: any) => void;
+    onError?: (error: any) => void;
+  }
 ) => {
-  return useMutation<{ message: string }, ApiError, ChangePasswordRequest>({
-    mutationFn: async ({ currentPassword, newPassword, confirmPassword }) => {
+  return useMutation({
+    mutationFn: async (data: ChangePasswordRequest) => {
       const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.HOMEOWNER_PROFILE.CHANGE_PASSWORD,
-        data: { currentPassword, newPassword, confirmPassword },
+        data,
         auth: true,
       });
+      
+      console.log('HomeownerProfile - Change password API response:', response);
       return response;
     },
-    ...options,
+    onSuccess: (response: any) => {
+      // Check if the API response indicates success
+      if (response?.success === true) {
+        toast.success(response.message || "Password changed successfully");
+        options?.onSuccess?.(response);
+      } else {
+        // API returned success: false, show error
+        const errorMessage = response?.message || "Failed to change password";
+        toast.error(errorMessage);
+        options?.onError?.({ message: errorMessage });
+      }
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.data?.message || error?.message || "Failed to change password";
+      console.error('HomeownerProfile - Change password failed:', error);
+      toast.error(errorMessage);
+      options?.onError?.(error);
+    },
   });
 }; 

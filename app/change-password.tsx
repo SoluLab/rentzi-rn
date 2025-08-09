@@ -16,8 +16,8 @@ import { toast } from '@/components/ui/Toast';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { validatePassword } from '@/utils/validation';
-import { useHomeownerChangePassword } from '@/hooks/useHomeownerChangePassword';
-import { useRenterInvestorChangePassword } from '@/hooks/useRenterInvestorChangePassword';
+import { useChangeHomeownerPassword } from '@/services/homeownerProfile';
+import { useChangeRenterInvestorPassword } from '@/services/renterInvestorProfile';
 import { useAuthStore } from '@/stores/authStore';
 
 export default function ChangePasswordScreen() {
@@ -29,6 +29,8 @@ export default function ChangePasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   
   // Debug: Log user data to understand what's available
   console.log('ChangePassword - Full user object:', user);
@@ -65,8 +67,19 @@ export default function ChangePasswordScreen() {
     console.log('ChangePassword - Final user role in useEffect:', finalUserRole);
   }, [user, finalUserRole]);
   
-  const { changePassword: changeHomeownerPassword, isUpdating: isHomeownerUpdating } = useHomeownerChangePassword();
-  const { changePassword: changeRenterPassword, isUpdating: isRenterUpdating } = useRenterInvestorChangePassword();
+  const { mutate: changeHomeownerPassword, isPending: isHomeownerUpdating } = useChangeHomeownerPassword({
+    onSuccess: () => {
+      // Navigation callback - only called when API returns success: true
+      router.back();
+    },
+  });
+  
+  const { mutate: changeRenterPassword, isPending: isRenterUpdating } = useChangeRenterInvestorPassword({
+    onSuccess: () => {
+      // Navigation callback - only called when API returns success: true
+      router.back();
+    },
+  });
   
   // Use homeowner API only for homeowners, use renter/investor API for renters and investors
   // If role cannot be determined, default to renter/investor API with a warning
@@ -76,30 +89,60 @@ export default function ChangePasswordScreen() {
   // Log which API will be used
   console.log('ChangePassword - Will use API:', isHomeowner ? 'HOMEOWNER' : 'RENTER_INVESTOR');
 
-  const validateForm = () => {
+  // Real-time validation function
+  const validateFormRealTime = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!currentPassword) {
+    // Current password validation - only show error if field is touched and empty
+    if (touchedFields.currentPassword && !currentPassword) {
       newErrors.currentPassword = 'Current password is required';
     }
     
-    if (newPassword) {
-      const passwordValidation = validatePassword(newPassword);
-      if (!passwordValidation.isValid) {
-        newErrors.newPassword = passwordValidation.error!;
+    // New password validation
+    if (touchedFields.newPassword) {
+      if (!newPassword) {
+        newErrors.newPassword = 'New password is required';
+      } else {
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.isValid) {
+          newErrors.newPassword = passwordValidation.error!;
+        } else if (currentPassword && newPassword === currentPassword) {
+          newErrors.newPassword = 'New password must be different from current password';
+        }
       }
-    } else {
-      newErrors.newPassword = 'New password is required';
     }
     
-    if (!confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your new password';
-    } else if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+    // Confirm password validation - only show error if field is touched
+    if (touchedFields.confirmPassword) {
+      if (!confirmPassword) {
+        newErrors.confirmPassword = 'Please confirm your new password';
+      } else if (newPassword && confirmPassword !== newPassword) {
+        newErrors.confirmPassword = 'Passwords do not match';
+      }
     }
     
     setErrors(newErrors);
+    
+    // Check if form is valid (all fields filled and no errors)
+    const isCurrentPasswordValid = currentPassword.length > 0;
+    const isNewPasswordValid = newPassword.length > 0 && 
+                              validatePassword(newPassword).isValid && 
+                              newPassword !== currentPassword;
+    const isConfirmPasswordValid = confirmPassword.length > 0 && confirmPassword === newPassword;
+    
+    const formValid = isCurrentPasswordValid && isNewPasswordValid && isConfirmPasswordValid;
+    setIsFormValid(formValid);
+    
     return Object.keys(newErrors).length === 0;
+  };
+
+  // Validate form on every field change
+  useEffect(() => {
+    validateFormRealTime();
+  }, [currentPassword, newPassword, confirmPassword, touchedFields]);
+
+  const validateForm = () => {
+    return validateFormRealTime();
   };
 
   const handleChangePassword = async () => {
@@ -151,9 +194,9 @@ export default function ChangePasswordScreen() {
     }
     
     try {
-      await changePassword(payload);
-      // The hooks will automatically show success toast and handle navigation
-      router.back();
+      changePassword(payload);
+      // Navigation and error handling are now managed in the hook callbacks
+      // No need for additional logic here
     } catch (error: any) {
       // Error handling is already done in the hooks
       console.error('Password change error:', error);
@@ -161,12 +204,14 @@ export default function ChangePasswordScreen() {
   };
 
   const updateField = (field: string, value: string) => {
+    // Mark field as touched when user starts typing
+    if (!touchedFields[field]) {
+      setTouchedFields(prev => ({ ...prev, [field]: true }));
+    }
+    
     if (field === 'currentPassword') setCurrentPassword(value);
     if (field === 'newPassword') setNewPassword(value);
     if (field === 'confirmPassword') setConfirmPassword(value);
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }));
-    }
   };
 
   return (
@@ -209,6 +254,7 @@ export default function ChangePasswordScreen() {
                 secureTextEntry
                 showPasswordToggle
                 error={errors.newPassword}
+                style={errors.newPassword ? styles.errorInput : undefined}
               />
               <PasswordStrengthMeter password={newPassword} hideWhenSpaces={true} />
             </View>
@@ -221,6 +267,7 @@ export default function ChangePasswordScreen() {
               secureTextEntry
               showPasswordToggle
               error={errors.confirmPassword}
+              style={errors.confirmPassword ? styles.errorInput : undefined}
             />
           </View>
           
@@ -232,6 +279,7 @@ export default function ChangePasswordScreen() {
               loading={isUpdating}
               variant="primary"
               style={styles.saveButton}
+              disabled={!isFormValid || isUpdating}
             />
           </View>
         </ScrollView>
@@ -269,5 +317,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginBottom: spacing.lg,
+  },
+  errorInput: {
+    borderColor: colors.status.error,
+    borderWidth: 1,
   },
 }); 

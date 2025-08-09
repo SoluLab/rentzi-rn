@@ -1,10 +1,15 @@
 import { useCallback } from 'react';
 import { useGetHomeownerProfile, useUpdateHomeownerProfile, useChangeHomeownerPassword } from '@/services/homeownerProfile';
 import { UpdateProfileRequest, ChangePasswordRequest } from '@/types/homeownerProfile';
-import { toast } from '@/components/ui/Toast';
-import { TOAST_MESSAGES } from '@/constants/toastMessages';
 
-export const useHomeownerProfile = () => {
+export const useHomeownerProfile = (
+  options?: {
+    onProfileUpdateSuccess?: () => void;
+    onProfileUpdateError?: (error: any) => void;
+    onPasswordChangeSuccess?: () => void;
+    onPasswordChangeError?: (error: any) => void;
+  }
+) => {
   const {
     data: profileData,
     isLoading: isLoadingProfile,
@@ -20,22 +25,20 @@ export const useHomeownerProfile = () => {
 
   const updateProfileMutation = useUpdateHomeownerProfile({
     onSuccess: () => {
-      toast.success(TOAST_MESSAGES.PROFILE.UPDATE_SUCCESS);
       refetchProfile();
+      options?.onProfileUpdateSuccess?.();
     },
     onError: (error) => {
-      const errorMessage = error?.data?.message || TOAST_MESSAGES.PROFILE.UPDATE_FAILED;
-      toast.error(errorMessage);
+      options?.onProfileUpdateError?.(error);
     },
   });
 
   const changePasswordMutation = useChangeHomeownerPassword({
     onSuccess: () => {
-      toast.success(TOAST_MESSAGES.PROFILE.PASSWORD_CHANGE_SUCCESS);
+      options?.onPasswordChangeSuccess?.();
     },
     onError: (error) => {
-      const errorMessage = error?.data?.message || TOAST_MESSAGES.PROFILE.PASSWORD_CHANGE_FAILED;
-      toast.error(errorMessage);
+      options?.onPasswordChangeError?.(error);
     },
   });
 
