@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/Input';
 import { BackButton } from '@/components/ui/BackButton';
 import { toast } from '@/components/ui/Toast';
 import { useAuthStore } from '@/stores/authStore';
-import { useGlobalProfile } from '@/hooks/useGlobalProfile';
+import { useRenterInvestorProfile } from '@/hooks/useRenterInvestorProfile';
 import { useKYC } from '@/hooks/useKYC';
 import { colors, spacing, radius } from '@/constants';
 import { KYC_STATUS } from '@/types/kyc';
@@ -39,7 +39,7 @@ export default function KYCVerificationScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { user, setUser } = useAuthStore();
-  const { profileData, fetchProfile, isLoading: isProfileLoading } = useGlobalProfile();
+  const { profile: profileData, refetchProfile, isLoadingProfile: isProfileLoading } = useRenterInvestorProfile();
   const { initializeKYC, isLoading, error } = useKYC();
   
   // Get userType from route params or default to 'homeowner'
@@ -61,9 +61,9 @@ export default function KYCVerificationScreen() {
   useEffect(() => {
     // Fetch global profile data for renter_investor
     if (userType === 'renter_investor') {
-      fetchProfile();
+      refetchProfile();
     }
-  }, [userType, fetchProfile]);
+  }, [userType, refetchProfile]);
 
   useEffect(() => {
     // Determine KYC status based on user type and data

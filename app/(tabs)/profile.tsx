@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Image,
   ScrollView,
@@ -40,7 +41,7 @@ import {
   Trash2,
   Edit,
 } from "lucide-react-native";
-import { useGlobalProfile } from "@/hooks/useGlobalProfile";
+import { useRenterInvestorProfile } from "@/hooks/useRenterInvestorProfile";
 import { KYC_STATUS } from "@/types/kyc";
 
 export default function ProfileScreen() {
@@ -49,7 +50,23 @@ export default function ProfileScreen() {
   const { getUserBookings } = useBookingStore();
   const { getUserInvestments, getTotalPortfolioValue } = useInvestmentStore();
   const { unreadCount } = useNotificationStore();
-  const { profileData: user, isLoading, isError, error, refreshProfile } = useGlobalProfile();
+  const { profile: user, isLoadingProfile: isLoading, profileError, refetchProfile } = useRenterInvestorProfile();
+
+  // Log when profile data changes to track the data flow
+  useEffect(() => {
+    console.log('Profile - Profile data updated:', user);
+    if (user?.name) {
+      console.log('Profile - Current name displayed:', `${user.name.firstName} ${user.name.lastName}`);
+    }
+  }, [user]);
+
+  // Refetch profile when screen gains focus (after coming back from edit)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Profile - Screen gained focus, refetching profile');
+      refetchProfile();
+    }, [refetchProfile])
+  );
 
   const [notifications, setNotifications] = useState({
     bookings: true,
@@ -174,7 +191,7 @@ export default function ProfileScreen() {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      await refreshProfile();
+      await refetchProfile();
     } finally {
       setRefreshing(false);
     }
@@ -215,11 +232,11 @@ export default function ProfileScreen() {
   };
 
   // Loading and error states for profile
-  if (isError) {
+  if (profileError) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Typography variant="h4" color="error">
-          {error?.message || "Failed to load profile"}
+          {profileError?.message || "Failed to load profile"}
         </Typography>
       </View>
     );

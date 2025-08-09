@@ -95,12 +95,28 @@ export const useUpdateRenterInvestorProfile = (
       return response;
     },
     onSuccess: (data: RenterInvestorProfileResponse) => {
-      queryClient.invalidateQueries({ queryKey: [...queryKeys.all, "renter-investor", "profile"] });
+      console.log('RenterInvestorProfile - UPDATE onSuccess called with data:', data);
+      console.log('RenterInvestorProfile - data.success:', data?.success);
       
       // Check if the API response indicates success
       if (data?.success === true) {
+        // Update the cache with the new data and invalidate to trigger re-renders
+        const cacheKey = [...queryKeys.all, "renter-investor", "profile"];
+        console.log('RenterInvestorProfile - Updating cache with key:', cacheKey);
+        console.log('RenterInvestorProfile - New data to cache:', data);
+        
+        // Set the new data in cache
+        queryClient.setQueryData(cacheKey, data);
+        
+        // Also invalidate to ensure all components re-render with new data
+        queryClient.invalidateQueries({ queryKey: cacheKey });
+        
+        // Verify the cache was updated
+        const cachedData = queryClient.getQueryData(cacheKey);
+        console.log('RenterInvestorProfile - Cache data after update:', cachedData);
+        
         toast.success(data.message || "Profile updated successfully");
-        console.log('RenterInvestorProfile - Profile updated successfully:', data);
+        console.log('RenterInvestorProfile - Profile updated successfully, cache updated with new data');
         options?.onSuccess?.(data);
       } else {
         // API returned success: false, show error

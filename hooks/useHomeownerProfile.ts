@@ -25,7 +25,9 @@ export const useHomeownerProfile = (
 
   const updateProfileMutation = useUpdateHomeownerProfile({
     onSuccess: () => {
-      refetchProfile();
+      // No need to manually call refetchProfile() here since 
+      // useUpdateHomeownerProfile already calls queryClient.invalidateQueries()
+      // which automatically triggers a refetch
       options?.onProfileUpdateSuccess?.();
     },
     onError: (error) => {

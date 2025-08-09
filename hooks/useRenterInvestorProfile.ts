@@ -21,10 +21,13 @@ export const useRenterInvestorProfile = (
   console.log('useRenterInvestorProfile - isLoadingProfile:', isLoadingProfile);
   console.log('useRenterInvestorProfile - profileError:', profileError);
   console.log('useRenterInvestorProfile - profileData:', profileData);
+  console.log('useRenterInvestorProfile - profile (extracted):', profileData?.data);
 
   const updateProfileMutation = useUpdateRenterInvestorProfile({
     onSuccess: () => {
-      refetchProfile();
+      // No need to manually call refetchProfile() here since 
+      // useUpdateRenterInvestorProfile already calls queryClient.invalidateQueries()
+      // which automatically triggers a refetch
       options?.onProfileUpdateSuccess?.();
     },
     onError: (error) => {

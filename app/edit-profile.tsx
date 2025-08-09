@@ -22,7 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { validateFullName } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
 import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
-import { useGlobalProfile } from '@/hooks/useGlobalProfile';
+import { useRenterInvestorProfile } from '@/hooks/useRenterInvestorProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { countryCodes } from '@/components/ui/PhoneInput';
 
@@ -42,9 +42,10 @@ export default function EditProfileScreen() {
       console.error('Profile update error:', error);
     },
   });
-  const { profileData: renterProfile, isLoading: isRenterLoading, updateProfile: updateRenterProfile } = useGlobalProfile({
+  const { profile: renterProfile, isLoadingProfile: isRenterLoading, updateProfile: updateRenterProfile, isUpdatingProfile: isRenterUpdating } = useRenterInvestorProfile({
     onProfileUpdateSuccess: () => {
-      // Navigate back on successful update
+      console.log('EditProfile - Renter profile updated successfully, cache updated with new data');
+      // Navigate back on successful update - profile screen will show updated data
       router.back();
     },
     onProfileUpdateError: (error) => {
@@ -62,7 +63,7 @@ export default function EditProfileScreen() {
   // If homeowner profile exists, use it regardless of user role detection
   const profile = homeownerProfile || renterProfile;
   const isLoadingProfile = isHomeowner ? isHomeownerLoading : isRenterLoading;
-  const isUpdating = isHomeowner ? isUpdatingProfile : isRenterLoading;
+  const isUpdating = isHomeowner ? isUpdatingProfile : isRenterUpdating;
   
   console.log('EditProfile - URL role param:', urlRole);
   console.log('EditProfile - User role:', user?.role);
