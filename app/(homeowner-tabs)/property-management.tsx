@@ -1004,7 +1004,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background.secondary,
   },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,

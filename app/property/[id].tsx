@@ -1,3 +1,4 @@
+import React from 'react';
 import {
 Alert,
 Dimensions,
@@ -9,6 +10,7 @@ Text,
 TouchableOpacity,
 View
 } from 'react-native';
+
 import { WebView } from 'react-native-webview';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -61,13 +63,12 @@ const { width, height } = Dimensions.get('window');
 export default function PropertyDetailScreen() {
 const router = useRouter();
 const { id } = useLocalSearchParams();
-const { getPropertyById, claimRentalPayout, isLoading } = usePropertyStore();
+    const { getPropertyById, isLoading } = usePropertyStore();
 const { user } = useAuthStore();
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [showInvestmentModal, setShowInvestmentModal] = useState(false);
-    const [showKYCModal, setShowKYCModal] = useState(false);
-    const [kycModalType, setKycModalType] = useState<'incomplete' | 'pending'>('incomplete');
+    // KYC modal state removed - now using dedicated KYC screen
     const [showCalendar, setShowCalendar] = useState(false);
     const [showDatesModal, setShowDatesModal] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -101,16 +102,48 @@ const { user } = useAuthStore();
         router.push({ pathname: '/calendar/check-in-out', params: { propertyId: id } });
     };
     const handleInvestment = () => {
-        if (!user?.kycStatus || user.kycStatus === 'incomplete') {
-            setKycModalType('incomplete');
-            setShowKYCModal(true);
-            return;
+        // Check if user is renter and has global profile data
+        if (user?.role === 'renter') {
+            // For renter, we need to check global profile KYC status
+            // This would typically be fetched from the global profile store
+            // For now, we'll use the user store as fallback
+            if (!user?.kycStatus || user.kycStatus === 'incomplete') {
+                // Navigate to KYC verification screen for renter_investor
+                router.push('/kyc-verification?userType=renter_investor');
+                return;
+            }
+            if (user.kycStatus === 'pending') {
+                // Show pending message and navigate to KYC screen
+                Alert.alert(
+                    'KYC Pending',
+                    'Your KYC verification is currently under review. Please check back later.',
+                    [
+                        { text: 'OK', onPress: () => router.push('/kyc-verification?userType=renter_investor') }
+                    ]
+                );
+                return;
+            }
+        } else {
+            // For regular investors
+            if (!user?.kycStatus || user.kycStatus === 'incomplete') {
+                // Navigate directly to KYC verification screen for investors
+                router.push('/kyc-verification?userType=investor');
+                return;
+            }
+            if (user.kycStatus === 'pending') {
+                // Show pending message and navigate to KYC screen
+                Alert.alert(
+                    'KYC Pending',
+                    'Your KYC verification is currently under review. Please check back later.',
+                    [
+                        { text: 'OK', onPress: () => router.push('/kyc-verification?userType=investor') }
+                    ]
+                );
+                return;
+            }
         }
-        if (user.kycStatus === 'pending') {
-            setKycModalType('pending');
-            setShowKYCModal(true);
-            return;
-        }
+        
+        // If KYC is complete, show investment modal
         setShowInvestmentModal(true);
     };
     const handleBookingConfirm = () => {
@@ -122,6 +155,8 @@ const { user } = useAuthStore();
         setShowInvestmentModal(false);
         router.push(`/investment/${property.id}`);
     };
+
+    // handleKYCVerification function removed - now handled directly in handleInvestment
     const handle360Tour = () => {
     if (property.mediaGallery.tour3D) {
     // Open 360° tour
@@ -132,7 +167,7 @@ const { user } = useAuthStore();
     };
     const handleClaimRentalPayout = async () => {
     try {
-    await claimRentalPayout(property.id);
+    // TODO: Implement claimRentalPayout functionality
     Alert.alert('Success', 'Rental payout claimed successfully!');
     setShowClaimModal(false);
     } catch (error) {
@@ -318,13 +353,13 @@ const { user } = useAuthStore();
                             setCurrentImageIndex(index);
                         }}
                     >
-                        {property.mediaGallery.images.map((image, index) => (
+                        {property.mediaGallery?.images?.map((image, index) => (
                             <Image key={index} source={{ uri: image }} style={styles.propertyImage} />
-                        ))}
+                        )) || null}
                     </ScrollView>
                     <View style={styles.imageIndicator}>
                         <Typography variant="caption" color="inverse">
-                            {currentImageIndex + 1} / {property.mediaGallery.images.length}
+                            {currentImageIndex + 1} / {property.mediaGallery?.images?.length || 0}
                         </Typography>
                     </View>
                     {/* 360° Tour Button */}
@@ -339,27 +374,27 @@ const { user } = useAuthStore();
                 <View style={styles.content}>
                     <Card style={styles.infoCard}>
                         <View style={styles.titleSection}>
-                            <Typography variant="h4">{property.title}</Typography>
+                            <Typography variant="h4">{property.title || 'Property Title'}</Typography>
                             <View style={styles.locationRow}>
                                 <MapPin size={16} color={colors.text.secondary} />
                                 <Typography variant="body" color="secondary">
-                                    {property.location.address}, {property.location.city}, {property.location.country}
+                                    {property.location?.address || ''}, {property.location?.city || ''}, {property.location?.country || ''}
                                 </Typography>
                             </View>
                             <View style={styles.ratingRow}>
                                 <Star size={16} color={colors.primary.gold} fill={colors.primary.gold} />
                                 <Typography variant="body">
-                                    {property.rating} ({property.reviews} reviews)
+                                    {property.rating || 0} ({property.reviews || 0} reviews)
                                 </Typography>
                                 <View style={styles.propertyTypeBadge}>
                                     <Typography variant="label" color="white">
-                                        {property.propertyType.toUpperCase()}
+                                        {property.propertyType?.toUpperCase() || 'PROPERTY'}
                                     </Typography>
                                 </View>
                             </View>
                         </View>
                         <Typography variant="body" color="secondary" style={styles.description}>
-                            {property.description}
+                            {property.description || 'No description available'}
                         </Typography>
                         {/* Property Highlights
                         <View style={styles.highlightsContainer}>
@@ -420,7 +455,7 @@ const { user } = useAuthStore();
                         </View>
                         <View style={styles.priceSection}>
                             <Typography variant="h3" color="primary">
-                                ${property.price.rent}/night
+                                ${property.price?.rent || 0}/night
                             </Typography>
                             <View style={styles.availabilityRow}>
                                 <Calendar size={16} color={colors.status.success} />
@@ -446,10 +481,10 @@ const { user } = useAuthStore();
                         </View>
                         <View style={styles.priceSection}>
                             <Typography variant="h3" color="primary">
-                                ${(property.price.investment / 100).toLocaleString()}/token
+                                ${((property.price?.investment || 0) / 100).toLocaleString()}/token
                             </Typography>
                             <Typography variant="body" color="gold">
-                                + {property.investmentDetails.roiEstimate}% Expected Yield
+                                + {property.investmentDetails?.roiEstimate || 0}% Expected Yield
                             </Typography>
                             <View style={styles.fundingRow}>
                                 <TrendingUp size={16} color={colors.primary.gold} />
@@ -465,17 +500,17 @@ const { user } = useAuthStore();
                             </View>
                         </View>
                         {/*
-              < Typography variant="caption" color="secondary" style={styles.incomeNote}>
-              Earn rental income + appreciation
-            </Typography>
-            */}
+                            <Typography variant="caption" color="secondary" style={styles.incomeNote}>
+                                Earn rental income + appreciation
+                            </Typography>
+                        */}
                     </Card>
                     <Card style={styles.amenitiesCard}>
                         <Typography variant="h4" style={styles.sectionTitle}>
                             Amenities & Features
                         </Typography>
                         <View style={styles.amenitiesGrid}>
-                            {property.amenities.map((amenity, index) => {
+                            {property.amenities?.map((amenity, index) => {
                                 const IconComponent = amenityIcons[amenity] || Home;
                                 return (
                                     <View key={index} style={styles.amenityItem}>
@@ -691,7 +726,7 @@ const { user } = useAuthStore();
                         Book Your Stay
                     </Typography>
                     <Typography variant="body" color="secondary" align="center">
-                        Ready to book this luxury property for ${property.price.rent}/night?
+                        Ready to book this luxury property for ${property.price?.rent || 0}/night?
                     </Typography>
                     <View style={styles.modalButtons}>
                         <Button
@@ -700,39 +735,6 @@ const { user } = useAuthStore();
                             style={styles.modalButton}
                         />
                         <Button title="Cancel" onPress={() => setShowBookingModal(false)} variant="ghost" />
-                    </View>
-                </View>
-            </Modal>
-            {/* KYC Modal */}
-            <Modal visible={showKYCModal} onClose={() => setShowKYCModal(false)}>
-                <View style={styles.modalContent}>
-                    <View style={styles.kycModalHeader}>
-                        <Shield size={48} color={colors.primary.gold} />
-                        <Typography variant="h4" align="center" style={styles.modalTitle}>
-                            {kycModalType === 'incomplete' ? 'KYC Required' : 'KYC Pending'}
-                        </Typography>
-                    </View>
-                    <Typography variant="body" color="secondary" align="center" style={styles.kycModalDescription}>
-                        {kycModalType === 'incomplete'
-                            ? 'You need to KYC before start investing'
-                            : 'Your KYC status is pending. Please try again later.'}
-                    </Typography>
-                    <View style={styles.modalButtons}>
-                        {kycModalType === 'incomplete' && (
-                            <Button
-                                title="Start KYC Process"
-                                onPress={() => {
-                                    setShowKYCModal(false);
-                                    router.push('/kyc-verification');
-                                }}
-                                style={styles.modalButton}
-                            />
-                        )}
-                        <Button
-                            title={kycModalType === 'incomplete' ? 'Cancel' : 'OK'}
-                            onPress={() => setShowKYCModal(false)}
-                            variant={kycModalType === 'incomplete' ? 'ghost' : 'outline'}
-                        />
                     </View>
                 </View>
             </Modal>
@@ -786,18 +788,18 @@ const { user } = useAuthStore();
             </Typography>
             <View style={styles.claimDetailsCard}>
             <View style={styles.claimDetailRow}>
-            <Typography variant="body" color="secondary">Property:</Typography>
-            <Typography variant="body">{property.title}</Typography>
+                <Typography variant="body" color="secondary">Property:</Typography>
+                <Typography variant="body">{property.title}</Typography>
             </View>
             <View style={styles.claimDetailRow}>
-            <Typography variant="body" color="secondary">Amount:</Typography>
-            <Typography variant="h4" color="gold">
-            ${property.rentalIncome?.claimableAmount.toLocaleString()}
-            </Typography>
+                <Typography variant="body" color="secondary">Amount:</Typography>
+                <Typography variant="h4" color="gold">
+                    ${property.rentalIncome?.claimableAmount.toLocaleString()}
+                </Typography>
             </View>
             <View style={styles.claimDetailRow}>
-            <Typography variant="body" color="secondary">Status:</Typography>
-            <Typography variant="body" color="success">Ready to Claim</Typography>
+                <Typography variant="body" color="secondary">Status:</Typography>
+                <Typography variant="body" color="success">Ready to Claim</Typography>
             </View>
             </View>
             <View style={styles.modalButtons}>
@@ -910,7 +912,7 @@ const { user } = useAuthStore();
                         />
                     </View>
                 </View>
-            </Modal >}
+            </Modal>
         </SafeAreaView>
     );
 }

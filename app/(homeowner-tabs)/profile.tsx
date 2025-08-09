@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
@@ -10,7 +11,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { useAuthStore } from '@/stores/authStore';
 import { useNotificationStore } from '@/stores/notificationStore';
-import { useGetProfile } from '@/services/auth';
+import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
 
 import {
   User,
@@ -31,11 +32,29 @@ import {
   Upload,
   Eye,
 } from 'lucide-react-native';
+
 export default function HomeownerProfileScreen() {
   const router = useRouter();
   const { logout } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { data: profileData, isLoading, error } = useGetProfile('homeowner');
+  const {
+    profile,
+    isLoadingProfile,
+    profileError,
+    refetchProfile,
+  } = useHomeownerProfile();
+
+  console.log('HomeownerProfileScreen - Hook called');
+  console.log('HomeownerProfileScreen - profile:', profile);
+  console.log('HomeownerProfileScreen - isLoadingProfile:', isLoadingProfile);
+  console.log('HomeownerProfileScreen - profileError:', profileError);
+
+  // Ensure profile is always fetched when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchProfile && refetchProfile();
+    }, [refetchProfile])
+  );
 
   const handleLogout = () => {
     logout();
@@ -43,7 +62,7 @@ export default function HomeownerProfileScreen() {
   };
 
   const handleProfilePictureUpload = () => {
-    // TODO: Implement profile picture upload
+    // TODO: Implement profile picture upload with image picker
     console.log('Profile picture upload');
   };
   const profileMenuItems = [
@@ -51,7 +70,7 @@ export default function HomeownerProfileScreen() {
       icon: User,
       title: 'Personal Information',
       subtitle: 'Update your profile details',
-      onPress: () => router.push('/edit-profile'),
+      onPress: () => router.push('/edit-profile?role=homeowner'),
     },
     {
       icon: Building2,
@@ -81,7 +100,7 @@ export default function HomeownerProfileScreen() {
       icon: Shield,
       title: 'Security & Privacy',
       subtitle: 'Password and security settings',
-      onPress: () => console.log('Security settings'),
+      onPress: () => router.push('/change-password?role=homeowner'),
     },
     {
       icon: FileText,
@@ -108,14 +127,13 @@ export default function HomeownerProfileScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Info */}
         <View style={styles.section}>
-          <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+          <TouchableOpacity onPress={() => router.push('/edit-profile?role=homeowner')}>
             <Card style={styles.profileCard}>
               <View style={styles.profileHeader}>
                 <TouchableOpacity onPress={handleProfilePictureUpload}>
                   <Image
                     source={{
-                      uri:
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
+                      uri: profile?.avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40'
                     }}
                     style={styles.avatar}
                   />
@@ -124,12 +142,14 @@ export default function HomeownerProfileScreen() {
                   </View>
                 </TouchableOpacity>
                 <View style={styles.profileInfo}>
-                  <Typography variant="h4">{profileData?.data?.name?.fullName || 'Loading...'}</Typography>
+                  <Typography variant="h4">
+                    {profile?.name ? `${profile.name.firstName} ${profile.name.lastName}` : 'Loading...'}
+                  </Typography>
                   <Typography variant="body" color="secondary">
-                    {profileData?.data?.email || 'Loading...'}
+                    {profile?.email || 'Loading...'}
                   </Typography>
                   <Typography variant="caption" color="secondary">
-                    {profileData?.data?.phone?.countryCode} {profileData?.data?.phone?.mobile}
+                    {profile?.phone ? `${profile.phone.countryCode} ${profile.phone.mobile}` : 'Loading...'}
                   </Typography>
                   <View style={styles.roleContainer}>
                     <View style={styles.roleBadge}>
@@ -137,14 +157,9 @@ export default function HomeownerProfileScreen() {
                         PROPERTY OWNER
                       </Typography>
                     </View>
-                    <View style={[styles.roleBadge, { backgroundColor: colors.status.success }]}>
-                      <Typography variant="label" color="inverse">
-                        VERIFIED
-                      </Typography>
-                    </View>
                   </View>
                 </View>
-                <TouchableOpacity onPress={() => router.push('/edit-profile')}>
+                <TouchableOpacity onPress={() => router.push('/edit-profile?role=homeowner')}>
                   <Edit size={20} color={colors.text.secondary} />
                 </TouchableOpacity>
               </View>
@@ -261,7 +276,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,

@@ -5,14 +5,13 @@ import {
   UseQueryOptions,
   UseMutationOptions,
 } from "@tanstack/react-query";
-import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
+import { BASE_URLS, ENDPOINTS, getHomeownerAuthBaseURL } from "@/constants/urls";
 import { AuthResponse, LoginRequest, ApiError, ForgotPasswordResponse } from "@/types/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { apiPost, apiPut, apiGet, queryKeys } from "./apiClient";
 
 // Login
 export const useLogin = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<AuthResponse, ApiError, LoginRequest>,
     "mutationFn"
@@ -27,18 +26,22 @@ export const useLogin = (
         password,
       };
 
-      // Set base URL based on user type
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       console.log("[API Client] Login payload:", payload);
-      console.log("[API Client] User type:", userType);
+      console.log("[API Client] User type: homeowner");
       console.log(
         "[API Client] Login URL:",
         `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`
       );
+      console.log("[API Client] Full request details:", {
+        method: 'POST',
+        url: `${baseURL}${ENDPOINTS.AUTH.SIGNIN}`,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        data: payload
+      });
       const response = await apiPost<AuthResponse>({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNIN,
@@ -46,6 +49,12 @@ export const useLogin = (
         auth: false,
       });
       console.log("[API Client] Login response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Login failed");
+      }
+      
       return response;
     },
     onSuccess: () => {
@@ -69,7 +78,6 @@ export const useSignup = (
         password: string;
         countryCode: string;
         mobile: string;
-        userType: string[];
         roleType?: string;
       }
     >,
@@ -86,7 +94,6 @@ export const useSignup = (
       password: string;
       countryCode: string;
       mobile: string;
-      userType: string[];
       roleType?: string;
     }
   >({
@@ -97,64 +104,37 @@ export const useSignup = (
       password,
       countryCode,
       mobile,
-      userType,
       roleType,
     }) => {
-      // Determine base URL and payload format based on role type
-      const isHomeowner = roleType === "homeowner";
-      const baseURL = isHomeowner
-        ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-        : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
-
-      let payload: any;
-
-      if (isHomeowner) {
-        // Homeowner format - no userType field
-        payload = {
-          name: {
-            firstName,
-            lastName,
-          },
-          email,
-          password,
-          phone: {
-            countryCode,
-            mobile,
-          },
-        };
-      } else {
-        // Renter/Investor format - includes userType
-        payload = {
-          name: {
-            firstName,
-            lastName,
-          },
-          email,
-          password,
-          phone: {
-            countryCode,
-            mobile,
-          },
-          userType,
-        };
+      // Only allow homeowner registration here
+      if (roleType !== "homeowner") {
+        throw new Error("Renter/Investor registration is handled separately.");
       }
-
-      console.log("[API Client] Registration payload:", payload);
-      console.log("[API Client] Role type:", roleType);
-      console.log(
-        "[API Client] Registration URL:",
-        `${baseURL}${ENDPOINTS.AUTH.SIGNUP}`
-      );
-
+      const baseURL = getHomeownerAuthBaseURL();
+      const payload = {
+        name: {
+          firstName,
+          lastName,
+        },
+        email,
+        password,
+        phone: {
+          countryCode,
+          mobile,
+        },
+      };
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.SIGNUP,
         data: payload,
         auth: false,
       });
-
-      console.log("[API Client] Registration response:", response);
-
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Registration failed");
+      }
+      
       return response;
     },
     ...options,
@@ -163,43 +143,43 @@ export const useSignup = (
 
 // Verify OTP
 export const useVerifyOtp = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
-    UseMutationOptions<any, ApiError, { email: string; otp: string }>,
+    UseMutationOptions<any, ApiError, { identifier: string; otp: string }>,
     "mutationFn"
   >
 ) => {
-  return useMutation<any, ApiError, { email: string; otp: string }>({
-    mutationFn: async ({ email, otp }) => {
-      console.log("useVerifyOtp called with:", { email, otp, userType });
+  return useMutation<any, ApiError, { identifier: string; otp: string }>({
+    mutationFn: async ({ identifier, otp }) => {
+      console.log("useVerifyOtp called with:", { identifier, otp, userType: "homeowner" });
 
-      // Set base URL based on user type
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.VERIFY_OTP,
-        data: { email, otp },
-        auth: true, // Enable authentication to include Bearer token
+        data: { email: identifier, otp },
+        auth: false, // Enable authentication to include Bearer token
       });
       console.log("useVerifyOtp response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
     ...options,
   });
 };
 
-// Verify Login OTP for Mobile
+// Verify Login OTP for Email (like renter/investor)
 export const useVerifyLoginOtp = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<
       any,
       ApiError,
-      { identifier: { countryCode: string; mobile: string }; otp: string }
+      { identifier: string; otp: string }
     >,
     "mutationFn"
   >
@@ -209,20 +189,16 @@ export const useVerifyLoginOtp = (
   return useMutation<
     any,
     ApiError,
-    { identifier: { countryCode: string; mobile: string }; otp: string }
+    { identifier: string; otp: string }
   >({
     mutationFn: async ({ identifier, otp }) => {
       console.log("useVerifyLoginOtp called with:", {
         identifier,
         otp,
-        userType,
+        userType: "homeowner",
       });
 
-      // Set base URL based on user type
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
@@ -231,15 +207,21 @@ export const useVerifyLoginOtp = (
         auth: false,
       });
 
-      // Store tokens on successful response
-      if (response?.data?.token) {
-        await AsyncStorage.setItem("token", response.data.token);
-      }
-
       console.log("useVerifyLoginOtp response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "OTP verification failed");
+      }
+      
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store token after successful OTP verification
+      if (response?.data?.token) {
+        AsyncStorage.setItem("token", response.data.token);
+        console.log("[Homeowner Auth] Stored JWT token from API response");
+      }
       queryClient.invalidateQueries({ queryKey: queryKeys.auth() });
       queryClient.invalidateQueries({ queryKey: queryKeys.user() });
     },
@@ -249,7 +231,6 @@ export const useVerifyLoginOtp = (
 
 // Logout
 export const useLogout = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<UseMutationOptions<any, ApiError, void>, "mutationFn">
 ) => {
   const queryClient = useQueryClient();
@@ -257,11 +238,7 @@ export const useLogout = (
   return useMutation<any, ApiError, void>({
     mutationFn: async () => {
       try {
-        // Set base URL based on user type
-        const baseURL =
-          userType === "homeowner"
-            ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-            : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+        const baseURL = getHomeownerAuthBaseURL();
 
         // Call logout API
         const response = await apiPost({
@@ -287,16 +264,14 @@ export const useLogout = (
 
 // Reset password
 export const useResetPassword = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<
       any,
       ApiError,
       {
         email: string;
-        code: string;
-        newPassword: string;
-        verificationId: number;
+        otp: string;
+        password: string;
       }
     >,
     "mutationFn"
@@ -305,20 +280,23 @@ export const useResetPassword = (
   return useMutation<
     any,
     ApiError,
-    { email: string; code: string; newPassword: string; verificationId: number }
+    { email: string; otp: string; password: string; }
   >({
-    mutationFn: async ({ email, code, newPassword, verificationId }) => {
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+    mutationFn: async ({ email, otp, password }) => {
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
         endpoint: ENDPOINTS.AUTH.RESET_PASSWORD,
-        data: { email, code, newPassword, verificationId },
+        data: { email, otp, password },
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Password reset failed");
+      }
+      
       return response;
     },
     ...options,
@@ -327,7 +305,6 @@ export const useResetPassword = (
 
 // Forgot password
 export const useForgotPassword = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<ForgotPasswordResponse, ApiError, { email: string }>,
     "mutationFn"
@@ -335,10 +312,7 @@ export const useForgotPassword = (
 ) => {
   return useMutation<ForgotPasswordResponse, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       console.log("[API Client] ForgotPassword request:", { email });
       const response = await apiPost({
@@ -348,60 +322,23 @@ export const useForgotPassword = (
         auth: false,
       });
       console.log("[API Client] ForgotPassword response:", response);
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Forgot password request failed");
+      }
+      
       return response;
     },
     ...options,
   });
 };
 
-// Get profile
-export const useGetProfile = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
-  options?: Omit<UseQueryOptions<any, ApiError>, "queryKey" | "queryFn">
-) => {
-  const baseURL =
-    userType === "homeowner"
-      ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-      : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
-
-  return useQuery<any, ApiError>({
-    queryKey: [...queryKeys.all, "profile"],
-    queryFn: () =>
-      apiGet({
-        baseURL,
-        endpoint: ENDPOINTS.AUTH.PROFILE.GET,
-        auth: true,
-      }),
-    ...options,
-  });
-};
-
-// Update profile
-export const useUpdateProfile = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
-  options?: Omit<UseMutationOptions<any, ApiError, any>, "mutationFn">
-) => {
-  return useMutation<any, ApiError, any>({
-    mutationFn: async (data) => {
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
-
-      return apiPut({
-        baseURL,
-        endpoint: ENDPOINTS.AUTH.PROFILE.UPDATE,
-        data,
-        auth: true,
-      });
-    },
-    ...options,
-  });
-};
+// Note: Profile endpoints are handled by HOMEOWNER_PROFILE, not AUTH.PROFILE
+// These functions are removed as they use incorrect endpoints
 
 // Resend OTP
 export const useResendOtp = (
-  userType: "renter_investor" | "homeowner" = "renter_investor",
   options?: Omit<
     UseMutationOptions<{ success: boolean; message: string }, ApiError, { email: string }>,
     "mutationFn"
@@ -409,10 +346,7 @@ export const useResendOtp = (
 ) => {
   return useMutation<{ success: boolean; message: string }, ApiError, { email: string }>({
     mutationFn: async ({ email }) => {
-      const baseURL =
-        userType === "homeowner"
-          ? BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER
-          : BASE_URLS.DEVELOPMENT.AUTH_API_RENTER;
+      const baseURL = getHomeownerAuthBaseURL();
 
       const response = await apiPost({
         baseURL,
@@ -420,6 +354,12 @@ export const useResendOtp = (
         data: { email },
         auth: false,
       });
+      
+      // Check if the response indicates failure
+      if (response && response.success === false) {
+        throw new Error(response.message || "Resend OTP failed");
+      }
+      
       return response;
     },
     ...options,

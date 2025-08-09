@@ -5,6 +5,7 @@ import axios, {
   AxiosError,
 } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 import {
   useQuery,
   useMutation, 
@@ -69,6 +70,7 @@ export const queryKeys = {
   tokens: () => [...queryKeys.all, "tokens"] as const,
   mailerOptions: () => [...queryKeys.all, "mailerOptions"] as const,
   profile: () => [...queryKeys.all, "profile"] as const,
+  homeownerProfile: () => [...queryKeys.all, "homeowner", "profile"] as const,
 
   // Homeowner Property Query Keys
   homeownerProperties: () =>
@@ -122,16 +124,32 @@ const apiCall = async <T = any>({
       params,
       data: ["post", "put", "patch"].includes(method) ? data : undefined,
       timeout,
+      // Add additional debugging for React Native
+      validateStatus: (status) => {
+        //console.log("[API Call] Response status:", status);
+        return status < 500; // Accept all status codes less than 500
+      },
     };
 
-    console.log("[API Call] Config:", {
+    {/*
+console.log("[API Call] Config:", {
       method: axiosConfig.method,
       url: `${baseURL}${endpoint}`,
       headers: headers,
       data: axiosConfig.data,
+      timeout: timeout,
     });
+    */}
+    
+    console.log("------------------------------------------------");
 
+    console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
+    console.log("[API Call] Request Method:", method);
+    //console.log("[API Call] Platform:", Platform.OS);
+    console.log("[API Call] Request Data:", JSON.stringify(data, null, 2));
     const response: AxiosResponse<T> = await axios(axiosConfig);
+    console.log("[API Call] Response Received:", JSON.stringify(response.data, null, 2));
+    console.log("------------------------------------------------");
 
     return response.data;
   } catch (error: any) {
@@ -140,8 +158,28 @@ const apiCall = async <T = any>({
       const axiosError = error as AxiosError;
       const status = axiosError.response?.status ?? null;
       const responseData = axiosError.response?.data as any;
-      const message =
-        responseData?.message || axiosError.message || "Network error occurred";
+      
+      // Enhanced error message for network issues
+      let message = "Network error occurred";
+      if (axiosError.code === 'ECONNREFUSED') {
+        message = "Server is not reachable. Please check if the server is running.";
+      } else if (axiosError.code === 'ENOTFOUND') {
+        message = "Server address not found. Please check the API URL.";
+      } else if (axiosError.code === 'ETIMEDOUT') {
+        message = "Request timed out. Please check your internet connection.";
+      } else if (responseData?.message) {
+        message = responseData.message;
+      } else if (axiosError.message) {
+        message = axiosError.message;
+      }
+
+      console.log("[API Error] Details:", {
+        code: axiosError.code,
+        status: status,
+        message: message,
+        url: axiosError.config?.url,
+        method: axiosError.config?.method,
+      });
 
       const apiError: ApiError = {
         status,
@@ -167,8 +205,23 @@ const apiCall = async <T = any>({
 const getAuthToken = async (): Promise<string | null> => {
   try {
     const token = await AsyncStorage.getItem("token");
+    console.log("[API Client] Retrieved token:", token ? "Token exists" : "No token found");
+    
+    if (token) {
+      try {
+        // Decode JWT token to get user type (for debugging)
+        const payload = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payload));
+        console.log("[API Client] Token payload:", decodedPayload);
+        console.log("[API Client] User type in token:", decodedPayload.userType);
+      } catch (decodeError) {
+        console.log("[API Client] Could not decode token payload");
+      }
+    }
+    
     return token;
   } catch (err) {
+    console.log("[API Client] Error retrieving token:", err);
     return null;
   }
 };

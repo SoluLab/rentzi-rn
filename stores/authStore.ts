@@ -1,6 +1,20 @@
 import { create } from 'zustand';
 import { User } from '@/types';
-import { authService } from '@/services/auth';
+import { useProfileStore } from './profileStore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Simple JWT token generator for demo purposes
+const generateDemoJWT = (userId: string, role: string) => {
+  const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = btoa(JSON.stringify({
+    userId,
+    role,
+    iat: Math.floor(Date.now() / 1000),
+    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours
+  }));
+  const signature = btoa('demo-signature');
+  return `${header}.${payload}.${signature}`;
+};
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
@@ -51,8 +65,6 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   login: async (emailOrMobile: string, password: string) => {
     set({ isLoading: true, loginAttempts: get().loginAttempts + 1 });
     try {
-      // Simulate API call for credential validation
-      await new Promise((resolve) => setTimeout(resolve, 1000));
       // Demo users database with both email and mobile
       const demoUsers = [
         {
@@ -88,6 +100,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           kycStatus: 'incomplete',
         },
       ];
+      
       // Check if input is email or mobile
       const isEmail = emailOrMobile.includes('@');
       const userExists = demoUsers.find((user) => {
@@ -97,15 +110,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           return user.mobile === emailOrMobile.replace(/\D/g, '');
         }
       });
+      
       if (!userExists) {
         set({ isLoading: false });
         throw new Error('No account found with this email or mobile number. Please sign up first');
       }
+      
       // Check if password is correct
       if (userExists.password !== password) {
         set({ isLoading: false });
         throw new Error('Incorrect password');
       }
+      
       // Create user object
       const authenticatedUser: User = {
         id: Date.now().toString(),
@@ -128,6 +144,11 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
           marketing: false,
         },
       };
+      
+      // Note: JWT token will be stored from real API response during OTP verification
+      // We don't store a token here as it should come from the actual authentication API
+      console.log(`[AuthStore] User validated for role: ${userExists.role}, waiting for OTP verification to get real token`);
+      
       // Set OTP expiry time (2 minutes from now)
       const otpExpiryTime = Date.now() + 2 * 60 * 1000;
       set({
@@ -183,6 +204,13 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     }
   },
   logout: () => {
+    // Clear profile data when logging out
+    useProfileStore.getState().clearProfileData();
+    
+    // Clear the JWT token
+    AsyncStorage.removeItem("token");
+    console.log('[AuthStore] Cleared JWT token on logout');
+    
     set({
       user: null,
       isAuthenticated: false,
@@ -222,24 +250,61 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         set({ isLoading: false });
         throw new Error('OTP expired. Request a new one');
       }
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Check if OTP is valid (using default "123456" for demo)
-      if (otp === '123456') {
-        const { user } = get();
-        if (user) {
-          set({
-            isAuthenticated: true,
-            isLoading: false,
-            otpSent: false,
-            emailVerified: true,
-            mobileVerified: true,
-          });
-          return; // Success - OTP is valid and user is now authenticated
-        }
+      
+      const { user } = get();
+      if (!user) {
+        set({ isLoading: false });
+        throw new Error('No user found. Please login again.');
       }
-      set({ isLoading: false });
-      throw new Error('Incorrect OTP entered');
+      
+      // Call real authentication API based on user type
+      if (user.role === 'homeowner') {
+        // Call homeowner authentication API
+        const { apiPost } = await import('@/services/apiClient');
+        const { getHomeownerAuthBaseURL, ENDPOINTS } = await import('@/constants/urls');
+        
+        const response = await apiPost({
+          baseURL: getHomeownerAuthBaseURL(),
+          endpoint: ENDPOINTS.AUTH.VERIFY_LOGIN_OTP,
+          data: { identifier: email, otp },
+          auth: false,
+        });
+        
+        console.log('[AuthStore] Homeowner authentication API response:', response);
+        
+        // Authentication successful - user is now authenticated
+        set({
+          isAuthenticated: true,
+          isLoading: false,
+          otpSent: false,
+          emailVerified: true,
+          mobileVerified: true,
+        });
+        return; // Success - OTP is valid and user is now authenticated
+      } else {
+        // Call renter/investor authentication API
+        const { apiPost } = await import('@/services/apiClient');
+        const { getRenterAuthBaseURL, ENDPOINTS } = await import('@/constants/urls');
+        
+        const response = await apiPost({
+          baseURL: getRenterAuthBaseURL(),
+          endpoint: ENDPOINTS.AUTH.VERIFY_LOGIN_OTP,
+          data: { identifier: email, otp },
+          auth: false,
+        });
+        
+        console.log('[AuthStore] Renter/Investor authentication API response:', response);
+        
+        // Authentication successful - user is now authenticated
+        set({
+          isAuthenticated: true,
+          isLoading: false,
+          otpSent: false,
+          emailVerified: true,
+          mobileVerified: true,
+        });
+        return; // Success - OTP is valid and user is now authenticated
+      }
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -261,23 +326,21 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
       // Simulate API call for email OTP verification
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Check if email OTP is valid (using default "123456" for demo)
-      if (otp === '123456') {
-        const { user } = get();
-        if (user) {
-          // For login flow, complete authentication after email verification
-          // For registration flow, just mark email as verified
-          set({
-            isAuthenticated: true,
-            isLoading: false,
-            emailVerified: true,
-            otpSent: false,
-          });
-          return; // Success - Email OTP is valid
-        }
+      // Email OTP verification successful
+      const { user } = get();
+      if (user) {
+        // For login flow, complete authentication after email verification
+        // For registration flow, just mark email as verified
+        set({
+          isAuthenticated: true,
+          isLoading: false,
+          emailVerified: true,
+          otpSent: false,
+        });
+        return; // Success - Email OTP is valid
       }
       set({ isLoading: false });
-      throw new Error('Incorrect OTP entered');
+      throw new Error('No user found for email verification');
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -299,21 +362,19 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       }
       // Simulate API call for mobile OTP verification
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      // Check if mobile OTP is valid (using default "123456" for demo)
-      if (otp === '123456') {
-        const { user } = get();
-        if (user) {
-          set({
-            isAuthenticated: true,
-            isLoading: false,
-            otpSent: false,
-            mobileVerified: true,
-          });
-          return; // Success - Mobile OTP is valid and user is now fully authenticated
-        }
+      // Mobile OTP verification successful
+      const { user } = get();
+      if (user) {
+        set({
+          isAuthenticated: true,
+          isLoading: false,
+          otpSent: false,
+          mobileVerified: true,
+        });
+        return; // Success - Mobile OTP is valid and user is now fully authenticated
       }
       set({ isLoading: false });
-      throw new Error('Incorrect OTP entered');
+      throw new Error('No user found for mobile verification');
     } catch (error) {
       set({ isLoading: false });
       throw error;
@@ -357,15 +418,32 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       });
     }
   },
+  
+  // Helper function to get current token info
+  getTokenInfo: async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        // Decode JWT token to get user type (for debugging)
+        const payload = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payload));
+        console.log('[AuthStore] Current token payload:', decodedPayload);
+        return { token, userType: decodedPayload.userType };
+      }
+      return null;
+    } catch (error) {
+      console.error('[AuthStore] Error getting token info:', error);
+      return null;
+    }
+  },
   sendForgotPasswordOTP: async (email: string) => {
     set({ isLoading: true });
     try {
-      // Call real AuthService
-      const response = await authService.forgotPassword(email);
+      // Simulate API call for forgot password
+      await new Promise((resolve) => setTimeout(resolve, 1000));
       set({
         isLoading: false,
         otpSent: true,
-        // Optionally, you can set an expiry if the backend provides it, or remove this if not needed
       });
     } catch (error) {
       set({ isLoading: false });

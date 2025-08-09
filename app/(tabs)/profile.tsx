@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   Image,
   ScrollView,
@@ -6,6 +7,7 @@ import {
   Switch,
   TouchableOpacity,
   View,
+  RefreshControl,
 } from "react-native";
 import { Modal } from "@/components/ui/Modal";
 import { useRouter } from "expo-router";
@@ -37,16 +39,35 @@ import {
   DollarSign,
   Heart,
   Trash2,
+  Edit,
 } from "lucide-react-native";
-import { useGetProfile } from "@/services/apiClient";
+import { useRenterInvestorProfile } from "@/hooks/useRenterInvestorProfile";
+import { KYC_STATUS } from "@/types/kyc";
+
 export default function ProfileScreen() {
   const router = useRouter();
   const { logout } = useAuthStore();
   const { getUserBookings } = useBookingStore();
   const { getUserInvestments, getTotalPortfolioValue } = useInvestmentStore();
   const { unreadCount } = useNotificationStore();
-  const { data, isLoading, isError, error } = useGetProfile();
-  const user = data?.data?.user;
+  const { profile: user, isLoadingProfile: isLoading, profileError, refetchProfile } = useRenterInvestorProfile();
+
+  // Log when profile data changes to track the data flow
+  useEffect(() => {
+    console.log('Profile - Profile data updated:', user);
+    if (user?.name) {
+      console.log('Profile - Current name displayed:', `${user.name.firstName} ${user.name.lastName}`);
+    }
+  }, [user]);
+
+  // Refetch profile when screen gains focus (after coming back from edit)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Profile - Screen gained focus, refetching profile');
+      refetchProfile();
+    }, [refetchProfile])
+  );
+
   const [notifications, setNotifications] = useState({
     bookings: true,
     investments: true,
@@ -55,6 +76,7 @@ export default function ProfileScreen() {
   });
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const userBookings = user ? getUserBookings(user.id) : [];
   const userInvestments = user ? getUserInvestments(user.id) : [];
   const portfolioValue = user ? getTotalPortfolioValue(user.id) : 0;
@@ -87,7 +109,7 @@ export default function ProfileScreen() {
       icon: User,
       title: "Personal Information",
       subtitle: "Update your profile details",
-      onPress: () => router.push("/edit-profile"),
+      onPress: () => router.push("/edit-profile?role=renter"),
     },
     {
       icon: Heart,
@@ -99,7 +121,7 @@ export default function ProfileScreen() {
       icon: Shield,
       title: "Security & Privacy",
       subtitle: "Password and two-factor authentication",
-      onPress: () => toast.info("Opening security settings..."),
+      onPress: () => router.push("/change-password?role=renter"),
     },
     {
       icon: CreditCard,
@@ -165,33 +187,56 @@ export default function ProfileScreen() {
     setShowDeleteModal(false);
     setDeleteConfirmed(false);
   };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refetchProfile();
+    } finally {
+      setRefreshing(false);
+    }
+  };
   const handleNotifications = () => {
     router.push("/notifications");
   };
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "investor":
-        return colors.primary.gold;
-      case "homeowner":
-        return colors.status.info;
+  const getKYCStatusColor = (status: string) => {
+    switch (status) {
+      case KYC_STATUS.VERIFIED:
+        return colors.status.success;
+      case KYC_STATUS.IN_PROGRESS:
+        return colors.status.warning;
+      case KYC_STATUS.REJECTED:
+        return colors.status.error;
+      case KYC_STATUS.PENDING:
       default:
         return colors.text.secondary;
     }
   };
 
+  const getKYCStatusText = (status: string) => {
+    switch (status) {
+      case KYC_STATUS.VERIFIED:
+        return "VERIFIED";
+      case KYC_STATUS.IN_PROGRESS:
+        return "IN PROGRESS";
+      case KYC_STATUS.REJECTED:
+        return "REJECTED";
+      case KYC_STATUS.PENDING:
+      default:
+        return "PENDING";
+    }
+  };
+
+  const getUserTypeDisplay = (userTypes: string[]) => {
+    return userTypes.map(type => type.toUpperCase()).join(" & ");
+  };
+
   // Loading and error states for profile
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <Typography variant="h4">Loading profile...</Typography>
-      </View>
-    );
-  }
-  if (isError) {
+  if (profileError) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <Typography variant="h4" color="error">
-          {error?.message || "Failed to load profile"}
+          {profileError?.message || "Failed to load profile"}
         </Typography>
       </View>
     );
@@ -203,30 +248,76 @@ export default function ProfileScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary.gold]}
+            tintColor={colors.primary.gold}
+          />
+        }
       >
         {/* Profile Info */}
         <View style={styles.section}>
-          <Card style={styles.profileCard}>
-            <View style={styles.profileHeader}>
-              <Image
-                source={{
-                  uri:
-                    user?.profileImage?.url ||
-                    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40",
-                }}
-                style={styles.avatar}
-              />
-              <View style={styles.profileInfo}>
-                <Typography variant="h4">
-                  {user?.firstName} {user?.lastName}
-                </Typography>
-                <Typography variant="body" color="secondary">
-                  {user?.email}
-                </Typography>
+          <TouchableOpacity onPress={() => router.push('/edit-profile?role=renter')}>
+            <Card style={styles.profileCard}>
+              <View style={styles.profileHeader}>
+                <Image
+                  source={{
+                    uri:
+                      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face&quality=40",
+                  }}
+                  style={styles.avatar}
+                />
+                <View style={styles.profileInfo}>
+                  <Typography variant="h4">
+                    {user?.name ? `${user.name.firstName} ${user.name.lastName}` : 'Loading...'}
+                  </Typography>
+                  <Typography variant="body" color="secondary">
+                    {user?.email || 'Loading...'}
+                  </Typography>
+                  <Typography variant="caption" color="secondary">
+                    {user?.phone ? `${user.phone.countryCode} ${user.phone.mobile}` : 'Loading...'}
+                  </Typography>
+                  <View style={styles.roleContainer}>
+                    {user?.userType && user.userType.length > 0 && (
+                      <View style={styles.roleBadge}>
+                        <Typography variant="label" color="inverse">
+                          {getUserTypeDisplay(user.userType)}
+                        </Typography>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/edit-profile?role=renter')}>
+                  <Edit size={20} color={colors.text.secondary} />
+                </TouchableOpacity>
               </View>
-            </View>
-          </Card>
+            </Card>
+          </TouchableOpacity>
         </View>
+
+        {/* KYC Status - Only show if not pending */}
+        {user?.kyc?.status && user.kyc.status !== KYC_STATUS.PENDING && (
+          <View style={styles.section}>
+            <Typography variant="h4" style={styles.sectionTitle}>
+              KYC Status
+            </Typography>
+            <Card style={styles.menuCard}>
+              <View style={styles.verificationItem}>
+                <View style={styles.verificationItemContent}>
+                  <Typography variant="body">KYC Verification</Typography>
+                  <Typography variant="caption" color="secondary">
+                    {getKYCStatusText(user.kyc.status)}
+                  </Typography>
+                </View>
+                <View style={[styles.verificationStatus, { backgroundColor: getKYCStatusColor(user.kyc.status) }]}>
+                  <CheckCircle2 size={16} color={colors.neutral.white} />
+                </View>
+              </View>
+            </Card>
+          </View>
+        )}
         {/* Stats */}
         <View style={styles.section}>
           <Typography variant="h4" style={styles.sectionTitle}>
@@ -441,7 +532,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    backgroundColor: colors.background.primary,
   },
   header: {
     paddingHorizontal: spacing.layout.screenPadding,
@@ -481,15 +571,34 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
+
   roleContainer: {
     flexDirection: "row",
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
   roleBadge: {
+    backgroundColor: colors.primary.gold,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.sm,
+  },
+  verificationItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: spacing.md,
+  },
+  verificationItemContent: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  verificationStatus: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
   },
   bio: {
     marginTop: spacing.sm,

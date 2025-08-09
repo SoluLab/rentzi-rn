@@ -1,5 +1,7 @@
 import { IMarketplaceProperty } from '@/types/marketplace';
 import { View } from 'react-native';
+import { API_URLS, ENDPOINTS, getFullUrl } from '@/constants/urls';
+import { apiGet } from './apiClient';
 // Mock approved properties data - in real app this would come from your backend
 const mockApprovedProperties: IMarketplaceProperty[] = [
   {
@@ -915,6 +917,126 @@ export const fetchApprovedPropertyById = async (
       success: false,
       data: null,
       message: 'Failed to fetch property',
+    };
+  }
+};
+
+/**
+ * Marketplace Properties API Response Interface
+ */
+export interface MarketplacePropertiesResponse {
+  success: boolean;
+  message: string;
+  data: {
+    items: Array<{
+      _id: string;
+      title: string;
+      description: string;
+      type: string;
+      propertyCategory: string;
+      rentAmount: {
+        basePrice: number;
+        currency: string;
+      };
+      specifications: {
+        bedrooms: number;
+        bathrooms: number;
+        area: number;
+        unit: string;
+      };
+    }>;
+    pagination: {
+      totalItems: number;
+      totalPages: number;
+      currentPage: number;
+      itemsPerPage: number;
+    };
+  } | null;
+}
+
+/**
+ * Fetch marketplace properties with pagination
+ */
+export const fetchMarketplaceProperties = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<MarketplacePropertiesResponse> => {
+  try {
+    // For testing purposes, return mock data
+    // In production, this would make the actual API call
+    const mockResponse: MarketplacePropertiesResponse = {
+      success: true,
+      message: "Properties fetched successfully",
+      data: {
+        items: [
+          {
+            _id: "65f1234567890abcdef12393",
+            title: "Luxury Penthouse",
+            description: "Exclusive penthouse with panoramic city views",
+            type: "residential",
+            propertyCategory: "penthouse",
+            rentAmount: {
+              basePrice: 8500.00,
+              currency: "USD"
+            },
+            specifications: {
+              bedrooms: 4,
+              bathrooms: 3,
+              area: 3500,
+              unit: "sqft"
+            }
+          },
+          {
+            _id: "65f1234567890abcdef12394",
+            title: "Modern Office Space",
+            description: "Premium office space in the heart of the city",
+            type: "commercial",
+            propertyCategory: "office",
+            rentAmount: {
+              basePrice: 12000.00,
+              currency: "USD"
+            },
+            specifications: {
+              bedrooms: 0,
+              bathrooms: 2,
+              area: 5000,
+              unit: "sqft"
+            }
+          }
+        ],
+        pagination: {
+          totalItems: 25,
+          totalPages: 5,
+          currentPage: page,
+          itemsPerPage: limit
+        }
+      }
+    };
+    
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return mockResponse;
+    
+    // Uncomment the following code for production API calls
+    /*
+    const url = getFullUrl(
+      API_URLS.MARKETPLACE_API,
+      `${ENDPOINTS.MARKETPLACE.PROPERTIES}?page=${page}&limit=${limit}`
+    );
+    
+    const response = await apiGet<MarketplacePropertiesResponse>({
+      url,
+    });
+    
+    return response;
+    */
+  } catch (error) {
+    console.error('Error fetching marketplace properties:', error);
+    return {
+      success: false,
+      message: 'Failed to fetch marketplace properties',
+      data: null,
     };
   }
 };
