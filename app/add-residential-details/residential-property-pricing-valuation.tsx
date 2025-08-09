@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -10,152 +10,170 @@ import {
   Switch,
   Alert,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { ChevronDown, Check, Plus, X } from 'lucide-react-native';
-import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerUpdateProperty } from '@/services/homeownerAddProperty';
-
-// Furnishing options
-const FURNISHING_OPTIONS = [
-  'Fully Furnished',
-  'Partially Furnished',
-  'Unfurnished',
-];
-
-// Featured amenities options
-const FEATURED_AMENITIES = [
-  'Pool',
-  'Jacuzzi',
-  'Chef Kitchen',
-  'Gym',
-  'Wi-Fi',
-  'Workstation',
-];
-
-// House rules options
-const HOUSE_RULES = [
-  'No Parties',
-  'No Pets',
-  'No Smoking',
-  'Quiet Hours',
-];
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { ChevronDown, Check, Plus, X } from "lucide-react-native";
+import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
+import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
 
 interface PricingValuationData {
-  furnishingDescription: string;
-  featuredAmenities: string[];
-  customAmenities: string[];
-  smartHomeFeatures: boolean;
-  conciergeServices: string;
-  checkInTime: {
-    hour: number;
-    minute: number;
-    period: 'AM' | 'PM';
-  };
-  checkOutTime: {
-    hour: number;
-    minute: number;
-    period: 'AM' | 'PM';
-  };
-  houseRules: string[];
-  localHighlights: string;
+  estimatedPropertyValue: string;
+  nightlyRate: string;
+  weekendRate: string;
+  // peakSeasonRate: string;
+  cleaningFee: string;
+  rentalAvailability: string;
+  minimumStay: string;
 }
 
 interface PricingValuationErrors {
-  furnishingDescription?: string;
-  featuredAmenities?: string;
-  checkInOutTimings?: string;
-  houseRules?: string;
-  localHighlights?: string;
+  estimatedPropertyValue?: string;
+  nightlyRate?: string;
+  weekendRate?: string;
+  // peakSeasonRate?: string;
+  cleaningFee?: string;
+  rentalAvailability?: string;
+  minimumStay?: string;
 }
 
 export default function ResidentialPropertyPricingValuationScreen() {
   const router = useRouter();
   const { data, updatePricingValuation } = useResidentialPropertyStore();
-  
+
   // API mutation hook for updating property
-  const updatePropertyMutation = useHomeownerUpdateProperty({
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
     onSuccess: (response) => {
-      console.log('Property updated successfully with pricing details:', response);
-      // Navigate to media upload step
-      router.push('/add-residential-details/residential-property-media-upload');
+      console.log(
+        "Property draft saved successfully with pricing details:",
+        response
+      );
+      // Navigate to features and compliance step
+      router.push(
+        "/add-residential-details/residential-property-features-compliance"
+      );
     },
     onError: (error) => {
-      console.error('Error updating property with pricing details:', error);
-      Alert.alert('Error', 'Failed to update property details. Please try again.');
+      console.error("Error saving property draft with pricing details:", error);
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
     },
   });
-  
-  const [formData, setFormData] = useState<PricingValuationData>(data.pricingValuation || {
-    furnishingDescription: '',
-    featuredAmenities: [],
-    customAmenities: [],
-    smartHomeFeatures: false,
-    conciergeServices: '',
-    checkInTime: {
-      hour: 3,
-      minute: 0,
-      period: 'PM',
-    },
-    checkOutTime: {
-      hour: 11,
-      minute: 0,
-      period: 'AM',
-    },
-    houseRules: [],
-    localHighlights: '',
-  });
+
+  const [formData, setFormData] = useState<PricingValuationData>(
+    data.pricingValuation || {
+      estimatedPropertyValue: "",
+      nightlyRate: "",
+      weekendRate: "",
+      // peakSeasonRate: "",
+      cleaningFee: "",
+      rentalAvailability: "",
+      minimumStay: "",
+    }
+  );
   const [errors, setErrors] = useState<PricingValuationErrors>({});
-  const [showFurnishingModal, setShowFurnishingModal] = useState(false);
-  const [showCustomAmenityModal, setShowCustomAmenityModal] = useState(false);
-  const [showCheckInTimeModal, setShowCheckInTimeModal] = useState(false);
-  const [showCheckOutTimeModal, setShowCheckOutTimeModal] = useState(false);
-  const [customAmenityInput, setCustomAmenityInput] = useState('');
 
   // Validation functions
-  const validateFurnishingDescription = (furnishing: string): string | undefined => {
-    if (!furnishing) {
-      return 'Furnishing description is required';
+  const validateEstimatedPropertyValue = (
+    value: string
+  ): string | undefined => {
+    if (!value.trim()) {
+      return "Estimated property value is required";
+    }
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
+    if (isNaN(numValue)) {
+      return "Please enter a valid number";
+    }
+    if (numValue <= 0) {
+      return "Estimated property value must be greater than 0";
     }
     return undefined;
   };
 
-  const validateFeaturedAmenities = (amenities: string[]): string | undefined => {
-    if (amenities.length === 0) {
-      return 'Please select at least one featured amenity';
+  const validateNightlyRate = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return "Nightly rate is required";
+    }
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
+    if (isNaN(numValue)) {
+      return "Please enter a valid number";
+    }
+    if (numValue < 50) {
+      return "Nightly rate must be at least $50";
     }
     return undefined;
   };
 
-  const validateCheckInOutTimings = (): string | undefined => {
-    // Both check-in and check-out times are always set with default values
-    return undefined;
-  };
-
-  const validateHouseRules = (rules: string[]): string | undefined => {
-    if (rules.length === 0) {
-      return 'Please select at least one house rule';
+  const validateWeekendRate = (value: string): string | undefined => {
+    if (value.trim()) {
+      const numValue = parseFloat(value.replace(/[$,]/g, ""));
+      if (isNaN(numValue)) {
+        return "Please enter a valid number";
+      }
+      if (numValue < 50) {
+        return "Weekend rate must be at least $50";
+      }
     }
     return undefined;
   };
 
-  const validateLocalHighlights = (highlights: string): string | undefined => {
-    if (!highlights.trim()) {
-      return 'Local highlights are required';
+  // const validatePeakSeasonRate = (value: string): string | undefined => {
+  //   if (value.trim()) {
+  //     const numValue = parseFloat(value.replace(/[$,]/g, ""));
+  //     if (isNaN(numValue)) {
+  //       return "Please enter a valid number";
+  //     }
+  //     if (numValue < 50) {
+  //       return "Peak season rate must be at least $50";
+  //     }
+  //   }
+  //   return undefined;
+  // };
+
+  const validateCleaningFee = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return "Cleaning fee is required";
     }
-    if (highlights.length < 10) {
-      return 'Local highlights must be at least 10 characters long';
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
+    if (isNaN(numValue)) {
+      return "Please enter a valid number";
     }
-    if (highlights.length > 200) {
-      return 'Local highlights cannot exceed 200 characters';
+    if (numValue < 50) {
+      return "Cleaning fee must be at least $50";
+    }
+    return undefined;
+  };
+
+  const validateRentalAvailability = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return "Rental availability is required";
+    }
+    const numValue = parseInt(value);
+    if (isNaN(numValue)) {
+      return "Please enter a valid number";
+    }
+    if (numValue < 0 || numValue > 52) {
+      return "Rental availability must be between 0 and 52 weeks";
+    }
+    return undefined;
+  };
+
+  const validateMinimumStay = (value: string): string | undefined => {
+    if (!value.trim()) {
+      return "Minimum stay is required";
+    }
+    const numValue = parseInt(value);
+    if (isNaN(numValue)) {
+      return "Please enter a valid number";
+    }
+    if (numValue < 2 || numValue > 30) {
+      return "Minimum stay must be between 2 and 30 nights";
     }
     return undefined;
   };
@@ -163,198 +181,149 @@ export default function ResidentialPropertyPricingValuationScreen() {
   const validateForm = (): boolean => {
     const newErrors: PricingValuationErrors = {};
 
-    newErrors.furnishingDescription = validateFurnishingDescription(formData.furnishingDescription);
-    newErrors.featuredAmenities = validateFeaturedAmenities(formData.featuredAmenities);
-    newErrors.checkInOutTimings = validateCheckInOutTimings();
-    newErrors.houseRules = validateHouseRules(formData.houseRules);
-    newErrors.localHighlights = validateLocalHighlights(formData.localHighlights);
+    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(
+      formData.estimatedPropertyValue
+    );
+    newErrors.nightlyRate = validateNightlyRate(formData.nightlyRate);
+    newErrors.weekendRate = validateWeekendRate(formData.weekendRate);
+    // newErrors.peakSeasonRate = validatePeakSeasonRate(formData.peakSeasonRate);
+    newErrors.cleaningFee = validateCleaningFee(formData.cleaningFee);
+    newErrors.rentalAvailability = validateRentalAvailability(
+      formData.rentalAvailability
+    );
+    newErrors.minimumStay = validateMinimumStay(formData.minimumStay);
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== undefined);
+    return !Object.values(newErrors).some((error) => error !== undefined);
   };
 
-  const updateFormData = (field: keyof PricingValuationData, value: any) => {
+  const updateFormData = (field: keyof PricingValuationData, value: string) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updatePricingValuation(newFormData);
-    
-    // Clear error when user starts typing/selecting
-    if (errors[field as keyof PricingValuationErrors]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
-  };
-
-  const toggleAmenity = (amenity: string) => {
-    const currentAmenities = [...formData.featuredAmenities];
-    const index = currentAmenities.indexOf(amenity);
-    
-    if (index > -1) {
-      currentAmenities.splice(index, 1);
-    } else {
-      currentAmenities.push(amenity);
-    }
-    
-    updateFormData('featuredAmenities', currentAmenities);
-  };
-
-  const toggleHouseRule = (rule: string) => {
-    const currentRules = [...formData.houseRules];
-    const index = currentRules.indexOf(rule);
-    
-    if (index > -1) {
-      currentRules.splice(index, 1);
-    } else {
-      currentRules.push(rule);
-    }
-    
-    updateFormData('houseRules', currentRules);
-  };
-
-  const addCustomAmenity = () => {
-    if (customAmenityInput.trim()) {
-      const newCustomAmenities = [...formData.customAmenities, customAmenityInput.trim()];
-      updateFormData('customAmenities', newCustomAmenities);
-      setCustomAmenityInput('');
-      setShowCustomAmenityModal(false);
-    }
-  };
-
-  const removeCustomAmenity = (index: number) => {
-    const newCustomAmenities = formData.customAmenities.filter((_, i) => i !== index);
-    updateFormData('customAmenities', newCustomAmenities);
-  };
-
-  const formatTime = (time: { hour: number; minute: number; period: 'AM' | 'PM' }) => {
-    return `${time.hour}:${time.minute.toString().padStart(2, '0')} ${time.period}`;
-  };
-
-  const updateCheckInTime = (field: 'hour' | 'minute' | 'period', value: number | 'AM' | 'PM') => {
-    const newCheckInTime = { ...formData.checkInTime, [field]: value };
-    updateFormData('checkInTime', newCheckInTime);
-  };
-
-  const updateCheckOutTime = (field: 'hour' | 'minute' | 'period', value: number | 'AM' | 'PM') => {
-    const newCheckOutTime = { ...formData.checkOutTime, [field]: value };
-    updateFormData('checkOutTime', newCheckOutTime);
   };
 
   const isFormValid = () => {
     // Re-validate the form to check if it's actually valid
     const newErrors: PricingValuationErrors = {};
 
-    newErrors.furnishingDescription = validateFurnishingDescription(formData.furnishingDescription);
-    newErrors.featuredAmenities = validateFeaturedAmenities(formData.featuredAmenities);
-    newErrors.checkInOutTimings = validateCheckInOutTimings();
-    newErrors.houseRules = validateHouseRules(formData.houseRules);
-    newErrors.localHighlights = validateLocalHighlights(formData.localHighlights);
+    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(
+      formData.estimatedPropertyValue
+    );
+    newErrors.nightlyRate = validateNightlyRate(formData.nightlyRate);
+    newErrors.weekendRate = validateWeekendRate(formData.weekendRate);
+    // newErrors.peakSeasonRate = validatePeakSeasonRate(formData.peakSeasonRate);
+    newErrors.cleaningFee = validateCleaningFee(formData.cleaningFee);
+    newErrors.rentalAvailability = validateRentalAvailability(
+      formData.rentalAvailability
+    );
+    newErrors.minimumStay = validateMinimumStay(formData.minimumStay);
 
     // Check if all required fields are filled and no validation errors
     return (
-      formData.furnishingDescription &&
-      formData.featuredAmenities.length > 0 &&
-      formData.houseRules.length > 0 &&
-      formData.localHighlights.trim() &&
-      Object.values(newErrors).every(error => !error)
+      formData.estimatedPropertyValue.trim() &&
+      formData.nightlyRate.trim() &&
+      formData.cleaningFee.trim() &&
+      formData.rentalAvailability.trim() &&
+      formData.minimumStay.trim() &&
+      Object.values(newErrors).every((error) => !error)
     );
   };
 
-  const transformFormDataToApiFormat = () => {
-    return {
-      amenities: [...formData.featuredAmenities, ...formData.customAmenities],
-      features: formData.smartHomeFeatures ? ['smartHome'] : [],
-      rules: formData.houseRules,
-      propertyDetails: {
-        furnishingDescription: formData.furnishingDescription,
-        conciergeServices: formData.conciergeServices,
-        checkInTime: `${formData.checkInTime.hour}:${formData.checkInTime.minute.toString().padStart(2, '0')} ${formData.checkInTime.period}`,
-        checkOutTime: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute.toString().padStart(2, '0')} ${formData.checkOutTime.period}`,
-        localHighlights: formData.localHighlights,
-      }
-    };
-  };
-
-  const renderFurnishingItem = ({ item }: { item: string }) => (
-    <TouchableOpacity
-      style={styles.modalItem}
-      onPress={() => {
-        updateFormData('furnishingDescription', item);
-        setShowFurnishingModal(false);
-      }}
-    >
-      <Typography variant="body">{item}</Typography>
-    </TouchableOpacity>
-  );
-
-  const renderAmenityItem = ({ item }: { item: string }) => {
-    const isSelected = formData.featuredAmenities.includes(item);
-    
-    return (
-      <TouchableOpacity
-        style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
-        onPress={() => toggleAmenity(item)}
-      >
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && <Check size={16} color={colors.neutral.white} />}
-        </View>
-        <Typography variant="body" style={styles.amenityText}>
-          {item}
-        </Typography>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderHouseRuleItem = ({ item }: { item: string }) => {
-    const isSelected = formData.houseRules.includes(item);
-    
-    return (
-      <TouchableOpacity
-        style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
-        onPress={() => toggleHouseRule(item)}
-      >
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && <Check size={16} color={colors.neutral.white} />}
-        </View>
-        <Typography variant="body" style={styles.amenityText}>
-          {item}
-        </Typography>
-      </TouchableOpacity>
-    );
-  };
+  const transformFormDataToApiFormat = () => ({
+    title: data.propertyDetails?.propertyTitle || "",
+    type: "residential",
+    propertyValueEstimate: {
+      value: parseFloat(formData.estimatedPropertyValue.replace(/[$,]/g, "")),
+      currency: "USD",
+    },
+    rentAmount: {
+      basePrice: parseFloat(formData.nightlyRate.replace(/[$,]/g, "")),
+      currency: "USD",
+      weekendPrice: formData.weekendRate
+        ? parseFloat(formData.weekendRate.replace(/[$,]/g, ""))
+        : 0,
+      // peakSeasonPrice: formData.peakSeasonRate
+      //   ? parseFloat(formData.peakSeasonRate.replace(/[$,]/g, ""))
+      //   : 0,
+      peakSeasonPrice: 0,
+    },
+    maintenanceFee: {
+      amount: parseFloat(formData.cleaningFee.replace(/[$,]/g, "")),
+      currency: "USD",
+    },
+    availableWeeksPerYear: parseInt(formData.rentalAvailability),
+  });
 
   const handleNext = async () => {
     if (validateForm()) {
       try {
-        // Update store with form data
         updatePricingValuation(formData);
-        
-        // Transform data for API
         const apiData = transformFormDataToApiFormat();
-        
-        // Get property ID from store
         const propertyId = data.propertyId;
+        console.log("Property ID from store before draft API:", propertyId);
         if (!propertyId) {
-          Alert.alert('Error', 'Property ID not found. Please go back and try again.');
+          Alert.alert(
+            "Error",
+            "Property ID not found. Please go back and try again."
+          );
           return;
         }
-        
-        console.log('Updating property with pricing data:', apiData);
-        
-        // Call the API to update property
-        await updatePropertyMutation.mutateAsync({
-          id: propertyId,
-          data: apiData
+        console.log("Saving property draft with pricing data:", {
+          propertyId,
+          ...apiData,
         });
+        await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
       } catch (error) {
-        console.error('Error in handleNext:', error);
-        // Error is already handled by the mutation's onError callback
+        console.error("Error in handleNext:", error);
       }
     }
+  };
+
+  const formatCurrency = (value: string) => {
+    // Remove all non-numeric characters except decimal point
+    const numericValue = value.replace(/[^0-9.]/g, "");
+    if (!numericValue) return "";
+
+    const numValue = parseFloat(numericValue);
+    if (isNaN(numValue)) return value;
+
+    return numValue.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const formatNumber = (value: string) => {
+    // Remove all non-numeric characters
+    return value.replace(/[^0-9]/g, "");
+  };
+
+  const generatePricingSummary = () => {
+    const nightlyRate = formData.nightlyRate
+      ? parseFloat(formData.nightlyRate.replace(/[$,]/g, ""))
+      : 0;
+    const cleaningFee = formData.cleaningFee
+      ? parseFloat(formData.cleaningFee.replace(/[$,]/g, ""))
+      : 0;
+
+    if (nightlyRate > 0 && cleaningFee > 0) {
+      return `Your property will be listed with a base nightly rate of $${nightlyRate.toLocaleString()}, with a $${cleaningFee.toLocaleString()} cleaning fee.`;
+    }
+    return "Complete the pricing information above to see your pricing summary.";
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Rental Pricing & Valuation" />
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -363,404 +332,158 @@ export default function ResidentialPropertyPricingValuationScreen() {
           Rental Pricing & Valuation
         </Typography>
 
-        {/* Furnishing Description */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Furnishing Description *
-          </Typography>
-          <TouchableOpacity
-            style={[styles.dropdown, errors.furnishingDescription && styles.error]}
-            onPress={() => setShowFurnishingModal(true)}
-          >
-            <Typography variant="body" style={formData.furnishingDescription ? styles.selectedText : styles.placeholder}>
-              {formData.furnishingDescription || 'Select furnishing description'}
-            </Typography>
-            <ChevronDown size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
-          {errors.furnishingDescription && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
-              {errors.furnishingDescription}
-            </Typography>
-          )}
-        </View>
-
-        {/* Featured Amenities */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Featured Amenities *
-          </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
-            Select at least one amenity
-          </Typography>
-          <View style={styles.amenitiesContainer}>
-            {FEATURED_AMENITIES.map((amenity) => (
-              <View key={amenity} style={styles.amenityWrapper}>
-                {renderAmenityItem({ item: amenity })}
-              </View>
-            ))}
-          </View>
-          {errors.featuredAmenities && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
-              {errors.featuredAmenities}
-            </Typography>
-          )}
-        </View>
-
-        {/* Custom Amenities */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Custom Amenities
-          </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
-            Add any additional amenities not listed above
-          </Typography>
-          
-          {formData.customAmenities.map((amenity, index) => (
-            <View key={index} style={styles.customAmenityItem}>
-              <Typography variant="body" style={styles.customAmenityText}>
-                {amenity}
-              </Typography>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeCustomAmenity(index)}
-              >
-                <X size={16} color={colors.status.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          
-          <Button
-            title="Add Custom Amenity"
-            onPress={() => setShowCustomAmenityModal(true)}
-            variant="outline"
-            style={styles.addButton}
-          />
-        </View>
-
-        {/* Smart Home Features */}
-        <View style={styles.fieldContainer}>
-          <View style={styles.toggleContainer}>
-            <Typography variant="body" style={styles.label}>
-              Smart Home Features
-            </Typography>
-            <Switch
-              value={formData.smartHomeFeatures}
-              onValueChange={(value) => updateFormData('smartHomeFeatures', value)}
-              trackColor={{ false: colors.border.light, true: colors.primary.gold }}
-              thumbColor={formData.smartHomeFeatures ? colors.neutral.white : colors.text.secondary}
-            />
-          </View>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
-            Optional: Enable if your property has smart home features
-          </Typography>
-        </View>
-
-        {/* Concierge Services */}
+        {/* Estimated Property Value */}
         <Input
-          label="Concierge Services"
-          value={formData.conciergeServices}
-          onChangeText={(value) => updateFormData('conciergeServices', value)}
-          placeholder="e.g., 24/7 concierge, valet parking, room service"
-          multiline
-          numberOfLines={3}
+          label="Estimated Property Value *"
+          value={formData.estimatedPropertyValue}
+          onChangeText={(value) =>
+            updateFormData("estimatedPropertyValue", formatCurrency(value))
+          }
+          placeholder="$500,000"
+          error={errors.estimatedPropertyValue}
+          keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
-          Optional: Describe any concierge services available
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          Enter the estimated market value of your property
         </Typography>
 
-        {/* Check-in Time */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Check-in Time *
-          </Typography>
-          <TouchableOpacity
-            style={styles.timePickerButton}
-            onPress={() => setShowCheckInTimeModal(true)}
-          >
-            <Typography variant="body" style={styles.timeText}>
-              {formatTime(formData.checkInTime)}
-            </Typography>
-            <ChevronDown size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* Check-out Time */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Check-out Time *
-          </Typography>
-          <TouchableOpacity
-            style={styles.timePickerButton}
-            onPress={() => setShowCheckOutTimeModal(true)}
-          >
-            <Typography variant="body" style={styles.timeText}>
-              {formatTime(formData.checkOutTime)}
-            </Typography>
-            <ChevronDown size={20} color={colors.text.secondary} />
-          </TouchableOpacity>
-        </View>
-
-        {/* House Rules */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            House Rules *
-          </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
-            Select applicable house rules
-          </Typography>
-          <View style={styles.amenitiesContainer}>
-            {HOUSE_RULES.map((rule) => (
-              <View key={rule} style={styles.amenityWrapper}>
-                {renderHouseRuleItem({ item: rule })}
-              </View>
-            ))}
-          </View>
-          {errors.houseRules && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
-              {errors.houseRules}
-            </Typography>
-          )}
-        </View>
-
-        {/* Local Highlights */}
+        {/* Nightly Rate */}
         <Input
-          label="Local Highlights *"
-          value={formData.localHighlights}
-          onChangeText={(value) => updateFormData('localHighlights', value)}
-          placeholder="Describe nearby attractions, restaurants, and activities (1-2 lines)"
-          error={errors.localHighlights}
-          multiline
-          numberOfLines={3}
-          maxLength={200}
+          label="Nightly Rate *"
+          value={formData.nightlyRate}
+          onChangeText={(value) =>
+            updateFormData("nightlyRate", formatCurrency(value))
+          }
+          placeholder="$150"
+          error={errors.nightlyRate}
+          keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
-          {formData.localHighlights.length}/200 characters
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          Base rate per night. Minimum: $50 suggested
         </Typography>
+
+        {/* Weekend Rate */}
+        <Input
+          label="Weekend Rate"
+          value={formData.weekendRate}
+          onChangeText={(value) =>
+            updateFormData("weekendRate", formatCurrency(value))
+          }
+          placeholder="$200"
+          error={errors.weekendRate}
+          keyboardType="numeric"
+        />
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          Higher weekend rate. Minimum: $50 suggested
+        </Typography>
+
+        {/* Peak Season Rate */}
+        {/* <Input
+          label="Peak Season Rate"
+          value={formData.peakSeasonRate}
+          onChangeText={(value) =>
+            updateFormData("peakSeasonRate", formatCurrency(value))
+          }
+          placeholder="$250"
+          error={errors.peakSeasonRate}
+          keyboardType="numeric"
+        />
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          High-demand season rate. Minimum: $50 suggested
+        </Typography> */}
+
+        {/* Cleaning Fee */}
+        <Input
+          label="Cleaning Fee *"
+          value={formData.cleaningFee}
+          onChangeText={(value) =>
+            updateFormData("cleaningFee", formatCurrency(value))
+          }
+          placeholder="$120"
+          error={errors.cleaningFee}
+          keyboardType="numeric"
+        />
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          One-time cleaning fee. Minimum: $50 suggested
+        </Typography>
+
+        {/* Rental Availability */}
+        <Input
+          label="Rental Availability *"
+          value={formData.rentalAvailability}
+          onChangeText={(value) =>
+            updateFormData("rentalAvailability", formatNumber(value))
+          }
+          placeholder="40"
+          error={errors.rentalAvailability}
+          keyboardType="numeric"
+        />
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          Number of weeks your property is available for rental (0-52 weeks)
+        </Typography>
+
+        {/* Minimum Stay */}
+        <Input
+          label="Minimum Stay *"
+          value={formData.minimumStay}
+          onChangeText={(value) =>
+            updateFormData("minimumStay", formatNumber(value))
+          }
+          placeholder="2"
+          error={errors.minimumStay}
+          keyboardType="numeric"
+        />
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
+          Minimum booking duration (2–30 nights)
+        </Typography>
+
+        {/* Pricing Summary Section */}
+        <Typography variant="h6" style={styles.subsectionTitle}>
+          Pricing Summary
+        </Typography>
+
+        <View style={styles.summaryContainer}>
+          <Typography variant="body2" style={styles.summaryText}>
+            {generatePricingSummary()}
+          </Typography>
+        </View>
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>
-
-      {/* Furnishing Description Modal */}
-      <Modal
-        visible={showFurnishingModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Select Furnishing Description</Typography>
-            <TouchableOpacity onPress={() => setShowFurnishingModal(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <FlatList
-            data={FURNISHING_OPTIONS}
-            renderItem={renderFurnishingItem}
-            keyExtractor={(item) => item}
-            style={styles.modalList}
-          />
-        </View>
-      </Modal>
-
-      {/* Custom Amenity Modal */}
-      <Modal
-        visible={showCustomAmenityModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Add Custom Amenity</Typography>
-            <TouchableOpacity onPress={() => setShowCustomAmenityModal(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.modalContent}>
-            <Input
-              label="Custom Amenity"
-              value={customAmenityInput}
-              onChangeText={setCustomAmenityInput}
-              placeholder="Enter custom amenity"
-              maxLength={50}
-            />
-            
-            <View style={styles.modalButtons}>
-              <Button
-                title="Cancel"
-                onPress={() => setShowCustomAmenityModal(false)}
-                variant="outline"
-                style={styles.modalButton}
-              />
-              <Button
-                title="Add"
-                onPress={addCustomAmenity}
-                disabled={!customAmenityInput.trim()}
-                style={styles.modalButton}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Check-in Time Picker Modal */}
-      <Modal
-        visible={showCheckInTimeModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Set Check-in Time</Typography>
-            <TouchableOpacity onPress={() => setShowCheckInTimeModal(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.timePickerContainer}>
-            {/* Hours */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Hour</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkInTime.hour}
-              </Typography>
-              <View style={styles.timePickerButtons}>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('hour', (formData.checkInTime.hour % 12) + 1)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('hour', formData.checkInTime.hour === 1 ? 12 : formData.checkInTime.hour - 1)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−</Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Minutes */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Minute</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkInTime.minute.toString().padStart(2, '0')}
-              </Typography>
-              <View style={styles.timePickerButtons}>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('minute', (formData.checkInTime.minute + 15) % 60)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+15</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('minute', formData.checkInTime.minute === 0 ? 45 : formData.checkInTime.minute - 15)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−15</Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* AM/PM */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Period</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkInTime.period}
-              </Typography>
-              <TouchableOpacity
-                style={styles.timePickerActionButton}
-                onPress={() => updateCheckInTime('period', formData.checkInTime.period === 'AM' ? 'PM' : 'AM')}
-              >
-                <Typography variant="body" style={styles.timePickerButtonText}>Toggle</Typography>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Check-out Time Picker Modal */}
-      <Modal
-        visible={showCheckOutTimeModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Typography variant="h4">Set Check-out Time</Typography>
-            <TouchableOpacity onPress={() => setShowCheckOutTimeModal(false)}>
-              <Typography variant="h4">✕</Typography>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.timePickerContainer}>
-            {/* Hours */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Hour</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkOutTime.hour}
-              </Typography>
-              <View style={styles.timePickerButtons}>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('hour', (formData.checkOutTime.hour % 12) + 1)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('hour', formData.checkOutTime.hour === 1 ? 12 : formData.checkOutTime.hour - 1)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−</Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Minutes */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Minute</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkOutTime.minute.toString().padStart(2, '0')}
-              </Typography>
-              <View style={styles.timePickerButtons}>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('minute', (formData.checkOutTime.minute + 15) % 60)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+15</Typography>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('minute', formData.checkOutTime.minute === 0 ? 45 : formData.checkOutTime.minute - 15)}
-                >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−15</Typography>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* AM/PM */}
-            <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Period</Typography>
-              <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkOutTime.period}
-              </Typography>
-              <TouchableOpacity
-                style={styles.timePickerActionButton}
-                onPress={() => updateCheckOutTime('period', formData.checkOutTime.period === 'AM' ? 'PM' : 'AM')}
-              >
-                <Typography variant="body" style={styles.timePickerButtonText}>Toggle</Typography>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -775,14 +498,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.lg,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   fieldContainer: {
     marginBottom: spacing.md,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
@@ -790,10 +513,50 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     marginBottom: spacing.sm,
   },
+  amenitiesContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+  },
+  amenityWrapper: {
+    width: "48%",
+  },
+  amenityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: spacing.md,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    minHeight: 48,
+  },
+  amenityItemSelected: {
+    borderColor: colors.primary.gold,
+    backgroundColor: colors.primary.platinum,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
+  checkboxSelected: {
+    backgroundColor: colors.primary.gold,
+    borderColor: colors.primary.gold,
+  },
+  amenityText: {
+    flex: 1,
+    fontSize: 14,
+  },
   dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -816,71 +579,6 @@ const styles = StyleSheet.create({
     color: colors.status.error,
     marginTop: spacing.xs,
   },
-  amenitiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  amenityWrapper: {
-    width: '48%',
-  },
-  amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.neutral.white,
-    borderWidth: 1,
-    borderColor: colors.border.light,
-    borderRadius: radius.input,
-    minHeight: 48,
-  },
-  amenityItemSelected: {
-    borderColor: colors.primary.gold,
-    backgroundColor: colors.primary.platinum,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.border.light,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  checkboxSelected: {
-    backgroundColor: colors.primary.gold,
-    borderColor: colors.primary.gold,
-  },
-  amenityText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  customAmenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.input,
-    marginBottom: spacing.sm,
-  },
-  customAmenityText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  removeButton: {
-    padding: spacing.xs,
-  },
-  addButton: {
-    marginTop: spacing.sm,
-  },
   nextButton: {
     marginTop: spacing.xl,
   },
@@ -889,24 +587,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
-  },
-  modalContent: {
-    padding: spacing.lg,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: spacing.lg,
-    gap: spacing.md,
-  },
-  modalButton: {
-    flex: 1,
   },
   modalList: {
     flex: 1,
@@ -916,56 +602,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
-  timePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.neutral.white,
+  summaryContainer: {
+    backgroundColor: colors.background.secondary,
+    padding: spacing.md,
+    borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.border.light,
-    borderRadius: radius.input,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    minHeight: 48,
   },
-  timeText: {
+  summaryText: {
     color: colors.text.primary,
-    fontSize: 16,
+    lineHeight: 20,
   },
-  timePickerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-  },
-  timePickerColumn: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  timePickerLabel: {
-    fontSize: 14,
-    color: colors.text.secondary,
+  subsectionTitle: {
     marginBottom: spacing.md,
+    fontWeight: "600",
   },
-  timePickerValue: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: colors.text.primary,
-    marginBottom: spacing.sm,
-  },
-  timePickerButtons: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  timePickerActionButton: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.primary.gold,
-    borderRadius: radius.input,
-  },
-  timePickerButtonText: {
-    color: colors.neutral.white,
-    fontSize: 16,
-    fontWeight: '500',
-  },
-}); 
+  
+});

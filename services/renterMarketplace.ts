@@ -43,8 +43,8 @@ export const useMarketplaceGetProperty = (
   return useApiQuery(
     ["marketplace", "property", id],
     {
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-      endpoint: ENDPOINTS.MARKETPLACE.GET_PROPERTY_BY_ID(id.toString()),
+      baseURL: "http://35.223.240.93:5001",
+      endpoint: `/api/property/${id}`,
       auth: true,
     },
     options

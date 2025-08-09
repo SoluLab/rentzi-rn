@@ -130,25 +130,34 @@ export default function CommercialPropertyLegalConsentsScreen() {
 
   const handleNext = () => {
     if (validateForm()) {
-      // Navigate to listing type selection step
-      router.push('/add-commercial-details/commercial-property-listing-type');
+      // Update store with legal consents
+      updateLegalConsents(consents);
+      
+      // Navigate to next screen with title and property ID
+      const propertyTitle = data.propertyDetails?.propertyTitle || "";
+      const propertyId = data.propertyId;
+      
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      
+      router.push({
+        pathname: '/add-commercial-details/commercial-property-listing-type',
+        params: {
+          propertyTitle,
+          propertyId: propertyId.toString(),
+        }
+      });
     }
   };
 
   const isFormValid = () => {
-    // Re-validate the form to check if it's actually valid
-    const newErrors: ConsentValidationErrors = {};
-
-    newErrors.investmentRisks = validateConsent(consents.investmentRisks, 'Investment Risks Understanding');
-    newErrors.platformTerms = validateConsent(consents.platformTerms, 'Platform Terms Agreement');
-    newErrors.variableIncome = validateConsent(consents.variableIncome, 'Variable Income Understanding');
-    newErrors.tokenizationConsent = validateConsent(consents.tokenizationConsent, 'Tokenization Consent');
-    newErrors.usageRights = validateConsent(consents.usageRights, 'Usage Rights Agreement');
-    newErrors.liquidityLimitations = validateConsent(consents.liquidityLimitations, 'Liquidity Limitations');
-    newErrors.governanceRights = validateConsent(consents.governanceRights, 'Governance and Voting Rights');
-
-    // Check if all consents are checked and no validation errors
-    return Object.values(newErrors).every(error => !error);
+    // Check if all consents are checked
+    return Object.values(consents).every(consent => consent === true);
   };
 
   const renderConsentItem = (item: typeof CONSENT_ITEMS[0]) => {

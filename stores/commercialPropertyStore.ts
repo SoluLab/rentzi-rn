@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AccessType } from '@/types/homeownerProperty';
 
 // Document file interface
 export interface DocumentFile {
@@ -30,6 +31,7 @@ export interface PropertyDetails {
   zoningType: string;
   squareFootage: string;
   yearBuilt: string;
+  yearRenovated: string;
 }
 
 // Financial details interface
@@ -44,9 +46,9 @@ export interface FinancialDetails {
 // Features and compliance interface
 export interface FeaturesCompliance {
   buildingAmenities: string[];
-  smartBuildingSystems: string;
-  businessServicesProvided: string;
-  accessType: string;
+  smartBuildingSystems: string[];
+  businessServicesProvided: string[];
+  accessType: AccessType;
   propertyHighlights: string;
 }
 
@@ -162,6 +164,7 @@ const initialData: CommercialPropertyData = {
     zoningType: '',
     squareFootage: '',
     yearBuilt: '',
+    yearRenovated: '',
   },
   financialDetails: {
     estimatedPropertyValue: '',
@@ -172,9 +175,9 @@ const initialData: CommercialPropertyData = {
   },
   featuresCompliance: {
     buildingAmenities: [],
-    smartBuildingSystems: '',
-    businessServicesProvided: '',
-    accessType: '',
+    smartBuildingSystems: [],
+    businessServicesProvided: [],
+    accessType: 'Keycard' as AccessType,
     propertyHighlights: '',
   },
   mediaUploads: {

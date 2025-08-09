@@ -20,12 +20,17 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { FileText, Upload, X, Check } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyFiles } from '@/services/homeownerAddProperty';
+import { BASE_URLS, ENDPOINTS } from '@/constants/urls';
+import { uploadToPinata } from '@/utils/ipfsUpload';
 
 interface DocumentFile {
   uri: string;
   name: string;
   size: number;
   type: string;
+  uploadedUrl?: string; // Add uploaded URL field
+  uploadedKey?: string; // Add uploaded key field
 }
 
 interface DocumentsFormData {
@@ -77,6 +82,37 @@ const ALLOWED_FILE_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image
 export default function CommercialPropertyDocumentsUploadScreen() {
   const router = useRouter();
   const { data, updateDocuments } = useCommercialPropertyStore();
+
+  // API mutation hook for updating property draft
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log(
+        "Commercial property draft saved successfully with documents:",
+        response
+      );
+      // Navigate to legal consents step
+      router.push('/add-commercial-details/commercial-property-legal-consents');
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving commercial property draft with documents:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
+
+  // API mutation hook for uploading files
+  const uploadFilesMutation = useHomeownerUploadPropertyFiles({
+    onSuccess: (response) => {
+      console.log("Files uploaded successfully:", response);
+      // The uploaded URLs will be handled in the upload function
+    },
+    onError: (error) => {
+      console.error("Error uploading files:", error);
+      Alert.alert("Error", "Failed to upload files. Please try again.");
+    },
+  });
   
   const [formData, setFormData] = useState<DocumentsFormData>(data.documents);
   const [errors, setErrors] = useState<DocumentsValidationErrors>({});
@@ -133,6 +169,32 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     }
   };
 
+  const uploadDocumentToServer = async (document: DocumentFile, documentField: keyof DocumentsFormData) => {
+    try {
+      setIsUploading(documentField);
+      // 1. Upload to Pinata (IPFS)
+      const ipfsUrl = await uploadToPinata({
+        uri: document.uri,
+        name: document.name,
+        type: document.type,
+      });
+      // 2. Update formData with IPFS url
+      const updatedDocument: DocumentFile = {
+        ...document,
+        uploadedUrl: ipfsUrl,
+        uploadedKey: document.name,
+      };
+      updateFormData(documentField, updatedDocument);
+      setIsUploading(null);
+      // 3. (Optional) If you still want to upload to your backend, do it here
+      // await uploadFilesMutation.mutateAsync({ ... })
+    } catch (error: any) {
+      setIsUploading(null);
+      console.error('Error uploading document to IPFS:', error);
+      Alert.alert('Upload Failed', 'Failed to upload document to IPFS. Please try again.');
+    }
+  };
+
   const pickDocument = async (fieldName: keyof DocumentsFormData, displayName: string) => {
     try {
       setIsUploading(fieldName);
@@ -158,7 +220,9 @@ export default function CommercialPropertyDocumentsUploadScreen() {
         };
 
         updateFormData(fieldName, documentFile);
-        Alert.alert('Success', `${displayName} uploaded successfully!`);
+
+        // Upload document immediately
+        await uploadDocumentToServer(documentFile, fieldName);
       }
     } catch (error) {
       Alert.alert('Error', `Failed to upload ${displayName}. Please try again.`);
@@ -171,10 +235,238 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     updateFormData(fieldName, null);
   };
 
-  const handleNext = () => {
+  const retryUpload = async (documentField: keyof DocumentsFormData) => {
+    const document = formData[documentField];
+    if (document && !document.uploadedUrl) {
+      console.log(`Retrying upload for document ${documentField}:`, document.name);
+      await uploadDocumentToServer(document, documentField);
+    }
+  };
+
+  const transformFormDataToApiFormat = () => {
+    const apiData: any = {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "commercial",
+    };
+
+    // Transform documents to match schema format based on schema.txt
+    const documents: any = {};
+
+    // Mandatory documents
+    if (formData.propertyDeed) {
+      documents.propertyDeed = [{
+        key: formData.propertyDeed.uploadedKey || 'propertyDeed',
+        url: formData.propertyDeed.uploadedUrl || formData.propertyDeed.uri,
+      }];
+    }
+
+    if (formData.zoningCertificate) {
+      documents.zoningCertificate = [{
+        key: formData.zoningCertificate.uploadedKey || 'zoningCertificate',
+        url: formData.zoningCertificate.uploadedUrl || formData.zoningCertificate.uri,
+      }];
+    }
+
+    if (formData.titleReport) {
+      documents.titleReportOrInsurance = [{
+        key: formData.titleReport.uploadedKey || 'titleReport',
+        url: formData.titleReport.uploadedUrl || formData.titleReport.uri,
+      }];
+    }
+
+    if (formData.governmentId) {
+      documents.governmentIssuedId = [{
+        key: formData.governmentId.uploadedKey || 'governmentId',
+        url: formData.governmentId.uploadedUrl || formData.governmentId.uri,
+      }];
+    }
+
+    if (formData.certificateOfOccupancy) {
+      documents.occupancyCertificate = [{
+        key: formData.certificateOfOccupancy.uploadedKey || 'certificateOfOccupancy',
+        url: formData.certificateOfOccupancy.uploadedUrl || formData.certificateOfOccupancy.uri,
+      }];
+    }
+
+    if (formData.rentRoll) {
+      documents.rentRoll = [{
+        key: formData.rentRoll.uploadedKey || 'rentRoll',
+        url: formData.rentRoll.uploadedUrl || formData.rentRoll.uri,
+      }];
+    }
+
+    if (formData.incomeExpenseStatements) {
+      documents.incomeandExpenseStatement = [{
+        key: formData.incomeExpenseStatements.uploadedKey || 'incomeExpenseStatements',
+        url: formData.incomeExpenseStatements.uploadedUrl || formData.incomeExpenseStatements.uri,
+      }];
+    }
+
+    if (formData.camAgreement) {
+      documents.camAgreement = [{
+        key: formData.camAgreement.uploadedKey || 'camAgreement',
+        url: formData.camAgreement.uploadedUrl || formData.camAgreement.uri,
+      }];
+    }
+
+    if (formData.environmentalReport) {
+      documents.propertyConditionAssessment = [{
+        key: formData.environmentalReport.uploadedKey || 'environmentalReport',
+        url: formData.environmentalReport.uploadedUrl || formData.environmentalReport.uri,
+      }];
+    }
+
+    if (formData.propertyConditionAssessment) {
+      documents.propertyConditionAssessment = [{
+        key: formData.propertyConditionAssessment.uploadedKey || 'propertyConditionAssessment',
+        url: formData.propertyConditionAssessment.uploadedUrl || formData.propertyConditionAssessment.uri,
+      }];
+    }
+
+    if (formData.proofOfInsurance) {
+      documents.proofOfInsurance = [{
+        key: formData.proofOfInsurance.uploadedKey || 'proofOfInsurance',
+        url: formData.proofOfInsurance.uploadedUrl || formData.proofOfInsurance.uri,
+      }];
+    }
+
+    if (formData.utilityBill) {
+      documents.utilityBill = [{
+        key: formData.utilityBill.uploadedKey || 'utilityBill',
+        url: formData.utilityBill.uploadedUrl || formData.utilityBill.uri,
+      }];
+    }
+
+    if (formData.propertyAppraisal) {
+      documents.propertyAppraisal = [{
+        key: formData.propertyAppraisal.uploadedKey || 'propertyAppraisal',
+        url: formData.propertyAppraisal.uploadedUrl || formData.propertyAppraisal.uri,
+      }];
+    }
+
+    if (formData.authorizationToTokenize) {
+      documents.authorizationToTokenize = [{
+        key: formData.authorizationToTokenize.uploadedKey || 'authorizationToTokenize',
+        url: formData.authorizationToTokenize.uploadedUrl || formData.authorizationToTokenize.uri,
+      }];
+    }
+
+    // Conditional documents
+    if (formData.mortgageStatement) {
+      documents.mortgageStatement = [{
+        key: formData.mortgageStatement.uploadedKey || 'mortgageStatement',
+        url: formData.mortgageStatement.uploadedUrl || formData.mortgageStatement.uri,
+      }];
+    }
+
+    if (formData.hoaDocuments) {
+      documents.hoaDocument = [{
+        key: formData.hoaDocuments.uploadedKey || 'hoaDocuments',
+        url: formData.hoaDocuments.uploadedUrl || formData.hoaDocuments.uri,
+      }];
+    }
+
+    if (formData.franchiseAgreement) {
+      documents.granchiseAgreement = [{
+        key: formData.franchiseAgreement.uploadedKey || 'franchiseAgreement',
+        url: formData.franchiseAgreement.uploadedUrl || formData.franchiseAgreement.uri,
+      }];
+    }
+
+    if (formData.businessLicenses) {
+      documents.businessLicense = [{
+        key: formData.businessLicenses.uploadedKey || 'businessLicenses',
+        url: formData.businessLicenses.uploadedUrl || formData.businessLicenses.uri,
+      }];
+    }
+
+    if (formData.adaComplianceReport) {
+      documents.adaComplianceReport = [{
+        key: formData.adaComplianceReport.uploadedKey || 'adaComplianceReport',
+        url: formData.adaComplianceReport.uploadedUrl || formData.adaComplianceReport.uri,
+      }];
+    }
+
+    if (formData.fireSafetyInspection) {
+      documents.safetyReport = [{
+        key: formData.fireSafetyInspection.uploadedKey || 'fireSafetyInspection',
+        url: formData.fireSafetyInspection.uploadedUrl || formData.fireSafetyInspection.uri,
+      }];
+    }
+
+    if (Object.keys(documents).length > 0) {
+      apiData.documents = documents;
+    }
+
+    return apiData;
+  };
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to legal consents step
-      router.push('/add-commercial-details/commercial-property-legal-consents');
+      // Check if there are unuploaded documents
+      const allDocuments = [
+        formData.propertyDeed,
+        formData.zoningCertificate,
+        formData.titleReport,
+        formData.governmentId,
+        formData.certificateOfOccupancy,
+        formData.rentRoll,
+        formData.incomeExpenseStatements,
+        formData.camAgreement,
+        formData.environmentalReport,
+        formData.propertyConditionAssessment,
+        formData.proofOfInsurance,
+        formData.utilityBill,
+        formData.propertyAppraisal,
+        formData.authorizationToTokenize,
+        formData.mortgageStatement,
+        formData.hoaDocuments,
+        formData.franchiseAgreement,
+        formData.businessLicenses,
+        formData.adaComplianceReport,
+        formData.fireSafetyInspection,
+      ].filter(Boolean) as DocumentFile[];
+
+      const unuploadedDocuments = allDocuments.filter(doc => !doc.uploadedUrl);
+      
+      if (unuploadedDocuments.length > 0) {
+        Alert.alert(
+          "Unuploaded Documents",
+          `${unuploadedDocuments.length} documents are not yet uploaded to the server. You can continue, but the documents may not be saved properly.`,
+          [
+            { text: "Continue Anyway", onPress: () => proceedWithDraft() },
+            { text: "Upload First", style: "cancel" }
+          ]
+        );
+      } else {
+        await proceedWithDraft();
+      }
+    }
+  };
+
+  const proceedWithDraft = async () => {
+    try {
+      updateDocuments(formData);
+      const apiData = transformFormDataToApiFormat();
+      const propertyId = data.propertyId;
+      console.log(
+        "Commercial Property ID from store before draft API:",
+        propertyId
+      );
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      console.log("Saving commercial property draft with documents data:", {
+        propertyId,
+        ...apiData,
+      });
+      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+    } catch (error) {
+      console.error("Error in proceedWithDraft:", error);
     }
   };
 
@@ -240,7 +532,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
         <Button
           title={isUploadingField ? "Uploading..." : document ? "Replace Document" : "Upload Document"}
           onPress={() => pickDocument(fieldName, displayName)}
-          disabled={isUploadingField}
+          disabled={isUploadingField || uploadFilesMutation.isPending}
           variant={document ? "outline" : "primary"}
           style={styles.uploadButton}
         />
@@ -264,12 +556,23 @@ export default function CommercialPropertyDocumentsUploadScreen() {
                 </Typography>
               </View>
               <View style={styles.documentActions}>
-                <View style={styles.statusBadge}>
-                  <Check size={12} color={colors.neutral.white} />
-                  <Typography variant="caption" style={styles.statusText}>
-                    Uploaded
-                  </Typography>
-                </View>
+                {document.uploadedUrl ? (
+                  <View style={styles.statusBadge}>
+                    <Check size={12} color={colors.neutral.white} />
+                    <Typography variant="caption" style={styles.statusText}>
+                      Uploaded
+                    </Typography>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={() => retryUpload(fieldName)}
+                  >
+                    <Typography variant="caption" style={styles.retryText}>
+                      ↻ Retry
+                    </Typography>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity
                   style={styles.removeButton}
                   onPress={() => removeDocument(fieldName)}
@@ -443,9 +746,9 @@ export default function CommercialPropertyDocumentsUploadScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>
@@ -550,6 +853,17 @@ const styles = StyleSheet.create({
   },
   removeButton: {
     padding: spacing.xs,
+  },
+  retryButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.primary.gold,
+    borderRadius: 12,
+  },
+  retryText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '500',
   },
   nextButton: {
     marginTop: spacing.xl,

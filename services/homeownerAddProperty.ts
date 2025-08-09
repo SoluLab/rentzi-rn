@@ -42,19 +42,23 @@ export const useHomeownerCreateProperty = (
 // 2. Save Property Draft
 export const useHomeownerSavePropertyDraft = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, Record<string, any>>,
+    UseMutationOptions<any, ApiError, { propertyId: string; [key: string]: any }>,
     "mutationFn"
   >
 ) => {
   const queryClient = useQueryClient();
-  return useApiMutation(
+  return useMutation<any, ApiError, { propertyId: string; [key: string]: any }>(
     {
-      method: "post",
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-      endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT,
-      auth: true,
-    },
-    {
+      mutationFn: ({ propertyId, ...data }) => {
+        const url = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT(propertyId);
+        console.log('Save Draft Full URL:', url);
+        return apiPut({
+          baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
+          endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT(propertyId),
+          data,
+          auth: true,
+        });
+      },
       onSuccess: () => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.homeownerProperties(),
@@ -173,9 +177,41 @@ export const useHomeownerUploadPropertyImages = (
   >({
     mutationFn: async ({ propertyId, images }) => {
       const formData = new FormData();
+      
+      // Ensure each image is properly formatted for React Native
       images.forEach((image, index) => {
-        formData.append("images", image);
+        // Validate that the image object has required properties
+        if (!image.uri) {
+          throw new Error(`Image ${index} is missing URI`);
+        }
+        
+        // Create a proper file object for React Native
+        const file = {
+          uri: image.uri,
+          type: image.type || 'image/jpeg',
+          name: image.name || `image_${index}.jpg`,
+        };
+        
+        // Append each image with the "images" field name
+        formData.append("images", file as any);
       });
+
+      console.log("FormData created:", formData);
+      console.log("Images to upload:", images);
+      
+      // Debug: Log each image being added to FormData
+      images.forEach((image, index) => {
+        console.log(`Image ${index}:`, {
+          uri: image.uri,
+          type: image.type,
+          name: image.name,
+        });
+      });
+      
+      // Debug: Log FormData entries (commented out due to TypeScript issues)
+      // for (let [key, value] of formData.entries()) {
+      //   console.log(`FormData entry - ${key}:`, value);
+      // }
 
       return apiPost({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
@@ -185,7 +221,7 @@ export const useHomeownerUploadPropertyImages = (
         data: formData as any,
         auth: true,
         customHeaders: {
-          "Content-Type": "multipart/form-data",
+          // Don't set Content-Type for multipart/form-data, let the browser set it with boundary
         },
       });
     },

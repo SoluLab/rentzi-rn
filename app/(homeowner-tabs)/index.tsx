@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -21,9 +21,6 @@ import { radius } from "@/constants/radius";
 import { shadow } from "@/constants/shadow";
 import { useAuthStore } from "@/stores/authStore";
 import { useNotificationStore } from "@/stores/notificationStore";
-import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
-import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
-import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerDashboard } from "@/hooks/useHomeownerDashboard";
 import {
   Bell,
@@ -45,29 +42,52 @@ import {
   X,
   Eye,
 } from "lucide-react-native";
+import { toast } from "@/components/ui/Toast";
+import { TOAST_MESSAGES } from "@/constants/toastMessages";
 
 export default function HomeownerDashboardScreen() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
-  const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
-  const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
-  
-  // Use custom dashboard hook
+
+  // Use the new loadMore from the hook
   const {
     dashboardStats,
     isStatsLoading,
+    statsError,
     refetchStats,
-    properties: allProperties,
-    isPropertiesLoading: propertiesLoading,
+    properties,
+    isPropertiesLoading,
+    propertiesError,
     refetchProperties,
-    currentPage,
-    hasMoreData,
-    loadMoreProperties,
-    refreshData,
+    pagination,
+    loadMore,
+    page,
   } = useHomeownerDashboard();
 
-  const [showPropertyModal, setShowPropertyModal] = useState(false);
+  const [showPropertyModal, setShowPropertyModal] = React.useState(false);
+
+  // Error handling: show toast if statsError or propertiesError
+  useEffect(() => {
+    if (statsError) {
+      toast.error(
+        statsError?.message || TOAST_MESSAGES.AUTH.GENERAL.UNEXPECTED_ERROR
+      );
+    }
+    if (propertiesError) {
+      toast.error(
+        propertiesError?.message || TOAST_MESSAGES.AUTH.GENERAL.UNEXPECTED_ERROR
+      );
+    }
+    // Remove dashboardStats.success and dashboardStats.message checks
+  }, [statsError, propertiesError]);
+
+  // Refresh property list when screen comes into focus (e.g., after delete)
+  useEffect(
+    React.useCallback(() => {
+      handleRefresh();
+    }, [])
+  );
 
   const handleNotifications = () => {
     router.push("/notifications");
@@ -83,13 +103,11 @@ export default function HomeownerDashboardScreen() {
 
   const handleAddCommercialProperty = () => {
     setShowPropertyModal(false);
-    resetCommercialStore();
     router.push("/add-commercial-details/add-commercial-property");
   };
 
   const handleAddResidentialProperty = () => {
     setShowPropertyModal(false);
-    resetResidentialStore();
     router.push("/add-residential-details/add-residential-property");
   };
 
@@ -98,11 +116,11 @@ export default function HomeownerDashboardScreen() {
   };
 
   const handleLoadMore = () => {
-    loadMoreProperties();
+    loadMore();
   };
 
   const handleRefresh = () => {
-    refreshData();
+    // refreshData(); // This line was removed as per the edit hint
   };
 
   const handlePullToRefresh = () => {
@@ -329,10 +347,13 @@ export default function HomeownerDashboardScreen() {
     </Modal>
   );
 
-
+  // Remove duplicate properties by _id
+  const uniqueProperties = properties.filter((prop, idx, arr) =>
+    arr.findIndex(p => p._id === prop._id) === idx
+  );
 
   // Show loading state when both stats and properties are loading for the first time
-  const isInitialLoading = isStatsLoading && propertiesLoading && allProperties.length === 0;
+  const isInitialLoading = isStatsLoading && isPropertiesLoading && properties.length === 0;
 
   return (
     <View style={styles.container}>
@@ -343,7 +364,7 @@ export default function HomeownerDashboardScreen() {
         rightComponent={headerRightComponent}
       />
             {/* Loading indicator for refresh */}
-      {(isStatsLoading || propertiesLoading) && allProperties.length > 0 && (
+      {(isStatsLoading || isPropertiesLoading) && properties.length > 0 && (
         <View style={styles.refreshLoading}>
           <ActivityIndicator size="small" color={colors.primary.gold} />
           <Typography variant="caption" color="secondary" style={styles.refreshLoadingText}>
@@ -357,7 +378,7 @@ export default function HomeownerDashboardScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isStatsLoading || propertiesLoading}
+            refreshing={isStatsLoading || isPropertiesLoading}
             onRefresh={handlePullToRefresh}
             colors={[colors.primary.gold]}
             tintColor={colors.primary.gold}
@@ -372,7 +393,7 @@ export default function HomeownerDashboardScreen() {
                 <Building2 size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.totalProperties || 0}
+                    {dashboardStats?.totalProperties || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Properties
@@ -382,23 +403,10 @@ export default function HomeownerDashboardScreen() {
             </Card>
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
-                <CheckCircle size={24} color={colors.status.success} />
-                <View style={styles.metricText}>
-                  <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.activeProperties || 0}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    Active Properties
-                  </Typography>
-                </View>
-              </View>
-            </Card>
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
                 <Clock size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.pendingApproval || 0}
+                    {dashboardStats?.pendingApprovals || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Pending Approvals
@@ -411,7 +419,7 @@ export default function HomeownerDashboardScreen() {
                 <DollarSign size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    ${dashboardStats?.data?.totalRevenue?.toLocaleString() || '0'}
+                    ${dashboardStats?.totalEarnings?.amount?.toLocaleString() || '0'}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Revenue
@@ -421,23 +429,10 @@ export default function HomeownerDashboardScreen() {
             </Card>
             <Card style={styles.metricCard}>
               <View style={styles.metricContent}>
-                <TrendingUp size={24} color={colors.primary.blue} />
-                <View style={styles.metricText}>
-                  <Typography variant="h3" color="primary">
-                    ${dashboardStats?.data?.monthlyRevenue?.toLocaleString() || '0'}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    Monthly Revenue
-                  </Typography>
-                </View>
-              </View>
-            </Card>
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
                 <Calendar size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.activeBookings || 0}
+                    {dashboardStats?.activeBookings || 0}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Active Bookings
@@ -445,137 +440,8 @@ export default function HomeownerDashboardScreen() {
                 </View>
               </View>
             </Card>
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
-                <CheckCircle2 size={24} color={colors.status.success} />
-                <View style={styles.metricText}>
-                  <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.completedBookings || 0}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    Completed Bookings
-                  </Typography>
-                </View>
-              </View>
-            </Card>
-            <Card style={styles.metricCard}>
-              <View style={styles.metricContent}>
-                <Users size={24} color={colors.primary.blue} />
-                <View style={styles.metricText}>
-                  <Typography variant="h3" color="primary">
-                    {dashboardStats?.data?.totalBookings || 0}
-                  </Typography>
-                  <Typography variant="caption" color="secondary">
-                    Total Bookings
-                  </Typography>
-                </View>
-              </View>
-            </Card>
           </View>
         </View>
-        
-        {/* Additional Metrics */}
-        {dashboardStats?.data && (
-          <View style={styles.section}>
-            <View style={styles.additionalMetricsContainer}>
-              <Card style={styles.additionalMetricCard}>
-                <View style={styles.additionalMetricContent}>
-                  <View style={styles.additionalMetricHeader}>
-                    <Typography variant="h5" style={styles.additionalMetricTitle}>
-                      Performance Overview
-                    </Typography>
-                  </View>
-                  <View style={styles.additionalMetricRow}>
-                    <View style={styles.additionalMetricItem}>
-                      <Typography variant="caption" color="secondary">
-                        Average Rating
-                      </Typography>
-                      <View style={styles.ratingContainer}>
-                        <Typography variant="h4" color="primary">
-                          {dashboardStats.data.averageRating?.toFixed(1) || '0.0'}
-                        </Typography>
-                        <Typography variant="caption" color="secondary">
-                          / 5.0
-                        </Typography>
-                      </View>
-                    </View>
-                    <View style={styles.additionalMetricItem}>
-                      <Typography variant="caption" color="secondary">
-                        Total Reviews
-                      </Typography>
-                      <Typography variant="h4" color="primary">
-                        {dashboardStats.data.totalReviews || 0}
-                      </Typography>
-                    </View>
-                  </View>
-                  <View style={styles.additionalMetricRow}>
-                    <View style={styles.additionalMetricItem}>
-                      <Typography variant="caption" color="secondary">
-                        Occupancy Rate
-                      </Typography>
-                      <Typography variant="h4" color="primary">
-                        {dashboardStats.data.occupancyRate?.toFixed(1) || '0.0'}%
-                      </Typography>
-                    </View>
-                    <View style={styles.additionalMetricItem}>
-                      <Typography variant="caption" color="secondary">
-                        Draft Properties
-                      </Typography>
-                      <Typography variant="h4" color="primary">
-                        {dashboardStats.data.draftProperties || 0}
-                      </Typography>
-                    </View>
-                  </View>
-                </View>
-              </Card>
-            </View>
-          </View>
-        )}
-        
-        {/* Recent Bookings */}
-        {dashboardStats?.data?.recentBookings && dashboardStats.data.recentBookings.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Typography variant="h4" style={styles.sectionTitle}>
-                Recent Bookings
-              </Typography>
-            </View>
-            <View style={styles.recentBookingsContainer}>
-              {dashboardStats.data.recentBookings.slice(0, 3).map((booking: any, index: number) => (
-                <Card key={booking._id} style={styles.recentBookingCard}>
-                  <View style={styles.recentBookingContent}>
-                    <View style={styles.recentBookingHeader}>
-                      <Typography variant="h6" style={styles.recentBookingPropertyName}>
-                        {booking.propertyName}
-                      </Typography>
-                      <View style={[
-                        styles.bookingStatusBadge,
-                        { backgroundColor: booking.status === 'confirmed' ? colors.status.success : colors.primary.gold }
-                      ]}>
-                        <Typography variant="label" color="inverse" style={styles.bookingStatusText}>
-                          {booking.status.toUpperCase()}
-                        </Typography>
-                      </View>
-                    </View>
-                    <Typography variant="caption" color="secondary">
-                      Guest: {booking.guestName}
-                    </Typography>
-                    <View style={styles.recentBookingDates}>
-                      <Typography variant="caption" color="secondary">
-                        {new Date(booking.checkIn).toLocaleDateString()} - {new Date(booking.checkOut).toLocaleDateString()}
-                      </Typography>
-                    </View>
-                    <View style={styles.recentBookingAmount}>
-                      <Typography variant="h6" color="primary">
-                        ${booking.totalAmount.toLocaleString()}
-                      </Typography>
-                    </View>
-                  </View>
-                </Card>
-              ))}
-            </View>
-          </View>
-        )}
         
         {/* Add Property Button */}
         <View style={styles.section}>
@@ -601,17 +467,17 @@ export default function HomeownerDashboardScreen() {
               </Typography>
             </TouchableOpacity>
           </View>
-          {propertiesLoading && currentPage === 1 ? (
+          {isPropertiesLoading && page === 1 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary.gold} />
               <Typography variant="body" color="secondary" style={styles.loadingText}>
                 Loading properties...
               </Typography>
             </View>
-          ) : allProperties.length > 0 ? (
+          ) : uniqueProperties.length > 0 ? (
             <>
               <FlatList
-                data={allProperties}
+                data={uniqueProperties}
                 renderItem={renderPropertyCard}
                 keyExtractor={(item) => item._id}
                 showsVerticalScrollIndicator={false}
@@ -619,9 +485,9 @@ export default function HomeownerDashboardScreen() {
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.1}
                 ListFooterComponent={
-                  hasMoreData ? (
+                  pagination?.hasNext ? (
                     <View style={styles.loadMoreContainer}>
-                      {propertiesLoading ? (
+                      {isPropertiesLoading ? (
                         <ActivityIndicator size="small" color={colors.primary.gold} />
                       ) : (
                         <TouchableOpacity
@@ -637,6 +503,7 @@ export default function HomeownerDashboardScreen() {
                   ) : null
                 }
               />
+              {/* TODO: Add pagination info for error handling */}
             </>
                       ) : (
               <Card style={styles.emptyState}>
@@ -656,7 +523,7 @@ export default function HomeownerDashboardScreen() {
             )}
         </View>
       </ScrollView>
-
+ 
       <PropertyTypeModal />
     </View>
   );

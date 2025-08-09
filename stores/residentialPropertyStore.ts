@@ -11,6 +11,7 @@ export interface PropertyDetails {
   fullAddress: string;
   propertyType: string;
   yearBuilt: string;
+  yearRenovated: string;
   bedrooms: string;
   bathrooms: string;
   guestCapacity: string;
@@ -19,6 +20,17 @@ export interface PropertyDetails {
 
 // Pricing and valuation interface
 export interface PricingValuationData {
+  estimatedPropertyValue: string;
+  nightlyRate: string;
+  weekendRate: string;
+  peakSeasonRate: string;
+  cleaningFee: string;
+  rentalAvailability: string;
+  minimumStay: string;
+}
+
+// Features and compliance interface
+export interface FeaturesComplianceData {
   furnishingDescription: string;
   featuredAmenities: string[];
   customAmenities: string[];
@@ -104,6 +116,7 @@ export interface ResidentialPropertyData {
   propertyId?: string; // Add property ID field
   propertyDetails: PropertyDetails;
   pricingValuation: PricingValuationData;
+  featuresCompliance: FeaturesComplianceData;
   mediaUpload: MediaUploadData;
   documentsUpload: DocumentsUploadData;
   legalConsents: LegalConsentsData;
@@ -117,6 +130,7 @@ interface ResidentialPropertyStore {
   data: ResidentialPropertyData;
   updatePropertyDetails: (details: Partial<PropertyDetails>) => void;
   updatePricingValuation: (pricingValuation: Partial<PricingValuationData>) => void;
+  updateFeaturesCompliance: (featuresCompliance: Partial<FeaturesComplianceData>) => void;
   updateMediaUpload: (mediaUpload: Partial<MediaUploadData>) => void;
   updateDocumentsUpload: (documentsUpload: Partial<DocumentsUploadData>) => void;
   updateLegalConsents: (legalConsents: Partial<LegalConsentsData>) => void;
@@ -126,6 +140,7 @@ interface ResidentialPropertyStore {
   resetStore: () => void;
   isPropertyDetailsComplete: () => boolean;
   isPricingValuationComplete: () => boolean;
+  isFeaturesComplianceComplete: () => boolean;
   isMediaUploadComplete: () => boolean;
   isDocumentsUploadComplete: () => boolean;
   isLegalConsentsComplete: () => boolean;
@@ -134,6 +149,7 @@ interface ResidentialPropertyStore {
   getCompletionStatus: () => {
     propertyDetails: boolean;
     pricingValuation: boolean;
+    featuresCompliance: boolean;
     mediaUpload: boolean;
     documentsUpload: boolean;
     legalConsents: boolean;
@@ -152,12 +168,22 @@ const initialData: ResidentialPropertyData = {
     fullAddress: '',
     propertyType: '',
     yearBuilt: '',
+    yearRenovated: '',
     bedrooms: '',
     bathrooms: '',
     guestCapacity: '',
     squareFootage: '',
   },
   pricingValuation: {
+    estimatedPropertyValue: '',
+    nightlyRate: '',
+    weekendRate: '',
+    peakSeasonRate: '',
+    cleaningFee: '',
+    rentalAvailability: '',
+    minimumStay: '',
+  },
+  featuresCompliance: {
     furnishingDescription: '',
     featuredAmenities: [],
     customAmenities: [],
@@ -235,6 +261,18 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             pricingValuation: {
               ...state.data.pricingValuation,
               ...pricingValuation,
+            },
+          },
+        }));
+      },
+
+      updateFeaturesCompliance: (featuresCompliance: Partial<FeaturesComplianceData>) => {
+        set((state) => ({
+          data: {
+            ...state.data,
+            featuresCompliance: {
+              ...state.data.featuresCompliance,
+              ...featuresCompliance,
             },
           },
         }));
@@ -331,10 +369,21 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
       isPricingValuationComplete: () => {
         const { pricingValuation } = get().data;
         return (
-          pricingValuation.furnishingDescription !== '' &&
-          pricingValuation.featuredAmenities.length > 0 &&
-          pricingValuation.houseRules.length > 0 &&
-          pricingValuation.localHighlights.trim() !== ''
+          pricingValuation.estimatedPropertyValue.trim() !== '' &&
+          pricingValuation.nightlyRate.trim() !== '' &&
+          pricingValuation.cleaningFee.trim() !== '' &&
+          pricingValuation.rentalAvailability.trim() !== '' &&
+          pricingValuation.minimumStay.trim() !== ''
+        );
+      },
+
+      isFeaturesComplianceComplete: () => {
+        const { featuresCompliance } = get().data;
+        return (
+          featuresCompliance.furnishingDescription !== '' &&
+          featuresCompliance.featuredAmenities.length > 0 &&
+          featuresCompliance.houseRules.length > 0 &&
+          featuresCompliance.localHighlights.trim() !== ''
         );
       },
 
@@ -376,6 +425,7 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
       isAllSectionsComplete: () => {
         return get().isPropertyDetailsComplete() && 
                get().isPricingValuationComplete() && 
+               get().isFeaturesComplianceComplete() &&
                get().isMediaUploadComplete() &&
                get().isDocumentsUploadComplete() &&
                get().isLegalConsentsComplete() &&
@@ -386,6 +436,7 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
         return {
           propertyDetails: get().isPropertyDetailsComplete(),
           pricingValuation: get().isPricingValuationComplete(),
+          featuresCompliance: get().isFeaturesComplianceComplete(),
           mediaUpload: get().isMediaUploadComplete(),
           documentsUpload: get().isDocumentsUploadComplete(),
           legalConsents: get().isLegalConsentsComplete(),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,25 +7,22 @@ import {
   Modal,
   FlatList,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { ChevronDown } from 'lucide-react-native';
-import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { ChevronDown } from "lucide-react-native";
+import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
+import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
 
 // Booking duration options
-const BOOKING_DURATION_OPTIONS = [
-  'Hourly',
-  'Daily',
-  'Weekly',
-];
+const BOOKING_DURATION_OPTIONS = ["Hourly", "Daily", "Weekly"];
 
 interface FinancialFormData {
   estimatedPropertyValue: string;
@@ -46,74 +43,104 @@ interface FinancialValidationErrors {
 export default function CommercialPropertyFinancialDetailsScreen() {
   const router = useRouter();
   const { data, updateFinancialDetails } = useCommercialPropertyStore();
-  
-  const [formData, setFormData] = useState<FinancialFormData>(data.financialDetails);
+
+  // API mutation hook for updating property
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log(
+        "Commercial property draft saved successfully with financial details:",
+        response
+      );
+      // Navigate to features and compliance details step
+      router.push(
+        "/add-commercial-details/commercial-property-features-compliance"
+      );
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving commercial property draft with financial details:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
+
+  const [formData, setFormData] = useState<FinancialFormData>(
+    data.financialDetails
+  );
   const [errors, setErrors] = useState<FinancialValidationErrors>({});
-  const [showBookingDurationModal, setShowBookingDurationModal] = useState(false);
+  const [showBookingDurationModal, setShowBookingDurationModal] =
+    useState(false);
 
   // Validation functions
-  const validateEstimatedPropertyValue = (value: string): string | undefined => {
+  const validateEstimatedPropertyValue = (
+    value: string
+  ): string | undefined => {
     if (!value.trim()) {
-      return 'Estimated property value is required';
+      return "Estimated property value is required";
     }
-    const numValue = parseFloat(value.replace(/[$,]/g, ''));
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
     if (isNaN(numValue)) {
-      return 'Please enter a valid number';
+      return "Please enter a valid number";
     }
     if (numValue < 1500000) {
-      return 'Estimated property value must be at least $1.5M';
+      return "Estimated property value must be at least $1.5M";
     }
     return undefined;
   };
 
   const validateBaseRentalRate = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Base rental rate is required';
+      return "Base rental rate is required";
     }
-    const numValue = parseFloat(value.replace(/[$,]/g, ''));
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
     if (isNaN(numValue)) {
-      return 'Please enter a valid number';
+      return "Please enter a valid number";
     }
     if (numValue <= 10) {
-      return 'Base rental rate must be greater than $10';
+      return "Base rental rate must be greater than $10";
     }
     return undefined;
   };
 
-  const validateCleaningMaintenanceFee = (value: string): string | undefined => {
+  const validateCleaningMaintenanceFee = (
+    value: string
+  ): string | undefined => {
     if (!value.trim()) {
-      return 'Cleaning or maintenance fee is required';
+      return "Cleaning or maintenance fee is required";
     }
-    const numValue = parseFloat(value.replace(/[$,]/g, ''));
+    const numValue = parseFloat(value.replace(/[$,]/g, ""));
     if (isNaN(numValue)) {
-      return 'Please enter a valid number';
+      return "Please enter a valid number";
     }
     if (numValue <= 5) {
-      return 'Cleaning or maintenance fee must be greater than $5';
+      return "Cleaning or maintenance fee must be greater than $5";
     }
     return undefined;
   };
 
   const validateWeeksAvailablePerYear = (value: string): string | undefined => {
     if (!value.trim()) {
-      return 'Weeks available per year is required';
+      return "Weeks available per year is required";
     }
     const numValue = parseInt(value);
     if (isNaN(numValue)) {
-      return 'Please enter a valid number';
+      return "Please enter a valid number";
     }
     if (numValue < 20) {
-      return 'Weeks available per year must be at least 20';
+      return "Weeks available per year must be at least 20";
     }
     if (numValue > 52) {
-      return 'Weeks available per year cannot exceed 52';
+      return "Weeks available per year cannot exceed 52";
     }
     return undefined;
   };
 
-  const validateMinimumBookingDuration = (duration: string): string | undefined => {
+  const validateMinimumBookingDuration = (
+    duration: string
+  ): string | undefined => {
     if (!duration) {
-      return 'Minimum booking duration is required';
+      return "Minimum booking duration is required";
     }
     return undefined;
   };
@@ -121,31 +148,80 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   const validateForm = (): boolean => {
     const newErrors: FinancialValidationErrors = {};
 
-    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(formData.estimatedPropertyValue);
+    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(
+      formData.estimatedPropertyValue
+    );
     newErrors.baseRentalRate = validateBaseRentalRate(formData.baseRentalRate);
-    newErrors.cleaningMaintenanceFee = validateCleaningMaintenanceFee(formData.cleaningMaintenanceFee);
-    newErrors.weeksAvailablePerYear = validateWeeksAvailablePerYear(formData.weeksAvailablePerYear);
-    newErrors.minimumBookingDuration = validateMinimumBookingDuration(formData.minimumBookingDuration);
+    newErrors.cleaningMaintenanceFee = validateCleaningMaintenanceFee(
+      formData.cleaningMaintenanceFee
+    );
+    newErrors.weeksAvailablePerYear = validateWeeksAvailablePerYear(
+      formData.weeksAvailablePerYear
+    );
+    newErrors.minimumBookingDuration = validateMinimumBookingDuration(
+      formData.minimumBookingDuration
+    );
 
     setErrors(newErrors);
-    return Object.values(newErrors).every(error => !error);
+    return Object.values(newErrors).every((error) => !error);
   };
 
   const updateFormData = (field: keyof FinancialFormData, value: string) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateFinancialDetails(newFormData);
-    
+
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  const handleNext = () => {
+  const transformFormDataToApiFormat = () => ({
+    title: data.propertyDetails?.propertyTitle || "",
+    type: "commercial",
+    propertyValueEstimate: {
+      value: parseFloat(formData.estimatedPropertyValue.replace(/[$,]/g, "")),
+      currency: "USD",
+    },
+    rentAmount: {
+      basePrice: parseFloat(formData.baseRentalRate.replace(/[$,]/g, "")),
+      currency: "USD",
+      weekendPrice: 0, // Default, can be updated later
+      peakSeasonPrice: 0, // Default, can be updated later
+    },
+    maintenanceFee: {
+      amount: parseFloat(formData.cleaningMaintenanceFee.replace(/[$,]/g, "")),
+      currency: "USD",
+    },
+    availableWeeksPerYear: parseInt(formData.weeksAvailablePerYear),
+  });
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to features and compliance details step
-      router.push('/add-commercial-details/commercial-property-features-compliance');
+      try {
+        updateFinancialDetails(formData);
+        const apiData = transformFormDataToApiFormat();
+        const propertyId = data.propertyId;
+        console.log(
+          "Commercial Property ID from store before draft API:",
+          propertyId
+        );
+        if (!propertyId) {
+          Alert.alert(
+            "Error",
+            "Property ID not found. Please go back and try again."
+          );
+          return;
+        }
+        console.log("Saving commercial property draft with financial data:", {
+          propertyId,
+          ...apiData,
+        });
+        await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+      } catch (error) {
+        console.error("Error in handleNext:", error);
+      }
     }
   };
 
@@ -153,11 +229,19 @@ export default function CommercialPropertyFinancialDetailsScreen() {
     // Re-validate the form to check if it's actually valid
     const newErrors: FinancialValidationErrors = {};
 
-    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(formData.estimatedPropertyValue);
+    newErrors.estimatedPropertyValue = validateEstimatedPropertyValue(
+      formData.estimatedPropertyValue
+    );
     newErrors.baseRentalRate = validateBaseRentalRate(formData.baseRentalRate);
-    newErrors.cleaningMaintenanceFee = validateCleaningMaintenanceFee(formData.cleaningMaintenanceFee);
-    newErrors.weeksAvailablePerYear = validateWeeksAvailablePerYear(formData.weeksAvailablePerYear);
-    newErrors.minimumBookingDuration = validateMinimumBookingDuration(formData.minimumBookingDuration);
+    newErrors.cleaningMaintenanceFee = validateCleaningMaintenanceFee(
+      formData.cleaningMaintenanceFee
+    );
+    newErrors.weeksAvailablePerYear = validateWeeksAvailablePerYear(
+      formData.weeksAvailablePerYear
+    );
+    newErrors.minimumBookingDuration = validateMinimumBookingDuration(
+      formData.minimumBookingDuration
+    );
 
     // Check if all required fields are filled and no validation errors
     return (
@@ -166,7 +250,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
       formData.cleaningMaintenanceFee.trim() &&
       formData.weeksAvailablePerYear.trim() &&
       formData.minimumBookingDuration &&
-      Object.values(newErrors).every(error => !error)
+      Object.values(newErrors).every((error) => !error)
     );
   };
 
@@ -174,7 +258,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => {
-        updateFormData('minimumBookingDuration', item);
+        updateFormData("minimumBookingDuration", item);
         setShowBookingDurationModal(false);
       }}
     >
@@ -184,15 +268,15 @@ export default function CommercialPropertyFinancialDetailsScreen() {
 
   const formatCurrency = (value: string) => {
     // Remove all non-numeric characters except decimal point
-    const numericValue = value.replace(/[^0-9.]/g, '');
-    if (!numericValue) return '';
-    
+    const numericValue = value.replace(/[^0-9.]/g, "");
+    if (!numericValue) return "";
+
     const numValue = parseFloat(numericValue);
     if (isNaN(numValue)) return value;
-    
-    return numValue.toLocaleString('en-US', {
-      style: 'currency',
-      currency: 'USD',
+
+    return numValue.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
@@ -200,13 +284,13 @@ export default function CommercialPropertyFinancialDetailsScreen() {
 
   const formatNumber = (value: string) => {
     // Remove all non-numeric characters
-    return value.replace(/[^0-9]/g, '');
+    return value.replace(/[^0-9]/g, "");
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Financial & Rental Details" />
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -219,12 +303,18 @@ export default function CommercialPropertyFinancialDetailsScreen() {
         <Input
           label="Estimated Property Value *"
           value={formData.estimatedPropertyValue}
-          onChangeText={(value) => updateFormData('estimatedPropertyValue', formatCurrency(value))}
+          onChangeText={(value) =>
+            updateFormData("estimatedPropertyValue", formatCurrency(value))
+          }
           placeholder="$1,500,000"
           error={errors.estimatedPropertyValue}
           keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           Minimum $1.5M, supported by Appraisal Report
         </Typography>
 
@@ -232,12 +322,18 @@ export default function CommercialPropertyFinancialDetailsScreen() {
         <Input
           label="Base Rental Rate *"
           value={formData.baseRentalRate}
-          onChangeText={(value) => updateFormData('baseRentalRate', formatCurrency(value))}
+          onChangeText={(value) =>
+            updateFormData("baseRentalRate", formatCurrency(value))
+          }
           placeholder="$50"
           error={errors.baseRentalRate}
           keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           Must be greater than $10
         </Typography>
 
@@ -245,12 +341,18 @@ export default function CommercialPropertyFinancialDetailsScreen() {
         <Input
           label="Cleaning or Maintenance Fee *"
           value={formData.cleaningMaintenanceFee}
-          onChangeText={(value) => updateFormData('cleaningMaintenanceFee', formatCurrency(value))}
+          onChangeText={(value) =>
+            updateFormData("cleaningMaintenanceFee", formatCurrency(value))
+          }
           placeholder="$25"
           error={errors.cleaningMaintenanceFee}
           keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           Must be greater than $5
         </Typography>
 
@@ -258,12 +360,18 @@ export default function CommercialPropertyFinancialDetailsScreen() {
         <Input
           label="Weeks Available per Year *"
           value={formData.weeksAvailablePerYear}
-          onChangeText={(value) => updateFormData('weeksAvailablePerYear', formatNumber(value))}
+          onChangeText={(value) =>
+            updateFormData("weeksAvailablePerYear", formatNumber(value))
+          }
           placeholder="40"
           error={errors.weeksAvailablePerYear}
           keyboardType="numeric"
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           Minimum 20 weeks, maximum 52 weeks
         </Typography>
 
@@ -273,16 +381,31 @@ export default function CommercialPropertyFinancialDetailsScreen() {
             Minimum Booking Duration *
           </Typography>
           <TouchableOpacity
-            style={[styles.dropdown, errors.minimumBookingDuration && styles.error]}
+            style={[
+              styles.dropdown,
+              errors.minimumBookingDuration && styles.error,
+            ]}
             onPress={() => setShowBookingDurationModal(true)}
           >
-            <Typography variant="body" style={formData.minimumBookingDuration ? styles.selectedText : styles.placeholder}>
-              {formData.minimumBookingDuration || 'Select minimum booking duration'}
+            <Typography
+              variant="body"
+              style={
+                formData.minimumBookingDuration
+                  ? styles.selectedText
+                  : styles.placeholder
+              }
+            >
+              {formData.minimumBookingDuration ||
+                "Select minimum booking duration"}
             </Typography>
             <ChevronDown size={20} color={colors.text.secondary} />
           </TouchableOpacity>
           {errors.minimumBookingDuration && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
+            <Typography
+              variant="caption"
+              color="error"
+              style={styles.errorText}
+            >
               {errors.minimumBookingDuration}
             </Typography>
           )}
@@ -290,9 +413,9 @@ export default function CommercialPropertyFinancialDetailsScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>
@@ -305,9 +428,15 @@ export default function CommercialPropertyFinancialDetailsScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Typography variant="h5">Select Minimum Booking Duration</Typography>
-            <TouchableOpacity onPress={() => setShowBookingDurationModal(false)}>
-              <Typography variant="body" color="primary">Cancel</Typography>
+            <Typography variant="h5">
+              Select Minimum Booking Duration
+            </Typography>
+            <TouchableOpacity
+              onPress={() => setShowBookingDurationModal(false)}
+            >
+              <Typography variant="body" color="primary">
+                Cancel
+              </Typography>
             </TouchableOpacity>
           </View>
           <FlatList
@@ -332,21 +461,21 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.lg,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   fieldContainer: {
     marginBottom: spacing.md,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -381,9 +510,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
@@ -396,4 +525,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
   },
-}); 
+});

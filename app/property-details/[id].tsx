@@ -51,7 +51,7 @@ import {
   Trash2,
   Calendar,
 } from "lucide-react-native";
-import { useMarketplaceGetProperty } from '@/services/apiClient';
+import { useMarketplaceGetProperty } from '@/services/renterMarketplace';
 import { useHomeownerDeleteProperty } from '@/services/homeownerAddProperty';
 
 interface PropertyDetails {
@@ -97,36 +97,35 @@ export default function PropertyDetailsScreen() {
   
   // Use the new API hook
   const { data: apiResponse, isLoading, error } = useMarketplaceGetProperty(id as string);
+  useEffect(() => {
+    if (apiResponse) {
+      console.log('Property API Response:', apiResponse);
+    }
+    if (error) {
+      console.log('Property API Error:', error);
+    }
+  }, [apiResponse, error]);
 
   useEffect(() => {
     if (apiResponse?.data) {
       const propertyData = apiResponse.data;
-      
-      // Map API response to PropertyDetails interface
       setProperty({
-        id: propertyData._id,
-        title: propertyData.name,
-        description: propertyData.description || 'No description available.',
-        price: propertyData.pricing?.basePrice || 0,
-        address: `${propertyData.location?.address || ''}, ${propertyData.location?.city || ''}, ${propertyData.location?.state || ''}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').replace(/,\s*$/, '') || 'Address not available',
-        bedrooms: propertyData.capacity?.bedrooms || 0,
-        bathrooms: propertyData.capacity?.bathrooms || 0,
-        area: 0, // Not available in new API response, keeping as 0
-        type: propertyData.category === 'villa' ? 'Villa' : 
-              propertyData.category === 'apartment' ? 'Apartment' : 
-              propertyData.category === 'house' ? 'House' : 
-              propertyData.category === 'condo' ? 'Condo' :
-              propertyData.category === 'townhouse' ? 'Townhouse' :
-              propertyData.category === 'studio' ? 'Studio' : 'Property',
-        status: propertyData.status === 'active' ? 'Available' : 
-                propertyData.status === 'inactive' ? 'Under Maintenance' : 
-                propertyData.status === 'pending' ? 'Pending' : 'Available',
-        furnishing: 'Unfurnished', // Not available in new API response
-        images: propertyData.images && propertyData.images.length > 0 ? propertyData.images : [],
-        amenities: propertyData.amenities || [],
-        rating: 4.8, // Placeholder, not available in new API response
-        reviews: 127, // Placeholder, not available in new API response
-        yearBuilt: 0, // Not available in new API response
+        id: (propertyData as any)._id,
+        title: (propertyData as any).title,
+        description: (propertyData as any).description || 'No description available.',
+        price: (propertyData as any).rentAmount?.value || 0, // If available, else 0
+        address: (propertyData as any).address?.street || 'Address not available',
+        bedrooms: Array.isArray((propertyData as any).bedrooms) ? (propertyData as any).bedrooms.length : 0,
+        bathrooms: (propertyData as any).bathrooms || 0,
+        area: (typeof (propertyData as any).area === 'number' ? (propertyData as any).area : (propertyData as any).area?.value) || 0,
+        type: (propertyData as any).category || 'Property',
+        status: (propertyData as any).status === 'active' ? 'Available' : (propertyData as any).status === 'inactive' ? 'Under Maintenance' : (propertyData as any).status === 'pending' ? 'Pending' : 'Available',
+        furnishing: 'Unfurnished', // Not available in API
+        images: (propertyData as any).images || [],
+        amenities: (propertyData as any)._amenities || [],
+        rating: 4.8, // Placeholder, not available in API
+        reviews: 127, // Placeholder, not available in API
+        yearBuilt: (propertyData as any).yearOfBuilt || 0,
       });
     } else if (error) {
       setProperty(null);
@@ -318,10 +317,14 @@ export default function PropertyDetailsScreen() {
     );
   }
 
+  // Prepare images array for carousel (use placeholder if empty)
+  const imagesForCarousel = property.images && property.images.length > 0
+    ? property.images
+    : [require('@/assets/images/placeholder.png')];
+
   return (
     <View style={{ flex: 1 }}>
       <StatusBar style="dark" />
-
       {/* Header */}
       <Header
         title="Property Details"
@@ -343,28 +346,42 @@ export default function PropertyDetailsScreen() {
           </View>
         }
       />
-
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Property Images Carousel */}
-        {property.images && property.images.length > 0 && (
-          <View style={styles.carouselContainer}>
-            <FlatList
-              data={property.images}
-              renderItem={renderImageItem}
-              keyExtractor={(item, index) => index.toString()}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(event) => {
-                const index = Math.round(
-                  event.nativeEvent.contentOffset.x / screenWidth
-                );
-                setCurrentImageIndex(index);
-              }}
-            />
-            {renderImageIndicator()}
-          </View>
-        )}
+        {/* Property Images Carousel (always show, with placeholder if needed) */}
+        <View style={styles.carouselContainer}>
+          <FlatList
+            data={imagesForCarousel}
+            renderItem={({ item }) => (
+              <View style={styles.imageSlide}>
+                {typeof item === 'string' ? (
+                  <Image
+                    source={{ uri: item }}
+                    style={styles.carouselImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Image
+                    source={item}
+                    style={styles.carouselImage}
+                    resizeMode="contain"
+                  />
+                )}
+              </View>
+            )}
+            keyExtractor={(_, index) => index.toString()}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(event) => {
+              const index = Math.round(
+                event.nativeEvent.contentOffset.x / screenWidth
+              );
+              setCurrentImageIndex(index);
+            }}
+          />
+          {/* Show indicators only if more than one image */}
+          {imagesForCarousel.length > 1 && renderImageIndicator()}
+        </View>
 
         {/* Property Basic Info */}
         <View style={styles.content}>

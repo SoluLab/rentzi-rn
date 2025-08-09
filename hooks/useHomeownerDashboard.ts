@@ -1,136 +1,88 @@
-import React, { useState, useEffect } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import { useState, useEffect, useCallback } from "react";
 import { useHomeownerGetAllProperties, useHomeownerDashboardStats } from "@/services/homeownerDashboard";
-import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
-import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
-import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
+import { PaginatedPropertyListResponse } from "@/types/homeownerProperty";
+import { DashboardStats, DashboardStatsResponse } from "@/types/homeownerDashboard";
 
-interface UseHomeownerDashboardReturn {
-  // Dashboard stats
-  dashboardStats: any;
-  isStatsLoading: boolean;
-  statsError: any;
-  refetchStats: () => void;
-  
-  // Properties data
-  properties: any[];
-  isPropertiesLoading: boolean;
-  propertiesError: any;
-  refetchProperties: () => void;
-  
-  // Pagination
-  currentPage: number;
-  hasMoreData: boolean;
-  loadMoreProperties: () => void;
-  refreshData: () => void;
-  
-  // Property management
-  handlePropertyPress: (propertyId: string) => void;
-}
-
-export const useHomeownerDashboard = (): UseHomeownerDashboardReturn => {
+export const useHomeownerDashboard = (options?: {
+  onStatsSuccess?: (data: DashboardStats) => void;
+  onStatsError?: (error: any) => void;
+  onPropertiesSuccess?: (data: PaginatedPropertyListResponse) => void;
+  onPropertiesError?: (error: any) => void;
+}) => {
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMoreData, setHasMoreData] = useState(true);
+  const [page, setPage] = useState(1);
   const [allProperties, setAllProperties] = useState<any[]>([]);
 
-  // Store hooks
-  const { resetStore: resetCommercialStore } = useCommercialPropertyStore();
-  const { resetStore: resetResidentialStore } = useResidentialPropertyStore();
-  const { syncFromCommercialStore, syncFromResidentialStore } = useHomeownerPropertyStore();
-
-  // API hooks
-  const { 
-    data: dashboardStats, 
-    isLoading: isStatsLoading, 
+  // Dashboard stats
+  const {
+    data: statsData,
+    isLoading: isStatsLoading,
     error: statsError,
-    refetch: refetchStats
-  } = useHomeownerDashboardStats();
-
-  const { 
-    data: propertiesData, 
-    isLoading: isPropertiesLoading, 
-    error: propertiesError,
-    refetch: refetchProperties
-  } = useHomeownerGetAllProperties({
-    page: currentPage,
-    limit: 10,
+    refetch: refetchStats,
+  } = useHomeownerDashboardStats({
+    onSuccess: (data) => {
+      options?.onStatsSuccess?.(data.data);
+    },
+    onError: (error) => {
+      options?.onStatsError?.(error);
+    },
   });
 
-  // Handle pagination data
-  useEffect(() => {
-    if (propertiesData?.data) {
-      if (currentPage === 1) {
-        // First page - replace all data
-        setAllProperties(propertiesData.data);
-      } else {
-        // Subsequent pages - append data
-        setAllProperties(prev => [...prev, ...propertiesData.data]);
-      }
-      
-      // Check if there's more data
-      const pagination = propertiesData.pagination;
-      setHasMoreData(pagination?.currentPage < pagination?.totalPages);
+  // Properties
+  const {
+    data: propertiesData,
+    isLoading: isPropertiesLoading,
+    error: propertiesError,
+    refetch: refetchProperties,
+  } = useHomeownerGetAllProperties(
+    { page, limit: 10, status: 'draft' },
+    {
+      onSuccess: (data) => {
+        options?.onPropertiesSuccess?.(data);
+      },
+      onError: (error) => {
+        options?.onPropertiesError?.(error);
+      },
     }
-  }, [propertiesData, currentPage]);
-
-  // Sync with property stores on mount
-  useEffect(() => {
-    syncFromCommercialStore();
-    syncFromResidentialStore();
-  }, []);
-
-  // Refetch data when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      // Refetch dashboard stats and properties when screen is focused
-      refetchStats();
-      if (currentPage === 1) {
-        refetchProperties();
-      }
-    }, [refetchStats, refetchProperties, currentPage])
   );
 
-  const loadMoreProperties = () => {
-    if (hasMoreData && !isPropertiesLoading) {
-      setCurrentPage(prev => prev + 1);
+  // Append or reset properties on data/page change
+  useEffect(() => {
+    if (propertiesData?.data) {
+      if (page === 1) {
+        setAllProperties(propertiesData.data);
+      } else {
+        setAllProperties((prev) => [...prev, ...propertiesData.data]);
+      }
     }
-  };
+  }, [propertiesData, page]);
 
-  const refreshData = () => {
-    setCurrentPage(1);
+  // Load more function
+  const loadMore = useCallback(() => {
+    if (propertiesData?.pagination?.hasNext && !isPropertiesLoading) {
+      setPage((prev) => prev + 1);
+    }
+  }, [propertiesData, isPropertiesLoading]);
+
+  // Reset properties and page on refresh
+  const refreshProperties = useCallback(() => {
+    setPage(1);
     setAllProperties([]);
-    setHasMoreData(true);
-    // Refetch both stats and properties
-    refetchStats();
     refetchProperties();
-  };
-
-  const handlePropertyPress = (propertyId: string) => {
-    // This will be handled by the component using the hook
-    // We'll pass this function to the component
-  };
+  }, [refetchProperties]);
 
   return {
-    // Dashboard stats
-    dashboardStats: dashboardStats?.data,
+    dashboardStats: statsData?.data,
     isStatsLoading,
     statsError,
     refetchStats,
-    
-    // Properties data
     properties: allProperties,
     isPropertiesLoading,
     propertiesError,
-    refetchProperties,
-    
-    // Pagination
-    currentPage,
-    hasMoreData,
-    loadMoreProperties,
-    refreshData,
-    
-    // Property management
-    handlePropertyPress,
+    refetchProperties: refreshProperties,
+    pagination: propertiesData?.pagination,
+    loadMore,
+    setPage,
+    page,
   };
 }; 

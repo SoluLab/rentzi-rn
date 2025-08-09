@@ -16,6 +16,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Check, Building, Users, DollarSign, Calendar } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
 
 interface ListingTypeData {
   selectedType: string | null;
@@ -59,6 +60,42 @@ const LISTING_TYPES = [
 export default function CommercialPropertyListingTypeScreen() {
   const router = useRouter();
   const { data, updateListingType } = useCommercialPropertyStore();
+
+  // API mutation hook for updating property draft
+  const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
+    onSuccess: (response) => {
+      console.log(
+        "Commercial property draft saved successfully with listing type:",
+        response
+      );
+      // Navigate to review screen with title and property ID
+      const propertyTitle = data.propertyDetails?.propertyTitle || "";
+      const propertyId = data.propertyId;
+      
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      
+      router.push({
+        pathname: '/add-commercial-details/commercial-property-review',
+        params: {
+          propertyTitle,
+          propertyId: propertyId.toString(),
+        }
+      });
+    },
+    onError: (error) => {
+      console.error(
+        "Error saving commercial property draft with listing type:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
+    },
+  });
   
   const [formData, setFormData] = useState<ListingTypeData>(data.listingType);
   const [errors, setErrors] = useState<ListingTypeValidationErrors>({});
@@ -100,10 +137,52 @@ export default function CommercialPropertyListingTypeScreen() {
     setExpandedType(expandedType === typeId ? null : typeId);
   };
 
-  const handleNext = () => {
+  const transformFormDataToApiFormat = () => {
+    const apiData: any = {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "commercial",
+    };
+
+    // Add listing type based on schema requirements
+    // Use allowsFractionalization instead of listingType
+    if (formData.selectedType === 'rental-only') {
+      apiData.allowsFractionalization = false;
+    } else if (formData.selectedType === 'fractional-ownership-rental') {
+      apiData.allowsFractionalization = true;
+    }
+
+    return apiData;
+  };
+
+  const handleNext = async () => {
     if (validateForm()) {
-      // Navigate to review screen
-      router.push('/add-commercial-details/commercial-property-review');
+      await proceedWithDraft();
+    }
+  };
+
+  const proceedWithDraft = async () => {
+    try {
+      updateListingType(formData);
+      const apiData = transformFormDataToApiFormat();
+      const propertyId = data.propertyId;
+      console.log(
+        "Commercial Property ID from store before draft API:",
+        propertyId
+      );
+      if (!propertyId) {
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
+        return;
+      }
+      console.log("Saving commercial property draft with listing type data:", {
+        propertyId,
+        ...apiData,
+      });
+      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+    } catch (error) {
+      console.error("Error in proceedWithDraft:", error);
     }
   };
 
@@ -236,9 +315,9 @@ export default function CommercialPropertyListingTypeScreen() {
 
         {/* Next Button */}
         <Button
-          title="Next"
+          title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>
