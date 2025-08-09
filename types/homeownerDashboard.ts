@@ -1,19 +1,3 @@
-export interface DashboardRecentBooking {
-  _id: string;
-  propertyName: string;
-  guestName: string;
-  checkIn: string;
-  checkOut: string;
-  totalAmount: number;
-  status: string;
-}
-
-export interface MonthlyStats {
-  bookings: number;
-  revenue: number;
-  occupancyRate: number;
-}
-
 export interface DashboardStats {
   totalProperties: number;
   pendingApprovals: number;
@@ -22,4 +6,10 @@ export interface DashboardStats {
     currency: string;
   };
   activeBookings: number;
+}
+
+export interface DashboardStatsResponse {
+  success: boolean;
+  message: string;
+  data: DashboardStats;
 }
