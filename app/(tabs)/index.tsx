@@ -23,7 +23,7 @@ import { usePropertyStore } from '@/stores/propertyStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAuthStore } from '@/stores/authStore';
-import { useGlobalProfile } from '@/hooks/useGlobalProfile';
+import { useRenterInvestorProfile } from '@/hooks/useRenterInvestorProfile';
 import { toast } from '@/components/ui/Toast';
 import {
   Search,
@@ -53,7 +53,7 @@ export default function ExploreScreen() {
   const { unreadCount } = useNotificationStore();
   const { user } = useAuthStore();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
-  const { profileData, isLoading: profileLoading, fetchProfile, refreshProfile } = useGlobalProfile();
+  const { profile: profileData, isLoadingProfile: profileLoading, refetchProfile } = useRenterInvestorProfile();
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -61,9 +61,10 @@ export default function ExploreScreen() {
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     fetchProperties();
-    // Fetch profile data when dashboard loads
-    fetchProfile();
-  }, [fetchProperties, fetchProfile]);
+    // Fetch profile data when dashboard loads for renter_investor
+    console.log('Index - Fetching profile data for renter_investor user');
+    refetchProfile();
+  }, [fetchProperties, refetchProfile]);
   // Debounced search
   const handleSearch = useCallback(
     (query: string) => {
@@ -97,7 +98,7 @@ export default function ExploreScreen() {
     try {
       await Promise.all([
         fetchProperties(),
-        refreshProfile(),
+        refetchProfile(),
       ]);
     } finally {
       setRefreshing(false);

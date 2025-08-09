@@ -22,7 +22,7 @@ import { spacing } from '@/constants/spacing';
 import { validateFullName } from '@/utils/validation';
 import { Camera, CheckCircle2 } from 'lucide-react-native';
 import { useHomeownerProfile } from '@/hooks/useHomeownerProfile';
-import { useGlobalProfile } from '@/hooks/useGlobalProfile';
+import { useRenterInvestorProfile } from '@/hooks/useRenterInvestorProfile';
 import { useAuthStore } from '@/stores/authStore';
 import { countryCodes } from '@/components/ui/PhoneInput';
 
@@ -32,8 +32,27 @@ export default function EditProfileScreen() {
   const { user } = useAuthStore();
   
   // Determine user type and use appropriate hooks
-  const { profile: homeownerProfile, isLoadingProfile: isHomeownerLoading, updateProfile: updateHomeownerProfile, isUpdatingProfile } = useHomeownerProfile();
-  const { profileData: renterProfile, isLoading: isRenterLoading, updateProfile: updateRenterProfile } = useGlobalProfile();
+  const { profile: homeownerProfile, isLoadingProfile: isHomeownerLoading, updateProfile: updateHomeownerProfile, isUpdatingProfile } = useHomeownerProfile({
+    onProfileUpdateSuccess: () => {
+      // Navigate back on successful update
+      router.back();
+    },
+    onProfileUpdateError: (error) => {
+      // Error handling is already done in the service layer with toast messages
+      console.error('Profile update error:', error);
+    },
+  });
+  const { profile: renterProfile, isLoadingProfile: isRenterLoading, updateProfile: updateRenterProfile, isUpdatingProfile: isRenterUpdating } = useRenterInvestorProfile({
+    onProfileUpdateSuccess: () => {
+      console.log('EditProfile - Renter profile updated successfully, cache updated with new data');
+      // Navigate back on successful update - profile screen will show updated data
+      router.back();
+    },
+    onProfileUpdateError: (error) => {
+      // Error handling is already done in the service layer with toast messages
+      console.error('Profile update error:', error);
+    },
+  });
   
   // Determine user type - Priority: URL params > Auth store > Profile data
   const urlRole = params.role as string;
@@ -44,7 +63,7 @@ export default function EditProfileScreen() {
   // If homeowner profile exists, use it regardless of user role detection
   const profile = homeownerProfile || renterProfile;
   const isLoadingProfile = isHomeowner ? isHomeownerLoading : isRenterLoading;
-  const isUpdating = isHomeowner ? isUpdatingProfile : isRenterLoading;
+  const isUpdating = isHomeowner ? isUpdatingProfile : isRenterUpdating;
   
   console.log('EditProfile - URL role param:', urlRole);
   console.log('EditProfile - User role:', user?.role);
@@ -60,6 +79,13 @@ export default function EditProfileScreen() {
   const [selectedCountryCode, setSelectedCountryCode] = useState(countryCodes.find(c => c.code === "US") || countryCodes[0]);
   const [profileImage, setProfileImage] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Add validation function to check if all fields are valid
+  const isFormValid = () => {
+    return firstName.trim().length >= 2 && 
+           lastName.trim().length >= 2 && 
+           phoneNumber.trim().length >= 2;
+  };
 
   // Update state when profile data is loaded
   useEffect(() => {
@@ -116,6 +142,18 @@ export default function EditProfileScreen() {
   
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
+    
+    // Length validation for all fields
+    if (firstName.trim().length < 2) {
+      newErrors.firstName = 'First name must be at least 2 characters long';
+    }
+    if (lastName.trim().length < 2) {
+      newErrors.lastName = 'Last name must be at least 2 characters long';
+    }
+    if (phoneNumber.trim().length < 2) {
+      newErrors.phoneNumber = 'Phone number must be at least 2 characters long';
+    }
+    
     // Name validation
     const nameValidation = validateFullName(firstName + ' ' + lastName);
     if (!nameValidation.isValid) {
@@ -148,17 +186,18 @@ export default function EditProfileScreen() {
       console.log('EditProfile - Is homeowner determined:', isHomeowner);
       
       if (isHomeowner) {
-        await updateHomeownerProfile(payload);
-        // The hook will automatically refetch profile data and show success toast
-        router.back();
+        // For homeowner, the mutation handles success/error in the hook
+        updateHomeownerProfile(payload);
+        // Navigation is now handled in the onSuccess callback
       } else {
-        await updateRenterProfile(payload);
-        // The hook will automatically refetch profile data and show success toast
-        router.back();
+        // For renter/investor, the hook handles success/error internally
+        updateRenterProfile(payload);
+        // Navigation is now handled in the onSuccess callback
       }
     } catch (error: any) {
-      // Error handling is already done in the hooks
+      // Error handling is already done in the hooks with toast messages
       console.error('Profile update error:', error);
+      // Don't navigate back on error - let the user see the error message
     }
   };
   const handleImagePicker = () => {
@@ -288,6 +327,7 @@ export default function EditProfileScreen() {
                   loading={isUpdating}
                   variant="primary"
                   style={styles.saveButton}
+                  disabled={!isFormValid()}
                 />
               </View>
         </ScrollView>

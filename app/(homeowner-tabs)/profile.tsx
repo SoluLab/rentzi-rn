@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Typography } from '@/components/ui/Typography';
@@ -40,12 +41,20 @@ export default function HomeownerProfileScreen() {
     profile,
     isLoadingProfile,
     profileError,
+    refetchProfile,
   } = useHomeownerProfile();
 
   console.log('HomeownerProfileScreen - Hook called');
   console.log('HomeownerProfileScreen - profile:', profile);
   console.log('HomeownerProfileScreen - isLoadingProfile:', isLoadingProfile);
   console.log('HomeownerProfileScreen - profileError:', profileError);
+
+  // Ensure profile is always fetched when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      refetchProfile && refetchProfile();
+    }, [refetchProfile])
+  );
 
   const handleLogout = () => {
     logout();

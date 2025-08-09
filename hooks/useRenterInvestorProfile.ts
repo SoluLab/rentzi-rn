@@ -1,55 +1,70 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/services/apiClient";
-import {
-  getRenterInvestorProfile,
-  updateRenterInvestorProfile,
-  changeRenterInvestorPassword,
-} from "@/services/renterInvestorProfile";
-import {
-  UpdateRenterInvestorProfileRequest,
-  ChangeRenterInvestorPasswordRequest,
-} from "@/types/renterInvestorProfile";
-import { toast } from "@/components/ui/Toast";
+import { useCallback } from 'react';
+import { useGetRenterInvestorProfile, useUpdateRenterInvestorProfile, useChangeRenterInvestorPassword } from '@/services/renterInvestorProfile';
+import { UpdateRenterInvestorProfileRequest, ChangeRenterInvestorPasswordRequest } from '@/types/renterInvestorProfile';
 
-// Hook to get renter investor profile
-export const useGetRenterInvestorProfile = () => {
-  return useQuery({
-    queryKey: queryKeys.profile(),
-    queryFn: getRenterInvestorProfile,
-    staleTime: 5 * 60 * 1000, // 5 minutes - data is fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    refetchOnMount: false, // Don't refetch when component mounts if data is fresh
-    refetchOnWindowFocus: false, // Don't refetch when window gains focus
-  });
-};
+export const useRenterInvestorProfile = (
+  options?: {
+    onProfileUpdateSuccess?: () => void;
+    onProfileUpdateError?: (error: any) => void;
+    onPasswordChangeSuccess?: () => void;
+    onPasswordChangeError?: (error: any) => void;
+  }
+) => {
+  const {
+    data: profileData,
+    isLoading: isLoadingProfile,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useGetRenterInvestorProfile();
 
-// Hook to update renter investor profile
-export const useUpdateRenterInvestorProfile = () => {
-  const queryClient = useQueryClient();
+  console.log('useRenterInvestorProfile - Hook called');
+  console.log('useRenterInvestorProfile - isLoadingProfile:', isLoadingProfile);
+  console.log('useRenterInvestorProfile - profileError:', profileError);
+  console.log('useRenterInvestorProfile - profileData:', profileData);
+  console.log('useRenterInvestorProfile - profile (extracted):', profileData?.data);
 
-  return useMutation({
-    mutationFn: updateRenterInvestorProfile,
-    onSuccess: (data) => {
-      // Update the profile cache
-      queryClient.setQueryData(queryKeys.profile(), data);
-      toast.success("Profile updated successfully");
+  const updateProfileMutation = useUpdateRenterInvestorProfile({
+    onSuccess: () => {
+      // No need to manually call refetchProfile() here since 
+      // useUpdateRenterInvestorProfile already calls queryClient.invalidateQueries()
+      // which automatically triggers a refetch
+      options?.onProfileUpdateSuccess?.();
     },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to update profile");
+    onError: (error) => {
+      options?.onProfileUpdateError?.(error);
     },
   });
-};
 
-// Hook to change renter investor password
-export const useChangeRenterInvestorPassword = () => {
-  return useMutation({
-    mutationFn: changeRenterInvestorPassword,
-    onSuccess: (response: any) => {
-      toast.success(response.message || "Password changed successfully");
+  const changePasswordMutation = useChangeRenterInvestorPassword({
+    onSuccess: () => {
+      options?.onPasswordChangeSuccess?.();
     },
-    onError: (error: any) => {
-      const errorMessage = error?.data?.message || error?.message || "Failed to change password";
-      toast.error(errorMessage);
+    onError: (error) => {
+      options?.onPasswordChangeError?.(error);
     },
   });
+
+  const updateProfile = useCallback((data: UpdateRenterInvestorProfileRequest) => {
+    updateProfileMutation.mutate(data);
+  }, [updateProfileMutation]);
+
+  const changePassword = useCallback((data: ChangeRenterInvestorPasswordRequest) => {
+    changePasswordMutation.mutate(data);
+  }, [changePasswordMutation]);
+
+  return {
+    // Profile data
+    profile: profileData?.data,
+    isLoadingProfile,
+    profileError,
+    refetchProfile,
+    
+    // Profile actions
+    updateProfile,
+    changePassword,
+    
+    // Mutation states
+    isUpdatingProfile: updateProfileMutation.isPending,
+    isChangingPassword: changePasswordMutation.isPending,
+  };
 }; 

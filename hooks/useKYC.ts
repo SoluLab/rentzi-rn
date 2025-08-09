@@ -101,7 +101,7 @@ export const useKYC = (): UseKYCReturn => {
         'KYC Verification Failed',
         errorMessage,
         [
-          { text: 'OK' },
+          { text: 'Cancel' },
           { 
             text: 'Try Again', 
             onPress: () => initializeKYC() 
