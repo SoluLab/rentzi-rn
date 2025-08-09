@@ -73,6 +73,8 @@
     <string>Allow $(PRODUCT_NAME) to access your reminders</string>
     <key>NSRemindersUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your reminders</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Location access is required to provide location-based services and enhance your experience in the app.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>
@@ -102,6 +104,8 @@
     <key>UIUserInterfaceStyle</key>
     <string>Automatic</string>
     <key>UIViewControllerBasedStatusBarAppearance</key>
+    <false/>
+    <key>ITSAppUsesNonExemptEncryption</key>
     <false/>
   </dict>
 </plist>
