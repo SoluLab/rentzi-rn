@@ -51,21 +51,37 @@ export interface FeaturesComplianceData {
 }
 
 // Media upload interface
+export interface MediaFile {
+  uri: string;
+  name: string;
+  size: number;
+  type: string;
+  width?: number;
+  height?: number;
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
+}
+
+export interface VideoFile {
+  uri: string;
+  name: string;
+  size: number;
+  type: string;
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
+}
+
 export interface MediaUploadData {
-  photos: Array<{
-    uri: string;
-    name: string;
-    size: number;
-    width: number;
-    height: number;
-    type: string;
-  }>;
-  virtualTour: {
-    type: 'link' | 'file';
-    value: string;
-    name?: string;
-    size?: number;
-  };
+  photos: MediaFile[];
+  virtualTour: VideoFile | string;
 }
 
 // Documents upload interface
@@ -204,10 +220,7 @@ const initialData: ResidentialPropertyData = {
   },
   mediaUpload: {
     photos: [],
-    virtualTour: {
-      type: 'link',
-      value: '',
-    },
+    virtualTour: '',
   },
   documentsUpload: {
     propertyDeed: null,

@@ -119,6 +119,7 @@ export default function CommercialPropertyMediaUploadScreen() {
   const [formData, setFormData] = useState<MediaFormData>(data.mediaUploads);
   const [errors, setErrors] = useState<MediaValidationErrors>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isVideoUploading, setIsVideoUploading] = useState(false);
   const [uploadRetries, setUploadRetries] = useState<{ [key: number]: number }>({});
   const [hasUnuploadedImages, setHasUnuploadedImages] = useState(false);
 
@@ -216,6 +217,8 @@ export default function CommercialPropertyMediaUploadScreen() {
   };
 
   const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string | { uri: string; name: string; size: number; type: string; }) => {
+    console.log("📝 updateFormData called:", field, value);
+    
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateMediaUploads(newFormData);
@@ -225,15 +228,25 @@ export default function CommercialPropertyMediaUploadScreen() {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
 
-    // Just clear any existing video file when URL is added (removed auto-save)
-    if (field === 'virtualTour' && typeof value === 'string' && value.trim()) {
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-      const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
-      
-      if (youtubeRegex.test(value) || vimeoRegex.test(value)) {
-        // Clear any existing video file when URL is added
-        console.log("🔄 URL added, clearing any existing video file");
-        // Note: Auto-save removed - user must click Next button manually
+    // Handle virtual tour field specifically
+    if (field === 'virtualTour') {
+      if (typeof value === 'string') {
+        if (value.trim()) {
+          // URL is being added
+          const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+          const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
+          
+          if (youtubeRegex.test(value) || vimeoRegex.test(value)) {
+            console.log("🔄 URL added, clearing any existing video file");
+          }
+        } else {
+          // Empty string means removal
+          console.log("🗑️ Virtual tour cleared");
+          setIsVideoUploading(false);
+        }
+      } else {
+        // Video object is being added
+        console.log("🎬 Video file added");
       }
     }
   };
@@ -474,10 +487,13 @@ export default function CommercialPropertyMediaUploadScreen() {
 
   const uploadVideoToServer = async (videoFile: VideoFile) => {
     try {
+      setIsVideoUploading(true);
+      
       const propertyId = data.propertyId;
       if (!propertyId) {
         console.error("Property ID not found for video upload");
         Alert.alert("Error", "Property ID not found. Please go back and try again.");
+        setIsVideoUploading(false);
         return;
       }
 
@@ -488,9 +504,12 @@ export default function CommercialPropertyMediaUploadScreen() {
         name: videoFile.name || `video_${Date.now()}.mp4`,
       };
 
-      console.log("Uploading video:", file);
-      console.log("Property ID:", propertyId);
-      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId));
+      console.log("🎬 VIDEO UPLOAD DEBUG:");
+      console.log("📁 Uploading video file:", file);
+      console.log("🏠 Property ID:", propertyId);
+      console.log("🌐 Base URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER);
+      console.log("📍 Endpoint:", ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId));
+      console.log("🔗 Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId));
       
       const response = await uploadVideosMutation.mutateAsync({
         propertyId,
@@ -563,6 +582,8 @@ export default function CommercialPropertyMediaUploadScreen() {
         );
       }
       return null;
+    } finally {
+      setIsVideoUploading(false);
     }
   };
 
@@ -878,18 +899,19 @@ export default function CommercialPropertyMediaUploadScreen() {
       (typeof formData.virtualTour === 'object' && formData.virtualTour.uploadedUrl);
     
     // Check if virtual tour video is still uploading
-    const isVideoUploading = 
+    const isVideoUploadingCheck = 
       typeof formData.virtualTour === 'object' && 
       formData.virtualTour.uri && 
       !formData.virtualTour.uploadedUrl &&
-      uploadVideosMutation.isPending;
+      (isVideoUploading || uploadVideosMutation.isPending);
 
     console.log("🔍 Form validation check:");
     console.log("📸 Photos count:", formData.photos.length);
     console.log("📤 Unuploaded photos:", unuploadedPhotos.length);
     console.log("🎥 Has valid virtual tour:", hasValidVirtualTour);
-    console.log("⏳ Is video uploading:", isVideoUploading);
+    console.log("⏳ Is video uploading check:", isVideoUploadingCheck);
     console.log("📱 Is uploading:", isUploading);
+    console.log("🎬 Is video uploading:", isVideoUploading);
     console.log("🖼️ Images mutation pending:", uploadImagesMutation.isPending);
     console.log("🎬 Videos mutation pending:", uploadVideosMutation.isPending);
 
@@ -902,7 +924,7 @@ export default function CommercialPropertyMediaUploadScreen() {
       formData.photos.length >= 5 &&
       unuploadedPhotos.length === 0 &&
       hasValidVirtualTour &&
-      !isVideoUploading &&
+      !isVideoUploadingCheck &&
       !isUploading &&
       !uploadImagesMutation.isPending &&
       !uploadVideosMutation.isPending &&
@@ -916,6 +938,18 @@ export default function CommercialPropertyMediaUploadScreen() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const truncateVideoTitle = (title: string): string => {
+    // If the title is short enough, return as is
+    if (title.length <= 15) {
+      return title;
+    }
+    
+    // For long titles, show first 12 characters + ... + last 8 characters
+    const firstPart = title.slice(0, 12);
+    const lastPart = title.slice(-8);
+    return `${firstPart}...${lastPart}`;
   };
 
   return (
@@ -1046,11 +1080,11 @@ export default function CommercialPropertyMediaUploadScreen() {
               (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? { opacity: 0.5 } : {}
             ]}
             onPress={showVideoPickerOptions}
-            disabled={uploadVideosMutation.isPending || Boolean(typeof formData.virtualTour === 'string' && formData.virtualTour.trim())}
+            disabled={isVideoUploading || uploadVideosMutation.isPending || Boolean(typeof formData.virtualTour === 'string' && formData.virtualTour.trim())}
           >
             <Video size={24} color={colors.primary.gold} />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {uploadVideosMutation.isPending ? "Uploading Video..." : 
+              {(isVideoUploading || uploadVideosMutation.isPending) ? "Uploading Video..." : 
                (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? "URL Already Added" : 
                "Upload Video File"}
             </Typography>
@@ -1061,22 +1095,47 @@ export default function CommercialPropertyMediaUploadScreen() {
              <View style={styles.virtualTourDisplay}>
                <View style={styles.virtualTourInfo}>
                  <Video size={20} color={colors.primary.gold} />
-                 <Typography variant="body" style={styles.virtualTourText}>
-                   {formData.virtualTour.name} ({formatFileSize(formData.virtualTour.size)})
-                 </Typography>
-                                   {formData.virtualTour.uploadedUrl ? (
-                    <Typography variant="caption" style={styles.uploadedText}>
-                      ✓ Uploaded
-                    </Typography>
-                  ) : (
-                    <TouchableOpacity onPress={retryVideoUpload}>
-                      <Typography variant="caption" style={styles.retryText}>
-                        ↻ Retry
-                      </Typography>
-                    </TouchableOpacity>
-                  )}
+                 <View style={styles.videoTextContainer}>
+                   <Typography variant="body" style={styles.virtualTourText} numberOfLines={2}>
+                     {truncateVideoTitle(formData.virtualTour.name)}
+                   </Typography>
+                   <Typography variant="caption" style={styles.videoSizeText}>
+                     {formatFileSize(formData.virtualTour.size)}
+                   </Typography>
+                 </View>
+                 <View style={styles.videoStatusContainer}>
+                   {formData.virtualTour.uploadedUrl ? (
+                     <Typography variant="caption" style={styles.uploadedText}>
+                       ✓ Uploaded
+                     </Typography>
+                   ) : (isVideoUploading || uploadVideosMutation.isPending) ? (
+                     <Typography variant="caption" style={styles.uploadingText}>
+                       ⏳ Uploading...
+                     </Typography>
+                   ) : (
+                     <TouchableOpacity onPress={retryVideoUpload}>
+                       <Typography variant="caption" style={styles.retryText}>
+                         ↻ Retry
+                       </Typography>
+                     </TouchableOpacity>
+                   )}
+                 </View>
                </View>
-               <TouchableOpacity onPress={() => updateFormData('virtualTour', '')}>
+               <TouchableOpacity onPress={() => {
+                 console.log("🗑️ Removing video file");
+                 console.log("Before removal - virtualTour:", formData.virtualTour);
+                 console.log("Before removal - isPending:", uploadVideosMutation.isPending);
+                 
+                 // Cancel any ongoing video upload
+                 if (uploadVideosMutation.isPending) {
+                   console.log("⏹️ Cancelling ongoing video upload");
+                   uploadVideosMutation.reset();
+                 }
+                 
+                 setIsVideoUploading(false);
+                 updateFormData('virtualTour', '');
+                 console.log("After removal - should be empty string");
+               }}>
                  <X size={20} color={colors.text.secondary} />
                </TouchableOpacity>
              </View>
@@ -1239,11 +1298,31 @@ const styles = StyleSheet.create({
   virtualTourInfo: {
     flexDirection: 'row',
     alignItems: 'center',
+    flex: 1,
   },
-     virtualTourText: {
-     marginLeft: spacing.xs,
-     color: colors.text.primary,
-   },
+  videoTextContainer: {
+    flex: 1,
+    marginLeft: spacing.xs,
+    marginRight: spacing.xs,
+  },
+  virtualTourText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  videoSizeText: {
+    color: colors.text.secondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  videoStatusContainer: {
+    alignItems: 'flex-end',
+  },
+  uploadingText: {
+    color: colors.primary.gold,
+    fontSize: 12,
+    fontWeight: '600',
+  },
    uploadAllButton: {
      flexDirection: 'row',
      alignItems: 'center',

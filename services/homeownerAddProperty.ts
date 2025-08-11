@@ -42,7 +42,11 @@ export const useHomeownerCreateProperty = (
 // 2. Save Property Draft
 export const useHomeownerSavePropertyDraft = (
   options?: Omit<
-    UseMutationOptions<any, ApiError, { propertyId: string; [key: string]: any }>,
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string; [key: string]: any }
+    >,
     "mutationFn"
   >
 ) => {
@@ -50,8 +54,10 @@ export const useHomeownerSavePropertyDraft = (
   return useMutation<any, ApiError, { propertyId: string; [key: string]: any }>(
     {
       mutationFn: ({ propertyId, ...data }) => {
-        const url = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT(propertyId);
-        console.log('Save Draft Full URL:', url);
+        const url =
+          BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER +
+          ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT(propertyId);
+        console.log("Save Draft Full URL:", url);
         return apiPut({
           baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
           endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.SAVE_DRAFT(propertyId),
@@ -177,28 +183,28 @@ export const useHomeownerUploadPropertyImages = (
   >({
     mutationFn: async ({ propertyId, images }) => {
       const formData = new FormData();
-      
+
       // Ensure each image is properly formatted for React Native
       images.forEach((image, index) => {
         // Validate that the image object has required properties
         if (!image.uri) {
           throw new Error(`Image ${index} is missing URI`);
         }
-        
+
         // Create a proper file object for React Native
         const file = {
           uri: image.uri,
-          type: image.type || 'image/jpeg',
+          type: image.type || "image/jpeg",
           name: image.name || `image_${index}.jpg`,
         };
-        
+
         // Append each image to FormData with "files" key
-        formData.append("files", file);
+        formData.append("files", file as any);
       });
 
       console.log("FormData created:", formData);
       console.log("Images to upload:", images);
-      
+
       // Debug: Log each image being added to FormData
       images.forEach((image, index) => {
         console.log(`Image ${index}:`, {
@@ -207,7 +213,7 @@ export const useHomeownerUploadPropertyImages = (
           name: image.name,
         });
       });
-      
+
       // Debug: Log FormData entries (commented out due to TypeScript issues)
       // for (let [key, value] of formData.entries()) {
       //   console.log(`FormData entry - ${key}:`, value);
@@ -221,7 +227,7 @@ export const useHomeownerUploadPropertyImages = (
         data: formData,
         auth: true,
         customHeaders: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
     },
@@ -294,35 +300,37 @@ export const useHomeownerUploadPropertyVideos = (
   >({
     mutationFn: async ({ propertyId, videos }) => {
       const formData = new FormData();
-      
+
       // Ensure each video is properly formatted for React Native
       videos.forEach((video, index) => {
         // Validate that the video object has required properties
         if (!video.uri) {
           throw new Error(`Video ${index} is missing URI`);
         }
-        
+
         // Create a proper file object for React Native
         const file = {
           uri: video.uri,
-          type: video.type || 'video/mp4',
+          type: video.type || "video/mp4",
           name: video.name || `video_${index}.mp4`,
         };
-        
+
         // Append each video to FormData with "files" key
-        formData.append("files", file);
+        formData.append("files", file as any);
       });
 
       const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
-      const endpoint = ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId.toString());
+      const endpoint = ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(
+        propertyId.toString()
+      );
       const fullURL = baseURL + endpoint;
-      
+
       console.log("📋 FormData created:", formData);
       console.log("📹 Videos to upload:", videos);
       console.log("🌐 Base URL:", baseURL);
       console.log("📂 Endpoint:", endpoint);
       console.log("🔗 Full URL:", fullURL);
-      
+
       // Debug: Log each video being added to FormData
       videos.forEach((video, index) => {
         console.log(`Video ${index}:`, {
@@ -337,8 +345,9 @@ export const useHomeownerUploadPropertyVideos = (
         endpoint: endpoint,
         data: formData,
         auth: true,
+        timeout: 900000, // 15 minutes for video uploads
         customHeaders: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
     },
@@ -379,9 +388,12 @@ export const useHomeownerUploadPropertyFiles = (
       formData.append("fileType", fileType);
 
       // Use different endpoint based on file type
-      const endpoint = fileType === 'video' 
-        ? ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId.toString())
-        : ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId.toString());
+      const endpoint =
+        fileType === "video"
+          ? ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId.toString())
+          : ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId.toString());
+
+  
 
       return apiPost({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,

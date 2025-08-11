@@ -142,11 +142,13 @@ console.log("[API Call] Config:", {
     */}
     
     console.log("------------------------------------------------");
-
-    console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
-    console.log("[API Call] Request Method:", method);
-    //console.log("[API Call] Platform:", Platform.OS);
-    console.log("[API Call] Request Data:", JSON.stringify(data, null, 2));
+    console.log("[API Call] 🔧 DEBUG INFO:");
+    console.log("[API Call] 🌐 Base URL:", baseURL);
+    console.log("[API Call] 📍 Endpoint:", endpoint);
+    console.log("[API Call] 🔗 Full URL:", `${baseURL}${endpoint}`);
+    console.log("[API Call] 🚀 Request Method:", method);
+    console.log("[API Call] 📦 Request Data:", JSON.stringify(data, null, 2));
+    console.log("[API Call] ⚙️  Axios Config:", JSON.stringify(axiosConfig, null, 2));
     const response: AxiosResponse<T> = await axios(axiosConfig);
     console.log("[API Call] Response Received:", JSON.stringify(response.data, null, 2));
     console.log("------------------------------------------------");
