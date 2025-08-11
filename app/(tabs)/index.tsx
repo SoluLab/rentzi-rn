@@ -57,7 +57,7 @@ export default function ExploreScreen() {
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [showFilters, setShowFilters] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'Commercial' | 'Residential'>('Residential');
+  const [selectedTab, setSelectedTab] = useState<'Residential' | 'Commercial'>('Residential');
   const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     fetchProperties();
@@ -89,7 +89,7 @@ export default function ExploreScreen() {
     clearFilters();
     setLocalSearchQuery('');
   };
-  const handleTabChange = (tab: 'Commercial' | 'Residential') => {
+  const handleTabChange = (tab: 'Residential' | 'Commercial') => {
     setSelectedTab(tab);
   };
 
@@ -375,18 +375,6 @@ export default function ExploreScreen() {
       {/* Property Type Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'Commercial' && styles.activeTab]}
-          onPress={() => handleTabChange('Commercial')}
-        >
-          <Typography
-            variant="body"
-            color={selectedTab === 'Commercial' ? 'white' : 'secondary'}
-            style={styles.tabText}
-          >
-            Commercial
-          </Typography>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={[styles.tab, selectedTab === 'Residential' && styles.activeTab]}
           onPress={() => handleTabChange('Residential')}
         >
@@ -396,6 +384,18 @@ export default function ExploreScreen() {
             style={styles.tabText}
           >
             Residential
+          </Typography>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, selectedTab === 'Commercial' && styles.activeTab]}
+          onPress={() => handleTabChange('Commercial')}
+        >
+          <Typography
+            variant="body"
+            color={selectedTab === 'Commercial' ? 'white' : 'secondary'}
+            style={styles.tabText}
+          >
+            Commercial
           </Typography>
         </TouchableOpacity>
       </View>
