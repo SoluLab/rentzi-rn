@@ -54,21 +54,7 @@ const LISTING_PURPOSES = [
       'Liquidity through token trading'
     ],
     details: 'Choose this option to tokenize your residential property, allowing multiple investors to purchase fractional ownership. This creates potential for property appreciation and shared ownership benefits.',
-  },
-  {
-    id: 'both',
-    title: 'Both',
-    description: 'Combine rental income with fractional ownership opportunities',
-    icon: DollarSign,
-    features: [
-      'Rental income generation',
-      'Fractional ownership sales',
-      'Dual revenue streams',
-      'Flexible property management',
-      'Maximum market exposure'
-    ],
-    details: 'Choose this option to maximize your property\'s potential by offering both rental income and fractional ownership opportunities. This provides the most comprehensive approach to property monetization.',
-  },
+  }
 ];
 
 export default function ResidentialPropertyListingPurposeScreen() {

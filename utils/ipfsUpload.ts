@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-// Pinata JWT Token
-const PINATA_JWT = 'Bearer  eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI0ODRjODdjNC01YzdkLTRhNzUtODgzZi03MzhjYjYzMGJjYmMiLCJlbWFpbCI6InBoaWxsaXAucmF0aGVyQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiIxOTcyNzM1M2U3ZTlkNTNkYWU2YyIsInNjb3BlZEtleVNlY3JldCI6ImQzNDMwYzBhYTgwN2RhNTJjNmMxMWM0MjZiYzg5NTEzNDdjMjQyYzBlMjM0Yzc4Y2YwYzA1MzYzZWM1ZGYxZGEiLCJleHAiOjE3ODYxMzE0ODl9.XqyzHOV3pMuG3LC7s564myCsC3QYGM6SkgM9H6TsgWQ'; 
-
+// Pinata API credentials
+const PINATA_API_KEY = '19727353e7e9d53dae6c';
+const PINATA_SECRET_API_KEY = 'd3430c0aa807da52c6c11c426bc8951347c242c0e234c78cf0c05363ec5df1da';
 
 /**
- 
+ * Uploads a file to IPFS using Pinata
  * @param file { uri, name, type } - React Native document/file object
  * @returns {Promise<string>} - IPFS gateway URL
  */
@@ -22,7 +22,8 @@ export const uploadToPinata = async (file: { uri: string; name: string; type: st
     const res = await axios.post(url, data, {
       headers: {
         'Content-Type': 'multipart/form-data',
-        Authorization: PINATA_JWT,
+        'pinata_api_key': PINATA_API_KEY,
+        'pinata_secret_api_key': PINATA_SECRET_API_KEY,
       },
     });
     

@@ -197,8 +197,6 @@ export default function CommercialPropertyDocumentsUploadScreen() {
 
   const pickDocument = async (fieldName: keyof DocumentsFormData, displayName: string) => {
     try {
-      setIsUploading(fieldName);
-      
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/pdf',
         copyToCacheDirectory: true,
@@ -226,8 +224,6 @@ export default function CommercialPropertyDocumentsUploadScreen() {
       }
     } catch (error) {
       Alert.alert('Error', `Failed to upload ${displayName}. Please try again.`);
-    } finally {
-      setIsUploading(null);
     }
   };
 
@@ -556,7 +552,13 @@ export default function CommercialPropertyDocumentsUploadScreen() {
                 </Typography>
               </View>
               <View style={styles.documentActions}>
-                {document.uploadedUrl ? (
+                {isUploadingField ? (
+                  <View style={styles.uploadingBadge}>
+                    <Typography variant="caption" style={styles.uploadingText}>
+                      Uploading...
+                    </Typography>
+                  </View>
+                ) : document.uploadedUrl ? (
                   <View style={styles.statusBadge}>
                     <Check size={12} color={colors.neutral.white} />
                     <Typography variant="caption" style={styles.statusText}>
@@ -861,6 +863,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   retryText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  uploadingBadge: {
+    backgroundColor: colors.primary.gold,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: 12,
+  },
+  uploadingText: {
     color: colors.neutral.white,
     fontSize: 12,
     fontWeight: '500',
