@@ -23,7 +23,7 @@ import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
 import { Camera, Image as ImageIcon, Video, X, Upload } from 'lucide-react-native';
 import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
-import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyImages, useHomeownerUploadPropertyFiles } from '@/services/homeownerAddProperty';
+import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyImages, useHomeownerUploadPropertyVideos } from '@/services/homeownerAddProperty';
 import { BASE_URLS, ENDPOINTS } from '@/constants/urls';
 
 interface MediaFile {
@@ -33,8 +33,12 @@ interface MediaFile {
   type: string;
   width?: number;
   height?: number;
-  uploadedUrl?: string; // Add uploaded URL field
-  uploadedKey?: string; // Add uploaded key field
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
 }
 
 interface VideoFile {
@@ -42,8 +46,12 @@ interface VideoFile {
   name: string;
   size: number;
   type: string;
-  uploadedUrl?: string; // Add uploaded URL field
-  uploadedKey?: string; // Add uploaded key field
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
 }
 
 interface MediaFormData {
@@ -96,8 +104,8 @@ export default function CommercialPropertyMediaUploadScreen() {
     },
   });
 
-  // API mutation hook for uploading videos
-  const uploadVideosMutation = useHomeownerUploadPropertyFiles({
+  // API mutation hook for uploading videos - using dedicated service (same as images)
+  const uploadVideosMutation = useHomeownerUploadPropertyVideos({
     onSuccess: (response) => {
       console.log("Videos uploaded successfully:", response);
       // The uploaded URLs will be handled in the upload function
@@ -112,11 +120,19 @@ export default function CommercialPropertyMediaUploadScreen() {
   const [errors, setErrors] = useState<MediaValidationErrors>({});
   const [isUploading, setIsUploading] = useState(false);
   const [uploadRetries, setUploadRetries] = useState<{ [key: number]: number }>({});
+  const [hasUnuploadedImages, setHasUnuploadedImages] = useState(false);
 
   // Request permissions on component mount
   useEffect(() => {
     requestPermissions();
   }, []);
+
+  // Update hasUnuploadedImages state whenever photos change
+  useEffect(() => {
+    const unuploadedCount = formData.photos.filter(photo => !photo.uploadedUrl).length;
+    setHasUnuploadedImages(unuploadedCount > 0);
+    console.log("Photos updated, unuploaded count:", unuploadedCount);
+  }, [formData.photos]);
 
   const requestPermissions = async () => {
     if (Platform.OS !== 'web') {
@@ -160,6 +176,14 @@ export default function CommercialPropertyMediaUploadScreen() {
   };
 
   const validateVirtualTour = (virtualTour: MediaFormData['virtualTour']): string | undefined => {
+    // Check if neither URL nor video is provided (virtual tour is required)
+    const hasUrl = typeof virtualTour === 'string' && virtualTour.trim();
+    const hasVideo = typeof virtualTour === 'object' && virtualTour.uri;
+    
+    if (!hasUrl && !hasVideo) {
+      return 'Virtual tour is required - provide either a YouTube/Vimeo URL or upload a video file';
+    }
+    
     if (typeof virtualTour === 'string') {
       if (!virtualTour.trim()) return undefined; // Optional field
       
@@ -199,6 +223,18 @@ export default function CommercialPropertyMediaUploadScreen() {
     // Clear error when user starts uploading/typing
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+
+    // Just clear any existing video file when URL is added (removed auto-save)
+    if (field === 'virtualTour' && typeof value === 'string' && value.trim()) {
+      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+      const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
+      
+      if (youtubeRegex.test(value) || vimeoRegex.test(value)) {
+        // Clear any existing video file when URL is added
+        console.log("🔄 URL added, clearing any existing video file");
+        // Note: Auto-save removed - user must click Next button manually
+      }
     }
   };
 
@@ -291,11 +327,10 @@ export default function CommercialPropertyMediaUploadScreen() {
         const updatedPhotos = [...formData.photos, ...validPhotos];
         updateFormData('photos', updatedPhotos);
 
-        // Upload all new images
-        const startIndex = formData.photos.length;
-        for (let i = 0; i < validPhotos.length; i++) {
-          await uploadImageToServer(validPhotos[i], startIndex + i);
-        }
+        // Check if there are unuploaded images
+        const unuploadedCount = updatedPhotos.filter(photo => !photo.uploadedUrl).length;
+        setHasUnuploadedImages(unuploadedCount > 0);
+        console.log("Added photos, unuploaded count:", unuploadedCount);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to pick photos. Please try again.');
@@ -329,8 +364,10 @@ export default function CommercialPropertyMediaUploadScreen() {
       const newPhotos = [...formData.photos, mediaFile];
       updateFormData('photos', newPhotos);
 
-      // Upload image immediately
-      await uploadImageToServer(mediaFile, newPhotos.length - 1);
+      // Check if there are unuploaded images
+      const unuploadedCount = newPhotos.filter(photo => !photo.uploadedUrl).length;
+      setHasUnuploadedImages(unuploadedCount > 0);
+      console.log("Added single photo, unuploaded count:", unuploadedCount);
       
     } catch (error) {
       Alert.alert('Error', 'Failed to process image. Please try again.');
@@ -367,18 +404,40 @@ export default function CommercialPropertyMediaUploadScreen() {
       console.log("Image upload response:", response);
 
       // Update the photo with uploaded URL and key
-      if (response.data?.uploadedImages?.[0]) {
-        const uploadedImage = response.data.uploadedImages[0];
-        const updatedPhotos = [...formData.photos];
-        updatedPhotos[photoIndex] = {
-          ...updatedPhotos[photoIndex],
-          uploadedUrl: uploadedImage.url,
-          uploadedKey: uploadedImage.key,
-        };
-        updateFormData('photos', updatedPhotos);
-        console.log("Updated photo with uploaded URL:", uploadedImage.url);
+      if (response.data?.uploadedFiles?.[0]) {
+        const uploadedFile = response.data.uploadedFiles[0];
+        
+        // Create a new array to ensure state update
+        setFormData(prevFormData => {
+          const updatedPhotos = [...prevFormData.photos];
+          updatedPhotos[photoIndex] = {
+            ...updatedPhotos[photoIndex],
+            uploadedUrl: uploadedFile.url,
+            uploadedKey: uploadedFile.key,
+            originalName: uploadedFile.originalName,
+            fileName: uploadedFile.fileName,
+            size: uploadedFile.size,
+            type: uploadedFile.type,
+            mimetype: uploadedFile.mimetype,
+            expiresAt: uploadedFile.expiresAt,
+          };
+          
+          const newFormData = { ...prevFormData, photos: updatedPhotos };
+          
+          // Update the store
+          updateMediaUploads(newFormData);
+          
+          // Check if all images are now uploaded and update state
+          const stillUnuploaded = updatedPhotos.filter(photo => !photo.uploadedUrl);
+          setHasUnuploadedImages(stillUnuploaded.length > 0);
+          
+          console.log("Updated photo with uploaded URL:", uploadedFile.url);
+          console.log("Remaining unuploaded images:", stillUnuploaded.length);
+          
+          return newFormData;
+        });
       } else {
-        console.warn("No uploaded images in response:", response);
+        console.warn("No uploaded files in response:", response);
       }
     } catch (error: any) {
       console.error("Error uploading image to server:", error);
@@ -431,28 +490,47 @@ export default function CommercialPropertyMediaUploadScreen() {
 
       console.log("Uploading video:", file);
       console.log("Property ID:", propertyId);
-      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId));
+      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId));
       
       const response = await uploadVideosMutation.mutateAsync({
         propertyId,
-        files: [file],
-        fileType: 'video',
+        videos: [file],
       });
 
       console.log("Video upload response:", response);
 
       // Update the video with uploaded URL and key
       if (response.data?.uploadedFiles?.[0]) {
-        const uploadedVideo = response.data.uploadedFiles[0];
-        const updatedVirtualTour: VideoFile = {
-          ...videoFile,
-          uploadedUrl: uploadedVideo.url,
-          uploadedKey: uploadedVideo.key,
-        };
-        updateFormData('virtualTour', updatedVirtualTour);
-        console.log("Updated video with uploaded URL:", uploadedVideo.url);
+        const uploadedFile = response.data.uploadedFiles[0];
+        
+        // Create a new form data object to ensure state update
+        setFormData(prevFormData => {
+          const updatedVirtualTour: VideoFile = {
+            ...videoFile,
+            uploadedUrl: uploadedFile.url,
+            uploadedKey: uploadedFile.key,
+            originalName: uploadedFile.originalName,
+            fileName: uploadedFile.fileName,
+            size: uploadedFile.size,
+            type: uploadedFile.type,
+            mimetype: uploadedFile.mimetype,
+            expiresAt: uploadedFile.expiresAt,
+          };
+          
+          const newFormData = { ...prevFormData, virtualTour: updatedVirtualTour };
+          
+          // Update the store
+          updateMediaUploads(newFormData);
+          
+          console.log("Updated video with uploaded URL:", uploadedFile.url);
+          
+          return newFormData;
+        });
+        
+        return videoFile;
       } else {
-        console.warn("No uploaded videos in response:", response);
+        console.warn("No uploaded files in response:", response);
+        return null;
       }
     } catch (error: any) {
       console.error("Error uploading video to server:", error);
@@ -484,6 +562,7 @@ export default function CommercialPropertyMediaUploadScreen() {
           "Failed to upload video. Please try again."
         );
       }
+      return null;
     }
   };
 
@@ -549,6 +628,9 @@ export default function CommercialPropertyMediaUploadScreen() {
           type: 'video/mp4',
         };
         
+        // Clear any existing URL when video is added
+        console.log("🔄 Video added, clearing any existing URL");
+        
         // Add to form data first
         updateFormData('virtualTour', newVirtualTour);
         
@@ -584,6 +666,9 @@ export default function CommercialPropertyMediaUploadScreen() {
           type: 'video/mp4',
         };
         
+        // Clear any existing URL when video is added
+        console.log("🔄 Video added, clearing any existing URL");
+        
         // Add to form data first
         updateFormData('virtualTour', newVirtualTour);
         
@@ -600,9 +685,14 @@ export default function CommercialPropertyMediaUploadScreen() {
     const newPhotos = formData.photos.filter((_, i) => i !== index);
     updateFormData('photos', newPhotos);
     
+    // Check if there are still unuploaded images after removal
+    const stillUnuploaded = newPhotos.filter(photo => !photo.uploadedUrl);
+    setHasUnuploadedImages(stillUnuploaded.length > 0);
+    
     // TODO: If the photo was uploaded, we could also delete it from server
     // For now, we'll just remove it from local state
     console.log("Removed photo:", photoToRemove);
+    console.log("Remaining unuploaded images after removal:", stillUnuploaded.length);
   };
 
   const retryUpload = async (photoIndex: number) => {
@@ -621,32 +711,95 @@ export default function CommercialPropertyMediaUploadScreen() {
     }
   };
 
+  const uploadAllImages = async () => {
+    console.log("🚀 Upload All Images button clicked!");
+    
+    if (!formData.photos || formData.photos.length === 0) {
+      console.log("❌ No photos to upload");
+      Alert.alert("Error", "No images to upload");
+      return;
+    }
+
+    console.log("📸 Total photos in formData:", formData.photos.length);
+    setIsUploading(true);
+    
+    try {
+      const unuploadedPhotos = formData.photos.filter(photo => !photo.uploadedUrl);
+
+      console.log("📤 Unuploaded photos found:", unuploadedPhotos.length);
+      console.log("📤 Unuploaded photos details:", unuploadedPhotos.map(p => ({ name: p.name, uri: p.uri?.substring(0, 50) + '...' })));
+
+      if (unuploadedPhotos.length === 0) {
+        console.log("✅ All images are already uploaded");
+        Alert.alert("Info", "All images are already uploaded");
+        setHasUnuploadedImages(false);
+        setIsUploading(false);
+        return;
+      }
+
+      console.log(`🔄 Starting batch upload of ${unuploadedPhotos.length} images`);
+      
+      // Upload all images one by one
+      for (let i = 0; i < unuploadedPhotos.length; i++) {
+        const photo = unuploadedPhotos[i];
+        const originalIndex = formData.photos.indexOf(photo);
+        console.log(`📡 Uploading photo ${i + 1}/${unuploadedPhotos.length}: ${photo.name}`);
+        await uploadImageToServer(photo, originalIndex);
+      }
+      
+      setHasUnuploadedImages(false);
+      console.log("🎉 All images uploaded successfully!");
+      Alert.alert("Success", "All images uploaded successfully!");
+      
+    } catch (error) {
+      console.error("💥 Error uploading batch images:", error);
+      Alert.alert("Error", "Some images failed to upload. Please try again.");
+    } finally {
+      setIsUploading(false);
+      console.log("🏁 Upload process finished");
+    }
+  };
+
   const transformFormDataToApiFormat = () => {
     const apiData: any = {
       title: data.propertyDetails?.propertyTitle || "",
       type: "commercial",
     };
 
-    // Transform photos to match schema format
+    // Transform photos to match schema format - only include successfully uploaded photos
     if (formData.photos.length > 0) {
-      apiData.images = formData.photos.map((photo, index) => ({
-        key: photo.uploadedKey || `photo_${index}`, // Use uploaded key if available
-        url: photo.uploadedUrl || photo.uri, // Use uploadedUrl if available
+      const uploadedPhotos = formData.photos.filter(photo => photo.uploadedUrl);
+      
+      console.log("📸 Total photos in formData:", formData.photos.length);
+      console.log("📤 Successfully uploaded photos:", uploadedPhotos.length);
+      console.log("🔗 Uploaded photo URLs:", uploadedPhotos.map(photo => photo.uploadedUrl));
+      
+      apiData.images = uploadedPhotos.map(photo => ({
+        key: photo.uploadedKey || photo.fileName || photo.name,
+        url: photo.uploadedUrl,
       }));
+      
+      console.log("📝 API images array:", apiData.images);
     }
 
     // Transform virtual tour
     if (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) {
-      // For YouTube/Vimeo URLs, we might store them differently
-      apiData.virtualTourUrl = formData.virtualTour;
-    } else if (typeof formData.virtualTour === 'object' && formData.virtualTour.uri) {
-      // For uploaded video files
+      // For YouTube/Vimeo URLs, store in videos array
       apiData.videos = [{
-        key: formData.virtualTour.uploadedKey || 'virtual_tour',
-        url: formData.virtualTour.uploadedUrl || formData.virtualTour.uri, // Use uploadedUrl if available
+        key: 'virtual_tour_url',
+        url: formData.virtualTour
       }];
+      console.log("🎥 Virtual tour URL added:", formData.virtualTour);
+    } else if (typeof formData.virtualTour === 'object' && formData.virtualTour.uploadedUrl) {
+      // For uploaded video files, only include if successfully uploaded
+      apiData.videos = [{
+        key: formData.virtualTour.uploadedKey || formData.virtualTour.fileName || formData.virtualTour.name,
+        url: formData.virtualTour.uploadedUrl,
+      }];
+      console.log("🎥 Virtual tour video uploaded:", formData.virtualTour.uploadedUrl);
     }
 
+    console.log("🚀 Final API data being sent to draft:", apiData);
     return apiData;
   };
 
@@ -685,10 +838,9 @@ export default function CommercialPropertyMediaUploadScreen() {
       updateMediaUploads(formData);
       const apiData = transformFormDataToApiFormat();
       const propertyId = data.propertyId;
-      console.log(
-        "Commercial Property ID from store before draft API:",
-        propertyId
-      );
+      
+      console.log("🏠 Commercial Property ID from store before draft API:", propertyId);
+      
       if (!propertyId) {
         Alert.alert(
           "Error",
@@ -696,13 +848,17 @@ export default function CommercialPropertyMediaUploadScreen() {
         );
         return;
       }
-      console.log("Saving commercial property draft with media data:", {
-        propertyId,
-        ...apiData,
-      });
-      await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
+      
+      const finalPayload = { propertyId, ...apiData };
+      console.log("💾 Saving commercial property draft with complete media data:");
+      console.log("📋 Property ID:", propertyId);
+      console.log("🖼️ Images count:", apiData.images?.length || 0);
+      console.log("🎥 Videos count:", apiData.videos?.length || 0);
+      console.log("📦 Complete payload:", JSON.stringify(finalPayload, null, 2));
+      
+      await saveDraftPropertyMutation.mutateAsync(finalPayload);
     } catch (error) {
-      console.error("Error in proceedWithDraft:", error);
+      console.error("💥 Error in proceedWithDraft:", error);
     }
   };
 
@@ -713,9 +869,43 @@ export default function CommercialPropertyMediaUploadScreen() {
     newErrors.photos = validatePhotos(formData.photos);
     newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
 
-    // Check if all required fields are filled and no validation errors
+    // Check if all images are uploaded
+    const unuploadedPhotos = formData.photos.filter(photo => !photo.uploadedUrl);
+    
+    // Check if virtual tour is properly set (either URL or uploaded video)
+    const hasValidVirtualTour = 
+      (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ||
+      (typeof formData.virtualTour === 'object' && formData.virtualTour.uploadedUrl);
+    
+    // Check if virtual tour video is still uploading
+    const isVideoUploading = 
+      typeof formData.virtualTour === 'object' && 
+      formData.virtualTour.uri && 
+      !formData.virtualTour.uploadedUrl &&
+      uploadVideosMutation.isPending;
+
+    console.log("🔍 Form validation check:");
+    console.log("📸 Photos count:", formData.photos.length);
+    console.log("📤 Unuploaded photos:", unuploadedPhotos.length);
+    console.log("🎥 Has valid virtual tour:", hasValidVirtualTour);
+    console.log("⏳ Is video uploading:", isVideoUploading);
+    console.log("📱 Is uploading:", isUploading);
+    console.log("🖼️ Images mutation pending:", uploadImagesMutation.isPending);
+    console.log("🎬 Videos mutation pending:", uploadVideosMutation.isPending);
+
+    // Form is valid when:
+    // 1. At least 5 photos and all are uploaded
+    // 2. Virtual tour is required - either URL or uploaded video
+    // 3. No validation errors
+    // 4. No uploads in progress
     return (
       formData.photos.length >= 5 &&
+      unuploadedPhotos.length === 0 &&
+      hasValidVirtualTour &&
+      !isVideoUploading &&
+      !isUploading &&
+      !uploadImagesMutation.isPending &&
+      !uploadVideosMutation.isPending &&
       Object.values(newErrors).every(error => !error)
     );
   };
@@ -786,28 +976,46 @@ export default function CommercialPropertyMediaUploadScreen() {
                     <Typography variant="caption" style={styles.photoSize}>
                       {formatFileSize(photo.size)} • {photo.width}x{photo.height}
                     </Typography>
-                                         {photo.uploadedUrl ? (
-                       <Typography variant="caption" style={styles.uploadStatus}>
-                         ✓ Uploaded
-                       </Typography>
-                     ) : (
-                       <TouchableOpacity onPress={() => retryUpload(index)}>
-                         <Typography variant="caption" style={styles.retryStatus}>
-                           ↻ Retry
-                         </Typography>
-                       </TouchableOpacity>
-                     )}
+                    {photo.uploadedUrl ? (
+                      <Typography variant="caption" style={styles.uploadedText}>
+                        ✓ Uploaded
+                      </Typography>
+                    ) : (
+                      <TouchableOpacity 
+                        onPress={() => retryUpload(index)}
+                        style={styles.retryButton}
+                        disabled={isUploading || uploadImagesMutation.isPending}
+                      >
+                        <Typography variant="caption" style={styles.retryText}>
+                          {(isUploading || uploadImagesMutation.isPending) ? "Uploading..." : "⏳ Waiting"}
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </View>
-              ))}
-            </View>
-          )}
-        </View>
+               ))}
+             </View>
+           )}
+
+           {/* Upload All Images Button - Show only when there are unuploaded images */}
+           {hasUnuploadedImages && formData.photos.length > 0 && (
+             <TouchableOpacity
+               style={styles.uploadAllButton}
+               onPress={uploadAllImages}
+               disabled={isUploading || uploadImagesMutation.isPending}
+             >
+               <Upload size={20} color={colors.neutral.white} />
+               <Typography variant="body" style={styles.uploadAllButtonText}>
+                 {isUploading || uploadImagesMutation.isPending ? "Uploading Images..." : "Upload All Images"}
+               </Typography>
+             </TouchableOpacity>
+           )}
+         </View>
 
         {/* Virtual Tour Section */}
         <View style={styles.uploadSection}>
           <Typography variant="h5" style={styles.sectionSubtitle}>
-            Virtual Tour or Video Walkthrough
+            Virtual Tour or Video Walkthrough *
           </Typography>
           
           <Input
@@ -816,10 +1024,12 @@ export default function CommercialPropertyMediaUploadScreen() {
             onChangeText={(value) => updateFormData('virtualTour', value)}
             placeholder="https://youtube.com/watch?v=..."
             error={errors.virtualTour}
+            editable={!(typeof formData.virtualTour === 'object' && formData.virtualTour.uri)}
+            style={typeof formData.virtualTour === 'object' && formData.virtualTour.uri ? { opacity: 0.5 } : {}}
           />
           
           <Typography variant="caption" color="secondary" style={styles.validationText}>
-            Optional: Enter YouTube or Vimeo URL
+            Required: Enter YouTube or Vimeo URL OR upload a video file (only one option can be selected)
           </Typography>
 
           <View style={styles.orDivider}>
@@ -830,16 +1040,21 @@ export default function CommercialPropertyMediaUploadScreen() {
             <View style={styles.dividerLine} />
           </View>
 
-                     <TouchableOpacity
-             style={styles.uploadButton}
-             onPress={showVideoPickerOptions}
-             disabled={uploadVideosMutation.isPending}
-           >
-             <Video size={24} color={colors.primary.gold} />
-             <Typography variant="body" style={styles.uploadButtonText}>
-               {uploadVideosMutation.isPending ? "Uploading Video..." : "Upload Video File"}
-             </Typography>
-           </TouchableOpacity>
+                               <TouchableOpacity
+            style={[
+              styles.uploadButton, 
+              (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? { opacity: 0.5 } : {}
+            ]}
+            onPress={showVideoPickerOptions}
+            disabled={uploadVideosMutation.isPending || Boolean(typeof formData.virtualTour === 'string' && formData.virtualTour.trim())}
+          >
+            <Video size={24} color={colors.primary.gold} />
+            <Typography variant="body" style={styles.uploadButtonText}>
+              {uploadVideosMutation.isPending ? "Uploading Video..." : 
+               (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? "URL Already Added" : 
+               "Upload Video File"}
+            </Typography>
+          </TouchableOpacity>
 
                      {/* Show selected video info if present */}
            {typeof formData.virtualTour === 'object' && formData.virtualTour.uri && (
@@ -849,17 +1064,17 @@ export default function CommercialPropertyMediaUploadScreen() {
                  <Typography variant="body" style={styles.virtualTourText}>
                    {formData.virtualTour.name} ({formatFileSize(formData.virtualTour.size)})
                  </Typography>
-                 {formData.virtualTour.uploadedUrl ? (
-                   <Typography variant="caption" style={styles.uploadStatus}>
-                     ✓ Uploaded
-                   </Typography>
-                 ) : (
-                   <TouchableOpacity onPress={retryVideoUpload}>
-                     <Typography variant="caption" style={styles.retryStatus}>
-                       ↻ Retry
-                     </Typography>
-                   </TouchableOpacity>
-                 )}
+                                   {formData.virtualTour.uploadedUrl ? (
+                    <Typography variant="caption" style={styles.uploadedText}>
+                      ✓ Uploaded
+                    </Typography>
+                  ) : (
+                    <TouchableOpacity onPress={retryVideoUpload}>
+                      <Typography variant="caption" style={styles.retryText}>
+                        ↻ Retry
+                      </Typography>
+                    </TouchableOpacity>
+                  )}
                </View>
                <TouchableOpacity onPress={() => updateFormData('virtualTour', '')}>
                  <X size={20} color={colors.text.secondary} />
@@ -872,7 +1087,7 @@ export default function CommercialPropertyMediaUploadScreen() {
         <Button
           title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-          //disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
+          disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
       </ScrollView>
@@ -973,21 +1188,26 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 10,
   },
-  photoSize: {
-    color: colors.neutral.white,
-    fontSize: 9,
-    opacity: 0.8,
-  },
-  uploadStatus: {
-    color: colors.status.success,
-    fontSize: 9,
-    fontWeight: '600',
-  },
-  retryStatus: {
-    color: colors.primary.gold,
-    fontSize: 9,
-    fontWeight: '600',
-  },
+     photoSize: {
+     color: colors.neutral.white,
+     fontSize: 9,
+     opacity: 0.8,
+   },
+
+   uploadedText: {
+     color: colors.status.success,
+     fontSize: 10,
+     fontWeight: '600',
+   },
+   retryButton: {
+     marginTop: 2,
+   },
+   retryText: {
+     color: colors.primary.gold,
+     fontSize: 10,
+     fontWeight: '600',
+     textDecorationLine: 'underline',
+   },
   orDivider: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1020,8 +1240,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  virtualTourText: {
-    marginLeft: spacing.xs,
-    color: colors.text.primary,
-  },
-}); 
+     virtualTourText: {
+     marginLeft: spacing.xs,
+     color: colors.text.primary,
+   },
+   uploadAllButton: {
+     flexDirection: 'row',
+     alignItems: 'center',
+     justifyContent: 'center',
+     backgroundColor: colors.primary.gold,
+     borderRadius: radius.input,
+     paddingVertical: spacing.md,
+     paddingHorizontal: spacing.lg,
+     marginTop: spacing.md,
+     elevation: 2,
+     shadowColor: colors.primary.gold,
+     shadowOffset: {
+       width: 0,
+       height: 2,
+     },
+     shadowOpacity: 0.25,
+     shadowRadius: 3.84,
+   },
+   uploadAllButtonText: {
+     marginLeft: spacing.sm,
+     color: colors.neutral.white,
+     fontWeight: '600',
+     fontSize: 16,
+   },
+ }); 

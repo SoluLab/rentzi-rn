@@ -192,8 +192,8 @@ export const useHomeownerUploadPropertyImages = (
           name: image.name || `image_${index}.jpg`,
         };
         
-        // Append each image with the "images" field name
-        formData.append("images", file as any);
+        // Append each image to FormData with "files" key
+        formData.append("files", file);
       });
 
       console.log("FormData created:", formData);
@@ -218,10 +218,10 @@ export const useHomeownerUploadPropertyImages = (
         endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_IMAGES(
           propertyId.toString()
         ),
-        data: formData as any,
+        data: formData,
         auth: true,
         customHeaders: {
-          // Don't set Content-Type for multipart/form-data, let the browser set it with boundary
+          'Content-Type': 'multipart/form-data',
         },
       });
     },
@@ -275,6 +275,85 @@ export const useHomeownerDeletePropertyImage = (
   });
 };
 
+// 7.5. Upload Property Videos (exactly like images)
+export const useHomeownerUploadPropertyVideos = (
+  options?: Omit<
+    UseMutationOptions<
+      any,
+      ApiError,
+      { propertyId: string | number; videos: any[] }
+    >,
+    "mutationFn"
+  >
+) => {
+  const queryClient = useQueryClient();
+  return useMutation<
+    any,
+    ApiError,
+    { propertyId: string | number; videos: any[] }
+  >({
+    mutationFn: async ({ propertyId, videos }) => {
+      const formData = new FormData();
+      
+      // Ensure each video is properly formatted for React Native
+      videos.forEach((video, index) => {
+        // Validate that the video object has required properties
+        if (!video.uri) {
+          throw new Error(`Video ${index} is missing URI`);
+        }
+        
+        // Create a proper file object for React Native
+        const file = {
+          uri: video.uri,
+          type: video.type || 'video/mp4',
+          name: video.name || `video_${index}.mp4`,
+        };
+        
+        // Append each video to FormData with "files" key
+        formData.append("files", file);
+      });
+
+      const baseURL = BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER;
+      const endpoint = ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId.toString());
+      const fullURL = baseURL + endpoint;
+      
+      console.log("📋 FormData created:", formData);
+      console.log("📹 Videos to upload:", videos);
+      console.log("🌐 Base URL:", baseURL);
+      console.log("📂 Endpoint:", endpoint);
+      console.log("🔗 Full URL:", fullURL);
+      
+      // Debug: Log each video being added to FormData
+      videos.forEach((video, index) => {
+        console.log(`Video ${index}:`, {
+          uri: video.uri,
+          type: video.type,
+          name: video.name,
+        });
+      });
+
+      return apiPost({
+        baseURL: baseURL,
+        endpoint: endpoint,
+        data: formData,
+        auth: true,
+        customHeaders: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+    },
+    onSuccess: (_, { propertyId }) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.homeownerProperty(propertyId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.homeownerPropertyFiles(propertyId),
+      });
+    },
+    ...options,
+  });
+};
+
 // 8. Upload Property Files
 export const useHomeownerUploadPropertyFiles = (
   options?: Omit<
@@ -299,11 +378,14 @@ export const useHomeownerUploadPropertyFiles = (
       });
       formData.append("fileType", fileType);
 
+      // Use different endpoint based on file type
+      const endpoint = fileType === 'video' 
+        ? ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_VIDEOS(propertyId.toString())
+        : ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId.toString());
+
       return apiPost({
         baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(
-          propertyId.toString()
-        ),
+        endpoint,
         data: formData as any,
         auth: true,
         customHeaders: {

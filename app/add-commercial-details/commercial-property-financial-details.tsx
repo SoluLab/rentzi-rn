@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   FlatList,
   Alert,
 } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
@@ -290,10 +290,13 @@ export default function CommercialPropertyFinancialDetailsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Financial & Rental Details" />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Typography variant="h4" style={styles.sectionTitle}>
           Financial & Rental Information
@@ -418,7 +421,7 @@ export default function CommercialPropertyFinancialDetailsScreen() {
           disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Booking Duration Modal */}
       <Modal

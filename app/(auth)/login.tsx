@@ -53,9 +53,9 @@ export default function LoginScreen() {
   };
 
   const handleForgotPassword = () => {
-    router.push({ 
-      pathname: '/(auth)/forgot-password', 
-      params: { roleType: userType } 
+    router.push({
+      pathname: "/(auth)/forgot-password",
+      params: { roleType: userType },
     });
   };
 
@@ -71,20 +71,13 @@ export default function LoginScreen() {
         >
           <View style={styles.container}>
             {/* Header Section */}
-            <View style={styles.headerSection}>
-              <View style={styles.logoContainer}>
-                <Image
-                  source={require("../../assets/images/logo.png")}
-                  style={styles.logo}
-                  resizeMode="cover"
-                />
-              </View>
-              <Typography variant="h4" color="white" align="center" weight="bold">
-                Rentzi
-              </Typography>
-              <Typography variant="body" color="gold" align="center">
-                Welcome to Luxury Livings
-              </Typography>
+
+            <View style={styles.logoContainer}>
+              <Image
+                source={require("../../assets/images/logo/rentzi-logo-verti-white.png")}
+                style={styles.logo}
+                resizeMode="cover"
+              />
             </View>
 
             {/* Form Section */}
@@ -222,8 +215,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxxl,
   },
   logo: {
-    width: 60,
-    height: 60,
+    width: 120,
+    height: 120,
   },
   form: {
     gap: spacing.xs,

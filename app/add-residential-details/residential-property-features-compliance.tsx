@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   FlatList,
@@ -10,44 +9,43 @@ import {
   Switch,
   Alert,
   Platform,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Input } from '@/components/ui/Input';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { ChevronDown, Check, Plus, X } from 'lucide-react-native';
-import { useResidentialPropertyStore, FeaturesComplianceData } from '@/stores/residentialPropertyStore';
-import { useHomeownerSavePropertyDraft } from '@/services/homeownerAddProperty';
+} from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useRouter } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { ChevronDown, Check, Plus, X } from "lucide-react-native";
+import {
+  useResidentialPropertyStore,
+  FeaturesComplianceData,
+} from "@/stores/residentialPropertyStore";
+import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
 
 // Furnishing options
 const FURNISHING_OPTIONS = [
-  'Fully Furnished',
-  'Partially Furnished',
-  'Unfurnished',
+  "Fully Furnished",
+  "Partially Furnished",
+  "Unfurnished",
 ];
 
 // Featured amenities options
 const FEATURED_AMENITIES = [
-  'Pool',
-  'Jacuzzi',
-  'Chef Kitchen',
-  'Gym',
-  'Wi-Fi',
-  'Workstation',
+  "Pool",
+  "Jacuzzi",
+  "Chef Kitchen",
+  "Gym",
+  "Wi-Fi",
+  "Workstation",
 ];
 
 // House rules options
-const HOUSE_RULES = [
-  'No Parties',
-  'No Pets',
-  'No Smoking',
-  'Quiet Hours',
-];
+const HOUSE_RULES = ["No Parties", "No Pets", "No Smoking", "Quiet Hours"];
 
 interface FeaturesComplianceErrors {
   furnishingDescription?: string;
@@ -60,58 +58,70 @@ interface FeaturesComplianceErrors {
 export default function ResidentialPropertyFeaturesComplianceScreen() {
   const router = useRouter();
   const { data, updateFeaturesCompliance } = useResidentialPropertyStore();
-  
+
   // API mutation hook for updating property
   const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
     onSuccess: (response) => {
-      console.log('Property draft saved successfully with features and compliance details:', response);
+      console.log(
+        "Property draft saved successfully with features and compliance details:",
+        response
+      );
       // Navigate to media upload step
-      router.push('/add-residential-details/residential-property-media-upload');
+      router.push("/add-residential-details/residential-property-media-upload");
     },
-  
+
     onError: (error) => {
-      console.error('Error saving property draft with features and compliance details:', error);
-      Alert.alert('Error', 'Failed to save property draft. Please try again.');
+      console.error(
+        "Error saving property draft with features and compliance details:",
+        error
+      );
+      Alert.alert("Error", "Failed to save property draft. Please try again.");
     },
   });
-  
-  const [formData, setFormData] = useState<FeaturesComplianceData>(data.featuresCompliance || {
-    furnishingDescription: '',
-    featuredAmenities: [],
-    customAmenities: [],
-    smartHomeFeatures: false,
-    conciergeServices: '',
-    checkInTime: {
-      hour: 3,
-      minute: 0,
-      period: 'PM',
-    },
-    checkOutTime: {
-      hour: 11,
-      minute: 0,
-      period: 'AM',
-    },
-    houseRules: [],
-    localHighlights: '',
-  });
+
+  const [formData, setFormData] = useState<FeaturesComplianceData>(
+    data.featuresCompliance || {
+      furnishingDescription: "",
+      featuredAmenities: [],
+      customAmenities: [],
+      smartHomeFeatures: false,
+      conciergeServices: "",
+      checkInTime: {
+        hour: 3,
+        minute: 0,
+        period: "PM",
+      },
+      checkOutTime: {
+        hour: 11,
+        minute: 0,
+        period: "AM",
+      },
+      houseRules: [],
+      localHighlights: "",
+    }
+  );
   const [errors, setErrors] = useState<FeaturesComplianceErrors>({});
   const [showFurnishingModal, setShowFurnishingModal] = useState(false);
   const [showCustomAmenityModal, setShowCustomAmenityModal] = useState(false);
   const [showCheckInTimeModal, setShowCheckInTimeModal] = useState(false);
   const [showCheckOutTimeModal, setShowCheckOutTimeModal] = useState(false);
-  const [customAmenityInput, setCustomAmenityInput] = useState('');
+  const [customAmenityInput, setCustomAmenityInput] = useState("");
 
   // Validation functions
-  const validateFurnishingDescription = (furnishing: string): string | undefined => {
+  const validateFurnishingDescription = (
+    furnishing: string
+  ): string | undefined => {
     if (!furnishing) {
-      return 'Furnishing description is required';
+      return "Furnishing description is required";
     }
     return undefined;
   };
 
-  const validateFeaturedAmenities = (amenities: string[]): string | undefined => {
+  const validateFeaturedAmenities = (
+    amenities: string[]
+  ): string | undefined => {
     if (amenities.length === 0) {
-      return 'Please select at least one featured amenity';
+      return "Please select at least one featured amenity";
     }
     return undefined;
   };
@@ -123,20 +133,20 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
 
   const validateHouseRules = (rules: string[]): string | undefined => {
     if (rules.length === 0) {
-      return 'Please select at least one house rule';
+      return "Please select at least one house rule";
     }
     return undefined;
   };
 
   const validateLocalHighlights = (highlights: string): string | undefined => {
     if (!highlights.trim()) {
-      return 'Local highlights are required';
+      return "Local highlights are required";
     }
     if (highlights.length < 10) {
-      return 'Local highlights must be at least 10 characters long';
+      return "Local highlights must be at least 10 characters long";
     }
     if (highlights.length > 200) {
-      return 'Local highlights cannot exceed 200 characters';
+      return "Local highlights cannot exceed 200 characters";
     }
     return undefined;
   };
@@ -144,90 +154,122 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   const validateForm = (): boolean => {
     const newErrors: FeaturesComplianceErrors = {};
 
-    newErrors.furnishingDescription = validateFurnishingDescription(formData.furnishingDescription);
-    newErrors.featuredAmenities = validateFeaturedAmenities(formData.featuredAmenities);
+    newErrors.furnishingDescription = validateFurnishingDescription(
+      formData.furnishingDescription
+    );
+    newErrors.featuredAmenities = validateFeaturedAmenities(
+      formData.featuredAmenities
+    );
     newErrors.checkInOutTimings = validateCheckInOutTimings();
     newErrors.houseRules = validateHouseRules(formData.houseRules);
-    newErrors.localHighlights = validateLocalHighlights(formData.localHighlights);
+    newErrors.localHighlights = validateLocalHighlights(
+      formData.localHighlights
+    );
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== undefined);
+    return !Object.values(newErrors).some((error) => error !== undefined);
   };
 
   const updateFormData = (field: keyof FeaturesComplianceData, value: any) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateFeaturesCompliance(newFormData);
-    
+
     // Clear error when user starts typing/selecting
     if (errors[field as keyof FeaturesComplianceErrors]) {
-      setErrors(prev => ({ ...prev, [field as keyof FeaturesComplianceErrors]: undefined }));
+      setErrors((prev) => ({
+        ...prev,
+        [field as keyof FeaturesComplianceErrors]: undefined,
+      }));
     }
   };
 
   const toggleAmenity = (amenity: string) => {
     const currentAmenities = [...formData.featuredAmenities];
     const index = currentAmenities.indexOf(amenity);
-    
+
     if (index > -1) {
       currentAmenities.splice(index, 1);
     } else {
       currentAmenities.push(amenity);
     }
-    
-    updateFormData('featuredAmenities', currentAmenities);
+
+    updateFormData("featuredAmenities", currentAmenities);
   };
 
   const toggleHouseRule = (rule: string) => {
     const currentRules = [...formData.houseRules];
     const index = currentRules.indexOf(rule);
-    
+
     if (index > -1) {
       currentRules.splice(index, 1);
     } else {
       currentRules.push(rule);
     }
-    
-    updateFormData('houseRules', currentRules);
+
+    updateFormData("houseRules", currentRules);
   };
 
   const addCustomAmenity = () => {
     if (customAmenityInput.trim()) {
-      const newCustomAmenities = [...formData.customAmenities, customAmenityInput.trim()];
-      updateFormData('customAmenities', newCustomAmenities);
-      setCustomAmenityInput('');
+      const newCustomAmenities = [
+        ...formData.customAmenities,
+        customAmenityInput.trim(),
+      ];
+      updateFormData("customAmenities", newCustomAmenities);
+      setCustomAmenityInput("");
       setShowCustomAmenityModal(false);
     }
   };
 
   const removeCustomAmenity = (index: number) => {
-    const newCustomAmenities = formData.customAmenities.filter((_, i) => i !== index);
-    updateFormData('customAmenities', newCustomAmenities);
+    const newCustomAmenities = formData.customAmenities.filter(
+      (_, i) => i !== index
+    );
+    updateFormData("customAmenities", newCustomAmenities);
   };
 
-  const formatTime = (time: { hour: number; minute: number; period: 'AM' | 'PM' }) => {
-    return `${time.hour}:${time.minute.toString().padStart(2, '0')} ${time.period}`;
+  const formatTime = (time: {
+    hour: number;
+    minute: number;
+    period: "AM" | "PM";
+  }) => {
+    return `${time.hour}:${time.minute.toString().padStart(2, "0")} ${
+      time.period
+    }`;
   };
 
-  const updateCheckInTime = (field: 'hour' | 'minute' | 'period', value: number | 'AM' | 'PM') => {
+  const updateCheckInTime = (
+    field: "hour" | "minute" | "period",
+    value: number | "AM" | "PM"
+  ) => {
     const newCheckInTime = { ...formData.checkInTime, [field]: value };
-    updateFormData('checkInTime', newCheckInTime);
+    updateFormData("checkInTime", newCheckInTime);
   };
 
-  const updateCheckOutTime = (field: 'hour' | 'minute' | 'period', value: number | 'AM' | 'PM') => {
+  const updateCheckOutTime = (
+    field: "hour" | "minute" | "period",
+    value: number | "AM" | "PM"
+  ) => {
     const newCheckOutTime = { ...formData.checkOutTime, [field]: value };
-    updateFormData('checkOutTime', newCheckOutTime);
+    updateFormData("checkOutTime", newCheckOutTime);
   };
 
   const isFormValid = () => {
     // Re-validate the form to check if it's actually valid
     const newErrors: FeaturesComplianceErrors = {};
 
-    newErrors.furnishingDescription = validateFurnishingDescription(formData.furnishingDescription);
-    newErrors.featuredAmenities = validateFeaturedAmenities(formData.featuredAmenities);
+    newErrors.furnishingDescription = validateFurnishingDescription(
+      formData.furnishingDescription
+    );
+    newErrors.featuredAmenities = validateFeaturedAmenities(
+      formData.featuredAmenities
+    );
     newErrors.checkInOutTimings = validateCheckInOutTimings();
     newErrors.houseRules = validateHouseRules(formData.houseRules);
-    newErrors.localHighlights = validateLocalHighlights(formData.localHighlights);
+    newErrors.localHighlights = validateLocalHighlights(
+      formData.localHighlights
+    );
 
     // Check if all required fields are filled and no validation errors
     return (
@@ -235,19 +277,25 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
       formData.featuredAmenities.length > 0 &&
       formData.houseRules.length > 0 &&
       formData.localHighlights.trim() &&
-      Object.values(newErrors).every(error => !error)
+      Object.values(newErrors).every((error) => !error)
     );
   };
 
   const transformFormDataToApiFormat = () => ({
-    title: data.propertyDetails?.propertyTitle || '',
+    title: data.propertyDetails?.propertyTitle || "",
     furnishingDescription: formData.furnishingDescription,
     checkInCheckOutTimes: {
-      checkIn: `${formData.checkInTime.hour}:${formData.checkInTime.minute.toString().padStart(2, '0')} ${formData.checkInTime.period}`,
-      checkOut: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute.toString().padStart(2, '0')} ${formData.checkOutTime.period}`,
+      checkIn: `${formData.checkInTime.hour}:${formData.checkInTime.minute
+        .toString()
+        .padStart(2, "0")} ${formData.checkInTime.period}`,
+      checkOut: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute
+        .toString()
+        .padStart(2, "0")} ${formData.checkOutTime.period}`,
     },
     localHighlights: formData.localHighlights,
-    isFurnished: formData.furnishingDescription === 'Fully Furnished' || formData.furnishingDescription === 'Partially Furnished',
+    isFurnished:
+      formData.furnishingDescription === "Fully Furnished" ||
+      formData.furnishingDescription === "Partially Furnished",
     conciergeServicesIncluded: formData.conciergeServices,
   });
 
@@ -255,7 +303,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => {
-        updateFormData('furnishingDescription', item);
+        updateFormData("furnishingDescription", item);
         setShowFurnishingModal(false);
       }}
     >
@@ -265,7 +313,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
 
   const renderAmenityItem = ({ item }: { item: string }) => {
     const isSelected = formData.featuredAmenities.includes(item);
-    
+
     return (
       <TouchableOpacity
         style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
@@ -283,7 +331,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
 
   const renderHouseRuleItem = ({ item }: { item: string }) => {
     const isSelected = formData.houseRules.includes(item);
-    
+
     return (
       <TouchableOpacity
         style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
@@ -305,16 +353,22 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
         updateFeaturesCompliance(formData);
         const apiData = transformFormDataToApiFormat();
         const propertyId = data.propertyId;
-        console.log('Property ID from store before draft API:', propertyId);
+        console.log("Property ID from store before draft API:", propertyId);
         if (!propertyId) {
-          Alert.alert('Error', 'Property ID not found. Please go back and try again.');
+          Alert.alert(
+            "Error",
+            "Property ID not found. Please go back and try again."
+          );
           return;
         }
-        console.log('Saving property draft with features and compliance data:', { propertyId, ...apiData });
-        console.log('API data being sent:', apiData);
+        console.log(
+          "Saving property draft with features and compliance data:",
+          { propertyId, ...apiData }
+        );
+        console.log("API data being sent:", apiData);
         await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
       } catch (error) {
-        console.error('Error in handleNext:', error);
+        console.error("Error in handleNext:", error);
       }
     }
   };
@@ -322,13 +376,16 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Features & Compliance" />
-      <ScrollView 
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Typography variant="h4" style={styles.sectionTitle}>
-         Features & Compliance
+          Features & Compliance
         </Typography>
 
         {/* Furnishing Description */}
@@ -337,16 +394,31 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
             Furnishing Description *
           </Typography>
           <TouchableOpacity
-            style={[styles.dropdown, errors.furnishingDescription && styles.error]}
+            style={[
+              styles.dropdown,
+              errors.furnishingDescription && styles.error,
+            ]}
             onPress={() => setShowFurnishingModal(true)}
           >
-            <Typography variant="body" style={formData.furnishingDescription ? styles.selectedText : styles.placeholder}>
-              {formData.furnishingDescription || 'Select furnishing description'}
+            <Typography
+              variant="body"
+              style={
+                formData.furnishingDescription
+                  ? styles.selectedText
+                  : styles.placeholder
+              }
+            >
+              {formData.furnishingDescription ||
+                "Select furnishing description"}
             </Typography>
             <ChevronDown size={20} color={colors.text.secondary} />
           </TouchableOpacity>
           {errors.furnishingDescription && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
+            <Typography
+              variant="caption"
+              color="error"
+              style={styles.errorText}
+            >
               {errors.furnishingDescription}
             </Typography>
           )}
@@ -357,7 +429,11 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           <Typography variant="body" style={styles.label}>
             Featured Amenities *
           </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
             Select at least one amenity
           </Typography>
           <View style={styles.amenitiesContainer}>
@@ -368,7 +444,11 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
             ))}
           </View>
           {errors.featuredAmenities && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
+            <Typography
+              variant="caption"
+              color="error"
+              style={styles.errorText}
+            >
               {errors.featuredAmenities}
             </Typography>
           )}
@@ -376,13 +456,14 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
 
         {/* Custom Amenities */}
         <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Custom Amenities
-          </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
             Add any additional amenities not listed above
           </Typography>
-          
+
           {formData.customAmenities.map((amenity, index) => (
             <View key={index} style={styles.customAmenityItem}>
               <Typography variant="body" style={styles.customAmenityText}>
@@ -396,7 +477,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               </TouchableOpacity>
             </View>
           ))}
-          
+
           <Button
             title="Add Custom Amenity"
             onPress={() => setShowCustomAmenityModal(true)}
@@ -413,12 +494,25 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
             </Typography>
             <Switch
               value={formData.smartHomeFeatures}
-              onValueChange={(value) => updateFormData('smartHomeFeatures', value)}
-              trackColor={{ false: colors.border.light, true: colors.primary.gold }}
-              thumbColor={formData.smartHomeFeatures ? colors.neutral.white : colors.text.secondary}
+              onValueChange={(value) =>
+                updateFormData("smartHomeFeatures", value)
+              }
+              trackColor={{
+                false: colors.border.light,
+                true: colors.primary.gold,
+              }}
+              thumbColor={
+                formData.smartHomeFeatures
+                  ? colors.neutral.white
+                  : colors.text.secondary
+              }
             />
           </View>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
             Optional: Enable if your property has smart home features
           </Typography>
         </View>
@@ -427,12 +521,16 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
         <Input
           label="Concierge Services"
           value={formData.conciergeServices}
-          onChangeText={(value) => updateFormData('conciergeServices', value)}
+          onChangeText={(value) => updateFormData("conciergeServices", value)}
           placeholder="e.g., 24/7 concierge, valet parking, room service"
           multiline
           numberOfLines={3}
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           Optional: Describe any concierge services available
         </Typography>
 
@@ -473,7 +571,11 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           <Typography variant="body" style={styles.label}>
             House Rules *
           </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
             Select applicable house rules
           </Typography>
           <View style={styles.amenitiesContainer}>
@@ -484,7 +586,11 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
             ))}
           </View>
           {errors.houseRules && (
-            <Typography variant="caption" color="error" style={styles.errorText}>
+            <Typography
+              variant="caption"
+              color="error"
+              style={styles.errorText}
+            >
               {errors.houseRules}
             </Typography>
           )}
@@ -494,14 +600,18 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
         <Input
           label="Local Highlights *"
           value={formData.localHighlights}
-          onChangeText={(value) => updateFormData('localHighlights', value)}
+          onChangeText={(value) => updateFormData("localHighlights", value)}
           placeholder="Describe nearby attractions, restaurants, and activities (1-2 lines)"
           error={errors.localHighlights}
           multiline
           numberOfLines={3}
           maxLength={200}
         />
-        <Typography variant="caption" color="secondary" style={styles.helperText}>
+        <Typography
+          variant="caption"
+          color="secondary"
+          style={styles.helperText}
+        >
           {formData.localHighlights.length}/200 characters
         </Typography>
 
@@ -512,7 +622,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Furnishing Description Modal */}
       <Modal
@@ -527,7 +637,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               <Typography variant="h4">✕</Typography>
             </TouchableOpacity>
           </View>
-          
+
           <FlatList
             data={FURNISHING_OPTIONS}
             renderItem={renderFurnishingItem}
@@ -550,7 +660,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               <Typography variant="h4">✕</Typography>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.modalContent}>
             <Input
               label="Custom Amenity"
@@ -559,7 +669,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               placeholder="Enter custom amenity"
               maxLength={50}
             />
-            
+
             <View style={styles.modalButtons}>
               <Button
                 title="Cancel"
@@ -591,63 +701,120 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               <Typography variant="h4">✕</Typography>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.timePickerContainer}>
             {/* Hours */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Hour</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Hour
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
                 {formData.checkInTime.hour}
               </Typography>
               <View style={styles.timePickerButtons}>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('hour', (formData.checkInTime.hour % 12) + 1)}
+                  onPress={() =>
+                    updateCheckInTime(
+                      "hour",
+                      (formData.checkInTime.hour % 12) + 1
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    +
+                  </Typography>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('hour', formData.checkInTime.hour === 1 ? 12 : formData.checkInTime.hour - 1)}
+                  onPress={() =>
+                    updateCheckInTime(
+                      "hour",
+                      formData.checkInTime.hour === 1
+                        ? 12
+                        : formData.checkInTime.hour - 1
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    −
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Minutes */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Minute</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Minute
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkInTime.minute.toString().padStart(2, '0')}
+                {formData.checkInTime.minute.toString().padStart(2, "0")}
               </Typography>
               <View style={styles.timePickerButtons}>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('minute', (formData.checkInTime.minute + 15) % 60)}
+                  onPress={() =>
+                    updateCheckInTime(
+                      "minute",
+                      (formData.checkInTime.minute + 15) % 60
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+15</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    +15
+                  </Typography>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckInTime('minute', formData.checkInTime.minute === 0 ? 45 : formData.checkInTime.minute - 15)}
+                  onPress={() =>
+                    updateCheckInTime(
+                      "minute",
+                      formData.checkInTime.minute === 0
+                        ? 45
+                        : formData.checkInTime.minute - 15
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−15</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    −15
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* AM/PM */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Period</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Period
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
                 {formData.checkInTime.period}
               </Typography>
               <TouchableOpacity
                 style={styles.timePickerActionButton}
-                onPress={() => updateCheckInTime('period', formData.checkInTime.period === 'AM' ? 'PM' : 'AM')}
+                onPress={() =>
+                  updateCheckInTime(
+                    "period",
+                    formData.checkInTime.period === "AM" ? "PM" : "AM"
+                  )
+                }
               >
-                <Typography variant="body" style={styles.timePickerButtonText}>Toggle</Typography>
+                <Typography variant="body" style={styles.timePickerButtonText}>
+                  Toggle
+                </Typography>
               </TouchableOpacity>
             </View>
           </View>
@@ -667,63 +834,120 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               <Typography variant="h4">✕</Typography>
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.timePickerContainer}>
             {/* Hours */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Hour</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Hour
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
                 {formData.checkOutTime.hour}
               </Typography>
               <View style={styles.timePickerButtons}>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('hour', (formData.checkOutTime.hour % 12) + 1)}
+                  onPress={() =>
+                    updateCheckOutTime(
+                      "hour",
+                      (formData.checkOutTime.hour % 12) + 1
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    +
+                  </Typography>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('hour', formData.checkOutTime.hour === 1 ? 12 : formData.checkOutTime.hour - 1)}
+                  onPress={() =>
+                    updateCheckOutTime(
+                      "hour",
+                      formData.checkOutTime.hour === 1
+                        ? 12
+                        : formData.checkOutTime.hour - 1
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    −
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Minutes */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Minute</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Minute
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
-                {formData.checkOutTime.minute.toString().padStart(2, '0')}
+                {formData.checkOutTime.minute.toString().padStart(2, "0")}
               </Typography>
               <View style={styles.timePickerButtons}>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('minute', (formData.checkOutTime.minute + 15) % 60)}
+                  onPress={() =>
+                    updateCheckOutTime(
+                      "minute",
+                      (formData.checkOutTime.minute + 15) % 60
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>+15</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    +15
+                  </Typography>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.timePickerActionButton}
-                  onPress={() => updateCheckOutTime('minute', formData.checkOutTime.minute === 0 ? 45 : formData.checkOutTime.minute - 15)}
+                  onPress={() =>
+                    updateCheckOutTime(
+                      "minute",
+                      formData.checkOutTime.minute === 0
+                        ? 45
+                        : formData.checkOutTime.minute - 15
+                    )
+                  }
                 >
-                  <Typography variant="body" style={styles.timePickerButtonText}>−15</Typography>
+                  <Typography
+                    variant="body"
+                    style={styles.timePickerButtonText}
+                  >
+                    −15
+                  </Typography>
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* AM/PM */}
             <View style={styles.timePickerColumn}>
-              <Typography variant="body" style={styles.timePickerLabel}>Period</Typography>
+              <Typography variant="body" style={styles.timePickerLabel}>
+                Period
+              </Typography>
               <Typography variant="h4" style={styles.timePickerValue}>
                 {formData.checkOutTime.period}
               </Typography>
               <TouchableOpacity
                 style={styles.timePickerActionButton}
-                onPress={() => updateCheckOutTime('period', formData.checkOutTime.period === 'AM' ? 'PM' : 'AM')}
+                onPress={() =>
+                  updateCheckOutTime(
+                    "period",
+                    formData.checkOutTime.period === "AM" ? "PM" : "AM"
+                  )
+                }
               >
-                <Typography variant="body" style={styles.timePickerButtonText}>Toggle</Typography>
+                <Typography variant="body" style={styles.timePickerButtonText}>
+                  Toggle
+                </Typography>
               </TouchableOpacity>
             </View>
           </View>
@@ -743,14 +967,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.lg,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   fieldContainer: {
     marginBottom: spacing.md,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
@@ -759,9 +983,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   dropdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -785,16 +1009,16 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   amenitiesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
   },
   amenityWrapper: {
-    width: '48%',
+    width: "48%",
   },
   amenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: spacing.md,
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
@@ -812,8 +1036,8 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: colors.border.light,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginRight: spacing.sm,
   },
   checkboxSelected: {
@@ -825,15 +1049,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   toggleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: spacing.sm,
   },
   customAmenityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: spacing.md,
     backgroundColor: colors.background.secondary,
     borderRadius: radius.input,
@@ -857,9 +1081,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
@@ -868,8 +1092,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginTop: spacing.lg,
     gap: spacing.md,
   },
@@ -885,9 +1109,9 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border.light,
   },
   timePickerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -901,13 +1125,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   timePickerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
     paddingVertical: spacing.xl,
   },
   timePickerColumn: {
-    alignItems: 'center',
+    alignItems: "center",
     flex: 1,
   },
   timePickerLabel: {
@@ -917,12 +1141,12 @@ const styles = StyleSheet.create({
   },
   timePickerValue: {
     fontSize: 24,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
   timePickerButtons: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: spacing.sm,
   },
   timePickerActionButton: {
@@ -934,6 +1158,6 @@ const styles = StyleSheet.create({
   timePickerButtonText: {
     color: colors.neutral.white,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
-}); 
+});

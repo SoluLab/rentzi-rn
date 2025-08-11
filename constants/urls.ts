@@ -69,10 +69,11 @@ export const ENDPOINTS = {
     DELETE_PROPERTY: (id: string) => `/property/${id}`,
 
     // Property media management
-    UPLOAD_IMAGES: (id: string) => `/property/${id}/images`,
+    UPLOAD_IMAGES: (id: string) => `/property/${id}/files/image`,
     DELETE_IMAGE: (id: string, imageName: string) =>
       `/property/${id}/images/${imageName}`,
     UPLOAD_FILES: (id: string) => `/property/${id}/files`,
+    UPLOAD_VIDEOS: (id: string) => `/property/${id}/files/video`,
     DELETE_FILE: (id: string, fileName: string) =>
       `/property/${id}/files/${fileName}`,
   },

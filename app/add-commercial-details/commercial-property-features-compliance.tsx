@@ -2,12 +2,12 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   FlatList,
   Alert,
 } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
@@ -17,7 +17,7 @@ import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
-import { ChevronDown, Check } from "lucide-react-native";
+import { ChevronDown, Check, Plus, X } from "lucide-react-native";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
 import { AccessType } from "@/types/homeownerProperty";
@@ -63,6 +63,7 @@ interface FeaturesFormData {
   buildingAmenities: string[];
   smartBuildingSystems: string[];
   businessServicesProvided: string[];
+  customAmenities: string[];
   accessType: AccessType;
   propertyHighlights: string;
 }
@@ -96,9 +97,23 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     },
   });
 
-  const [formData, setFormData] = useState<FeaturesFormData>(
-    data.featuresCompliance
-  );
+  const [formData, setFormData] = useState<FeaturesFormData>(() => {
+    const defaultData = {
+      buildingAmenities: [],
+      smartBuildingSystems: [],
+      businessServicesProvided: [],
+      customAmenities: [],
+      accessType: ACCESS_TYPES[0],
+      propertyHighlights: '',
+    };
+    return data.featuresCompliance ? {
+      ...defaultData,
+      ...data.featuresCompliance,
+      customAmenities: (data.featuresCompliance as any)?.customAmenities || [],
+    } : defaultData;
+  });
+  const [showCustomAmenityModal, setShowCustomAmenityModal] = useState(false);
+  const [customAmenityInput, setCustomAmenityInput] = useState('');
   const [errors, setErrors] = useState<FeaturesValidationErrors>({});
   const [showAccessTypeModal, setShowAccessTypeModal] = useState(false);
 
@@ -202,10 +217,37 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     updateFormData("businessServicesProvided", currentServices);
   };
 
-  const transformFormDataToApiFormat = () => ({
-    title: data.propertyDetails?.propertyTitle || "",
-    type: "commercial",
-  });
+  const addCustomAmenity = () => {
+    if (customAmenityInput.trim()) {
+      const newCustomAmenities = [...formData.customAmenities, customAmenityInput.trim()];
+      updateFormData('customAmenities', newCustomAmenities);
+      setCustomAmenityInput('');
+      setShowCustomAmenityModal(false);
+    }
+  };
+
+  const removeCustomAmenity = (index: number) => {
+    const newCustomAmenities = formData.customAmenities.filter((_, i) => i !== index);
+    updateFormData('customAmenities', newCustomAmenities);
+  };
+
+  const transformFormDataToApiFormat = () => {
+    // Combine building amenities and custom amenities
+    const allBuildingAmenities = [
+      ...formData.buildingAmenities,
+      ...formData.customAmenities
+    ];
+
+    return {
+      title: data.propertyDetails?.propertyTitle || "",
+      type: "commercial",
+      buildingAmenities: allBuildingAmenities,
+      smartBuildingSystems: formData.smartBuildingSystems,
+      businessServicesProvided: formData.businessServicesProvided,
+      accessType: formData.accessType,
+      propertyHighlights: formData.propertyHighlights,
+    };
+  };
 
   const handleNext = async () => {
     if (validateForm()) {
@@ -325,10 +367,13 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Features & Compliance" />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
       >
         <Typography variant="h4" style={styles.sectionTitle}>
           Building Features & Compliance
@@ -362,6 +407,37 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
               {errors.buildingAmenities}
             </Typography>
           )}
+        </View>
+
+        {/* Custom Amenities */}
+        <View style={styles.fieldContainer}>
+          <Typography variant="body" style={styles.label}>
+            Custom Amenities
+          </Typography>
+          <Typography variant="caption" color="secondary" style={styles.helperText}>
+            Add any additional amenities not listed above
+          </Typography>
+          
+          {formData.customAmenities.map((amenity, index) => (
+            <View key={index} style={styles.customAmenityItem}>
+              <Typography variant="body" style={styles.customAmenityText}>
+                {amenity}
+              </Typography>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => removeCustomAmenity(index)}
+              >
+                <X size={16} color={colors.status.error} />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
+          <Button
+            title="Add Custom Amenity"
+            onPress={() => setShowCustomAmenityModal(true)}
+            variant="outline"
+            style={styles.addButton}
+          />
         </View>
 
         {/* Smart Building Systems */}
@@ -462,7 +538,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
           disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Access Type Modal */}
       <Modal
@@ -487,11 +563,83 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
           />
         </View>
       </Modal>
+
+      {/* Custom Amenity Modal */}
+      <Modal
+        visible={showCustomAmenityModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Typography variant="h4">Add Custom Amenity</Typography>
+            <TouchableOpacity onPress={() => setShowCustomAmenityModal(false)}>
+              <Typography variant="h4">✕</Typography>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.modalContent}>
+            <Input
+              label="Custom Amenity"
+              value={customAmenityInput}
+              onChangeText={setCustomAmenityInput}
+              placeholder="Enter custom amenity"
+              maxLength={50}
+            />
+            
+            <View style={styles.modalButtons}>
+              <Button
+                title="Cancel"
+                onPress={() => setShowCustomAmenityModal(false)}
+                variant="outline"
+                style={styles.modalButton}
+              />
+              <Button
+                title="Add"
+                onPress={addCustomAmenity}
+                disabled={!customAmenityInput.trim()}
+                style={styles.modalButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  customAmenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: spacing.md,
+    backgroundColor: colors.background.secondary,
+    borderRadius: radius.input,
+    marginBottom: spacing.sm,
+  },
+  customAmenityText: {
+    flex: 1,
+    fontSize: 14,
+  },
+  removeButton: {
+    padding: spacing.xs,
+  },
+  addButton: {
+    marginTop: spacing.sm,
+  },
+  modalContent: {
+    padding: spacing.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    gap: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

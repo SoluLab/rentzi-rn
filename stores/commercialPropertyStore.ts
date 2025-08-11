@@ -19,6 +19,12 @@ export interface MediaFile {
   type: string;
   width?: number;
   height?: number;
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
 }
 
 // Property details interface
@@ -53,7 +59,18 @@ export interface FeaturesCompliance {
 }
 
 // Media uploads interface
-declare type VirtualTourType = string | { uri: string; name: string; size: number; type: string; };
+declare type VirtualTourType = string | { 
+  uri: string; 
+  name: string; 
+  size: number; 
+  type: string; 
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
+};
 export interface MediaUploads {
   photos: MediaFile[];
   virtualTour: VirtualTourType;

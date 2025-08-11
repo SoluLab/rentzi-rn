@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Modal,
   FlatList,
@@ -11,24 +10,27 @@ import {
   Platform,
   Dimensions,
   ActionSheetIOS,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
-import * as DocumentPicker from 'expo-document-picker';
-import { Ionicons } from '@expo/vector-icons';
-
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { Typography } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { Input } from '@/components/ui/Input';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyImages, useHomeownerUploadPropertyFiles } from '@/services/homeownerAddProperty';
-import { BASE_URLS, ENDPOINTS } from '@/constants/urls';
+} from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useRouter } from "expo-router";
+import { Image } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { Ionicons } from "@expo/vector-icons";
+import { Typography } from "@/components/ui/Typography";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { Input } from "@/components/ui/Input";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
+import {
+  useHomeownerSavePropertyDraft,
+  useHomeownerUploadPropertyImages,
+  useHomeownerUploadPropertyFiles,
+} from "@/services/homeownerAddProperty";
+import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
 
 interface MediaUploadData {
   photos: Array<{
@@ -42,7 +44,7 @@ interface MediaUploadData {
     uploadedKey?: string; // Add uploaded key field
   }>;
   virtualTour: {
-    type: 'link' | 'file';
+    type: "link" | "file";
     value: string;
     name?: string;
     size?: number;
@@ -56,7 +58,7 @@ interface MediaUploadErrors {
   virtualTour?: string;
 }
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get("window");
 
 export default function ResidentialPropertyMediaUploadScreen() {
   const router = useRouter();
@@ -70,7 +72,9 @@ export default function ResidentialPropertyMediaUploadScreen() {
         response
       );
       // Navigate to documents upload step
-      router.push('/add-residential-details/residential-property-documents-upload');
+      router.push(
+        "/add-residential-details/residential-property-documents-upload"
+      );
     },
     onError: (error) => {
       console.error(
@@ -112,63 +116,82 @@ export default function ResidentialPropertyMediaUploadScreen() {
     }
   }, []);
 
-  const [formData, setFormData] = useState<MediaUploadData>(data.mediaUpload || {
-    photos: [],
-    virtualTour: {
-      type: 'link',
-      value: '',
-    },
-  });
+  const [formData, setFormData] = useState<MediaUploadData>(
+    data.mediaUpload || {
+      photos: [],
+      virtualTour: {
+        type: "link",
+        value: "",
+      },
+    }
+  );
   const [errors, setErrors] = useState<MediaUploadErrors>({});
   const [isUploading, setIsUploading] = useState(false);
 
   // Validation functions
-  const validatePhotos = (photos: MediaUploadData['photos']): string | undefined => {
+  const validatePhotos = (
+    photos: MediaUploadData["photos"]
+  ): string | undefined => {
     if (photos.length < 3) {
-      return 'Minimum 3 photos are required';
+      return "Minimum 3 photos are required";
     }
-    
+
     for (const photo of photos) {
       if (photo.size > 25 * 1024 * 1024) {
-        return 'Each photo must be less than 25MB';
+        return "Each photo must be less than 25MB";
       }
       if (photo.width < 800 || photo.height < 600) {
-        return 'Each photo must be at least 800x600 pixels';
+        return "Each photo must be at least 800x600 pixels";
       }
       // More flexible file type checking
-      const fileType = photo.type?.toLowerCase() || '';
-      const fileName = photo.name?.toLowerCase() || '';
-      const isJPEG = fileType.includes('jpeg') || fileType.includes('jpg') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg');
-      const isPNG = fileType.includes('png') || fileName.endsWith('.png');
-      
+      const fileType = photo.type?.toLowerCase() || "";
+      const fileName = photo.name?.toLowerCase() || "";
+      const isJPEG =
+        fileType.includes("jpeg") ||
+        fileType.includes("jpg") ||
+        fileName.endsWith(".jpg") ||
+        fileName.endsWith(".jpeg");
+      const isPNG = fileType.includes("png") || fileName.endsWith(".png");
+
       if (!isJPEG && !isPNG) {
-        console.log('Invalid photo type:', { type: photo.type, name: photo.name, fileType, fileName });
-        return 'Only JPG and PNG files are allowed';
+        console.log("Invalid photo type:", {
+          type: photo.type,
+          name: photo.name,
+          fileType,
+          fileName,
+        });
+        return "Only JPG and PNG files are allowed";
       }
     }
     return undefined;
   };
 
-  const validateVirtualTour = (virtualTour: MediaUploadData['virtualTour']): string | undefined => {
+  const validateVirtualTour = (
+    virtualTour: MediaUploadData["virtualTour"]
+  ): string | undefined => {
     // Check if either link or file is provided
     if (!virtualTour.value || !virtualTour.value.trim()) {
-      return 'Please provide either a YouTube/Vimeo URL or upload a video file'; // Mandatory field
+      return "Please provide either a YouTube/Vimeo URL or upload a video file"; // Mandatory field
     }
 
-    if (virtualTour.type === 'link') {
+    if (virtualTour.type === "link") {
       const url = virtualTour.value.trim();
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+      const youtubeRegex =
+        /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
       const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
-      
+
       if (!youtubeRegex.test(url) && !vimeoRegex.test(url)) {
-        return 'Please enter a valid YouTube or Vimeo URL';
+        return "Please enter a valid YouTube or Vimeo URL";
       }
-    } else if (virtualTour.type === 'file') {
+    } else if (virtualTour.type === "file") {
       if (virtualTour.size && virtualTour.size > 100 * 1024 * 1024) {
-        return 'Video file must be less than 100MB';
+        return "Video file must be less than 100MB";
       }
-      if (virtualTour.name && !virtualTour.name.toLowerCase().endsWith('.mp4')) {
-        return 'Only MP4 files are allowed';
+      if (
+        virtualTour.name &&
+        !virtualTour.name.toLowerCase().endsWith(".mp4")
+      ) {
+        return "Only MP4 files are allowed";
       }
     }
     return undefined;
@@ -181,74 +204,84 @@ export default function ResidentialPropertyMediaUploadScreen() {
     newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== undefined);
+    return !Object.values(newErrors).some((error) => error !== undefined);
   };
 
   const updateFormData = (field: keyof MediaUploadData, value: any) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateMediaUpload(newFormData);
-    
+
     // Clear error for this field
-    setErrors(prev => ({ ...prev, [field]: undefined }));
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const isFormValid = () => {
     // Check if minimum photos requirement is met
     const hasMinimumPhotos = formData.photos.length >= 3;
-    
+
     // Check for validation errors
     const photoError = validatePhotos(formData.photos);
     const virtualTourError = validateVirtualTour(formData.virtualTour);
-    
+
     // Debug logging
-    console.log('Form Validation Debug:', {
+    console.log("Form Validation Debug:", {
       photosCount: formData.photos.length,
       hasMinimumPhotos,
       photoError,
       virtualTourError,
       virtualTourData: formData.virtualTour,
-      isFormValid: hasMinimumPhotos && !photoError && !virtualTourError
+      isFormValid: hasMinimumPhotos && !photoError && !virtualTourError,
     });
-    
+
     // Form is valid if we have minimum photos and no validation errors
     return hasMinimumPhotos && !photoError && !virtualTourError;
   };
 
   const transformPhotosToFiles = (): any[] => {
-    return formData.photos.map(photo => {
+    return formData.photos.map((photo) => {
       // Create a file object compatible with React Native and FormData
       const file = {
         uri: photo.uri,
         name: photo.name,
-        type: photo.type || 'image/jpeg',
+        type: photo.type || "image/jpeg",
         size: photo.size,
       };
-      
+
       return file;
     });
   };
 
-  const uploadImageToServer = async (photo: MediaUploadData['photos'][0], photoIndex: number) => {
+  const uploadImageToServer = async (
+    photo: MediaUploadData["photos"][0],
+    photoIndex: number
+  ) => {
     try {
       const propertyId = data.propertyId;
       if (!propertyId) {
         console.error("Property ID not found for image upload");
-        Alert.alert("Error", "Property ID not found. Please go back and try again.");
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
         return;
       }
 
       // Create file object for upload - ensure proper format for React Native
       const file = {
         uri: photo.uri,
-        type: photo.type || 'image/jpeg',
+        type: photo.type || "image/jpeg",
         name: photo.name || `image_${photoIndex}.jpg`,
       };
 
       console.log("Uploading image:", file);
       console.log("Property ID:", propertyId);
-      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_IMAGES(propertyId));
-      
+      console.log(
+        "Full URL:",
+        BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER +
+          ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_IMAGES(propertyId)
+      );
+
       const response = await uploadImagesMutation.mutateAsync({
         propertyId,
         images: [file],
@@ -265,38 +298,35 @@ export default function ResidentialPropertyMediaUploadScreen() {
           uploadedUrl: uploadedImage.url,
           uploadedKey: uploadedImage.key,
         };
-        updateFormData('photos', updatedPhotos);
+        updateFormData("photos", updatedPhotos);
         console.log("Updated photo with uploaded URL:", uploadedImage.url);
       } else {
         console.warn("No uploaded images in response:", response);
       }
     } catch (error: any) {
       console.error("Error uploading image to server:", error);
-      
+
       // Show a more specific error message
       if (error?.message === "Network Error") {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Network error occurred. Please check your internet connection and try again."
         );
       } else if (error?.status === 401) {
-        Alert.alert(
-          "Authentication Error", 
-          "Please log in again to continue."
-        );
+        Alert.alert("Authentication Error", "Please log in again to continue.");
       } else if (error?.status === 413) {
         Alert.alert(
-          "File Too Large", 
+          "File Too Large",
           "The image file is too large. Please select a smaller image."
         );
       } else if (error?.status === 422) {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Invalid image format. Please try again with a different image."
         );
       } else {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Failed to upload image. Please try again."
         );
       }
@@ -306,19 +336,19 @@ export default function ResidentialPropertyMediaUploadScreen() {
   // Photo upload functions
   const requestCameraPermission = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    return status === 'granted';
+    return status === "granted";
   };
 
   const requestMediaLibraryPermission = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    return status === 'granted';
+    return status === "granted";
   };
 
   const showPhotoPickerOptions = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Photo', 'Choose from Library'],
+          options: ["Cancel", "Take Photo", "Choose from Library"],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -330,23 +360,19 @@ export default function ResidentialPropertyMediaUploadScreen() {
         }
       );
     } else {
-      Alert.alert(
-        'Upload Photos',
-        'Choose an option',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Take Photo', onPress: takePhoto },
-          { text: 'Choose from Library', onPress: pickImages },
-        ]
-      );
+      Alert.alert("Upload Photos", "Choose an option", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Take Photo", onPress: takePhoto },
+        { text: "Choose from Library", onPress: pickImages },
+      ]);
     }
   };
 
   const showVideoPickerOptions = () => {
-    if (Platform.OS === 'ios') {
+    if (Platform.OS === "ios") {
       ActionSheetIOS.showActionSheetWithOptions(
         {
-          options: ['Cancel', 'Take Video', 'Choose from Library'],
+          options: ["Cancel", "Take Video", "Choose from Library"],
           cancelButtonIndex: 0,
         },
         (buttonIndex) => {
@@ -358,22 +384,21 @@ export default function ResidentialPropertyMediaUploadScreen() {
         }
       );
     } else {
-      Alert.alert(
-        'Upload Video',
-        'Choose an option',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Take Video', onPress: takeVideo },
-          { text: 'Choose from Library', onPress: pickVideo },
-        ]
-      );
+      Alert.alert("Upload Video", "Choose an option", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Take Video", onPress: takeVideo },
+        { text: "Choose from Library", onPress: pickVideo },
+      ]);
     }
   };
 
   const pickImages = async () => {
     const hasPermission = await requestMediaLibraryPermission();
     if (!hasPermission) {
-      Alert.alert('Permission Required', 'Please grant permission to access your photo library.');
+      Alert.alert(
+        "Permission Required",
+        "Please grant permission to access your photo library."
+      );
       return;
     }
 
@@ -386,17 +411,17 @@ export default function ResidentialPropertyMediaUploadScreen() {
       });
 
       if (!result.canceled && result.assets) {
-        const newPhotos = result.assets.map(asset => ({
+        const newPhotos = result.assets.map((asset) => ({
           uri: asset.uri,
           name: asset.fileName || `photo_${Date.now()}.jpg`,
           size: asset.fileSize || 0,
           width: asset.width,
           height: asset.height,
-          type: asset.type || 'image/jpeg',
+          type: asset.type || "image/jpeg",
         }));
 
         const updatedPhotos = [...formData.photos, ...newPhotos];
-        updateFormData('photos', updatedPhotos);
+        updateFormData("photos", updatedPhotos);
 
         // Upload all new images
         const startIndex = formData.photos.length;
@@ -405,14 +430,17 @@ export default function ResidentialPropertyMediaUploadScreen() {
         }
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick images. Please try again.');
+      Alert.alert("Error", "Failed to pick images. Please try again.");
     }
   };
 
   const takePhoto = async () => {
     const hasPermission = await requestCameraPermission();
     if (!hasPermission) {
-      Alert.alert('Permission Required', 'Please grant permission to access your camera.');
+      Alert.alert(
+        "Permission Required",
+        "Please grant permission to access your camera."
+      );
       return;
     }
 
@@ -431,23 +459,23 @@ export default function ResidentialPropertyMediaUploadScreen() {
           size: asset.fileSize || 0,
           width: asset.width,
           height: asset.height,
-          type: asset.type || 'image/jpeg',
+          type: asset.type || "image/jpeg",
         };
 
         const updatedPhotos = [...formData.photos, newPhoto];
-        updateFormData('photos', updatedPhotos);
+        updateFormData("photos", updatedPhotos);
 
         // Upload image immediately
         await uploadImageToServer(newPhoto, updatedPhotos.length - 1);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to take photo. Please try again.');
+      Alert.alert("Error", "Failed to take photo. Please try again.");
     }
   };
 
   const removePhoto = (index: number) => {
     const updatedPhotos = formData.photos.filter((_, i) => i !== index);
-    updateFormData('photos', updatedPhotos);
+    updateFormData("photos", updatedPhotos);
   };
 
   const retryUpload = async (photoIndex: number) => {
@@ -460,7 +488,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
 
   const retryVideoUpload = async () => {
     const virtualTour = formData.virtualTour;
-    if (virtualTour.type === 'file' && virtualTour.value && !virtualTour.uploadedUrl) {
+    if (
+      virtualTour.type === "file" &&
+      virtualTour.value &&
+      !virtualTour.uploadedUrl
+    ) {
       console.log(`Retrying upload for video:`, virtualTour.name);
       await uploadVideoToServer(virtualTour);
     }
@@ -478,18 +510,18 @@ export default function ResidentialPropertyMediaUploadScreen() {
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
         const newVirtualTour = {
-          type: 'file' as const,
+          type: "file" as const,
           value: asset.uri,
           name: asset.fileName || `video_${Date.now()}.mp4`,
           size: asset.fileSize || 0,
         };
-        updateFormData('virtualTour', newVirtualTour);
+        updateFormData("virtualTour", newVirtualTour);
 
         // Upload video immediately
         await uploadVideoToServer(newVirtualTour);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to take video. Please try again.');
+      Alert.alert("Error", "Failed to take video. Please try again.");
     }
   };
 
@@ -504,61 +536,70 @@ export default function ResidentialPropertyMediaUploadScreen() {
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
         const newVirtualTour = {
-          type: 'file' as const,
+          type: "file" as const,
           value: asset.uri,
           name: asset.fileName || `video_${Date.now()}.mp4`,
           size: asset.fileSize || 0,
         };
-        updateFormData('virtualTour', newVirtualTour);
+        updateFormData("virtualTour", newVirtualTour);
 
         // Upload video immediately
         await uploadVideoToServer(newVirtualTour);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to pick video file. Please try again.');
+      Alert.alert("Error", "Failed to pick video file. Please try again.");
     }
   };
 
   const updateVirtualTourLink = (link: string) => {
     const newVirtualTour = {
-      type: 'link' as const,
+      type: "link" as const,
       value: link,
     };
-    updateFormData('virtualTour', newVirtualTour);
+    updateFormData("virtualTour", newVirtualTour);
   };
 
   const removeVirtualTour = () => {
     const newVirtualTour = {
-      type: 'link' as const,
-      value: '',
+      type: "link" as const,
+      value: "",
     };
-    updateFormData('virtualTour', newVirtualTour);
+    updateFormData("virtualTour", newVirtualTour);
   };
 
-  const uploadVideoToServer = async (videoFile: MediaUploadData['virtualTour']) => {
+  const uploadVideoToServer = async (
+    videoFile: MediaUploadData["virtualTour"]
+  ) => {
     try {
       const propertyId = data.propertyId;
       if (!propertyId) {
         console.error("Property ID not found for video upload");
-        Alert.alert("Error", "Property ID not found. Please go back and try again.");
+        Alert.alert(
+          "Error",
+          "Property ID not found. Please go back and try again."
+        );
         return;
       }
 
       // Create file object for upload - ensure proper format for React Native
       const file = {
         uri: videoFile.value,
-        type: 'video/mp4',
+        type: "video/mp4",
         name: videoFile.name || `video_${Date.now()}.mp4`,
       };
 
       console.log("Uploading video:", file);
       console.log("Property ID:", propertyId);
-      console.log("Full URL:", BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER + ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId));
-      
+      console.log(
+        "Full URL:",
+        BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER +
+          ENDPOINTS.HOMEOWNER_PROPERTY.UPLOAD_FILES(propertyId)
+      );
+
       const response = await uploadVideosMutation.mutateAsync({
         propertyId,
         files: [file],
-        fileType: 'video',
+        fileType: "video",
       });
 
       console.log("Video upload response:", response);
@@ -571,38 +612,35 @@ export default function ResidentialPropertyMediaUploadScreen() {
           uploadedUrl: uploadedVideo.url,
           uploadedKey: uploadedVideo.key,
         };
-        updateFormData('virtualTour', updatedVirtualTour);
+        updateFormData("virtualTour", updatedVirtualTour);
         console.log("Updated video with uploaded URL:", uploadedVideo.url);
       } else {
         console.warn("No uploaded videos in response:", response);
       }
     } catch (error: any) {
       console.error("Error uploading video to server:", error);
-      
+
       // Show a more specific error message
       if (error?.message === "Network Error") {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Network error occurred. Please check your internet connection and try again."
         );
       } else if (error?.status === 401) {
-        Alert.alert(
-          "Authentication Error", 
-          "Please log in again to continue."
-        );
+        Alert.alert("Authentication Error", "Please log in again to continue.");
       } else if (error?.status === 413) {
         Alert.alert(
-          "File Too Large", 
+          "File Too Large",
           "The video file is too large. Please select a smaller video."
         );
       } else if (error?.status === 422) {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Invalid video format. Please try again with a different video."
         );
       } else {
         Alert.alert(
-          "Upload Failed", 
+          "Upload Failed",
           "Failed to upload video. Please try again."
         );
       }
@@ -624,15 +662,23 @@ export default function ResidentialPropertyMediaUploadScreen() {
     }
 
     // Transform virtual tour
-    if (formData.virtualTour.type === 'link' && formData.virtualTour.value.trim()) {
+    if (
+      formData.virtualTour.type === "link" &&
+      formData.virtualTour.value.trim()
+    ) {
       // For YouTube/Vimeo URLs, we might store them differently
       apiData.virtualTourUrl = formData.virtualTour.value;
-    } else if (formData.virtualTour.type === 'file' && formData.virtualTour.value) {
+    } else if (
+      formData.virtualTour.type === "file" &&
+      formData.virtualTour.value
+    ) {
       // For uploaded video files
-      apiData.videos = [{
-        key: formData.virtualTour.uploadedKey || 'virtual_tour',
-        url: formData.virtualTour.uploadedUrl || formData.virtualTour.value, // Use uploadedUrl if available
-      }];
+      apiData.videos = [
+        {
+          key: formData.virtualTour.uploadedKey || "virtual_tour",
+          url: formData.virtualTour.uploadedUrl || formData.virtualTour.value, // Use uploadedUrl if available
+        },
+      ];
     }
 
     return apiData;
@@ -641,9 +687,14 @@ export default function ResidentialPropertyMediaUploadScreen() {
   const handleNext = async () => {
     if (validateForm()) {
       // Check if there are unuploaded photos
-      const unuploadedPhotos = formData.photos.filter(photo => !photo.uploadedUrl);
-      const hasUnuploadedVideo = formData.virtualTour.type === 'file' && formData.virtualTour.value && !formData.virtualTour.uploadedUrl;
-      
+      const unuploadedPhotos = formData.photos.filter(
+        (photo) => !photo.uploadedUrl
+      );
+      const hasUnuploadedVideo =
+        formData.virtualTour.type === "file" &&
+        formData.virtualTour.value &&
+        !formData.virtualTour.uploadedUrl;
+
       if (unuploadedPhotos.length > 0 || hasUnuploadedVideo) {
         let message = "";
         if (unuploadedPhotos.length > 0) {
@@ -653,15 +704,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
           message += "Video is not yet uploaded to the server. ";
         }
         message += "You can continue, but the media may not be saved properly.";
-        
-        Alert.alert(
-          "Unuploaded Media",
-          message,
-          [
-            { text: "Continue Anyway", onPress: () => proceedWithDraft() },
-            { text: "Upload First", style: "cancel" }
-          ]
-        );
+
+        Alert.alert("Unuploaded Media", message, [
+          { text: "Continue Anyway", onPress: () => proceedWithDraft() },
+          { text: "Upload First", style: "cancel" },
+        ]);
       } else {
         await proceedWithDraft();
       }
@@ -695,11 +742,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const renderPhotoGrid = () => {
@@ -716,7 +763,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
               style={styles.removePhotoButton}
               onPress={() => removePhoto(index)}
             >
-              <Ionicons name="close-circle" size={24} color={colors.status.error} />
+              <Ionicons
+                name="close-circle"
+                size={24}
+                color={colors.status.error}
+              />
             </TouchableOpacity>
             <View style={styles.photoInfo}>
               <Typography variant="caption" style={styles.photoName}>
@@ -746,8 +797,14 @@ export default function ResidentialPropertyMediaUploadScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Media Uploads" />
-      
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+
+      <KeyboardAwareScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+      >
         <Typography variant="h3" style={styles.sectionTitle}>
           Upload Photos & Virtual Tour
         </Typography>
@@ -758,9 +815,10 @@ export default function ResidentialPropertyMediaUploadScreen() {
             Upload Photos *
           </Typography>
           <Typography variant="caption" style={styles.helperText}>
-            Minimum 3 photos required. JPG/PNG only. Max 25MB each. Min 800x600px.
+            Minimum 3 photos required. JPG/PNG only. Max 25MB each. Min
+            800x600px.
           </Typography>
-          
+
           <TouchableOpacity
             style={styles.uploadButton}
             onPress={showPhotoPickerOptions}
@@ -768,7 +826,9 @@ export default function ResidentialPropertyMediaUploadScreen() {
           >
             <Ionicons name="camera" size={24} color={colors.primary.gold} />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {uploadImagesMutation.isPending ? "Uploading..." : `Add Photos (${formData.photos.length}/∞)`}
+              {uploadImagesMutation.isPending
+                ? "Uploading..."
+                : `Add Photos (${formData.photos.length}/∞)`}
             </Typography>
           </TouchableOpacity>
 
@@ -786,15 +846,19 @@ export default function ResidentialPropertyMediaUploadScreen() {
           <Typography variant="body" style={styles.label}>
             Virtual Tour or Video Walkthrough
           </Typography>
-          
+
           <Input
             label="YouTube/Vimeo URL"
-            value={formData.virtualTour.type === 'link' ? formData.virtualTour.value : ''}
+            value={
+              formData.virtualTour.type === "link"
+                ? formData.virtualTour.value
+                : ""
+            }
             onChangeText={(value) => updateVirtualTourLink(value)}
             placeholder="https://youtube.com/watch?v=..."
             error={errors.virtualTour}
           />
-          
+
           <Typography variant="caption" style={styles.helperText}>
             Required: Enter YouTube or Vimeo URL
           </Typography>
@@ -814,38 +878,49 @@ export default function ResidentialPropertyMediaUploadScreen() {
           >
             <Ionicons name="videocam" size={24} color={colors.primary.gold} />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {uploadVideosMutation.isPending ? "Uploading Video..." : "Upload Video File"}
+              {uploadVideosMutation.isPending
+                ? "Uploading Video..."
+                : "Upload Video File"}
             </Typography>
           </TouchableOpacity>
-          
+
           <Typography variant="caption" style={styles.helperText}>
             Required: MP4 format • Max 100MB
           </Typography>
 
-          {formData.virtualTour.value && formData.virtualTour.type === 'file' && (
-            <View style={styles.virtualTourDisplay}>
-              <View style={styles.virtualTourInfo}>
-                <Ionicons name="videocam" size={20} color={colors.primary.gold} />
-                <Typography variant="body" style={styles.virtualTourText}>
-                  {formData.virtualTour.name}
-                </Typography>
-                {formData.virtualTour.uploadedUrl ? (
-                  <Typography variant="caption" style={styles.uploadStatus}>
-                    ✓ Uploaded
+          {formData.virtualTour.value &&
+            formData.virtualTour.type === "file" && (
+              <View style={styles.virtualTourDisplay}>
+                <View style={styles.virtualTourInfo}>
+                  <Ionicons
+                    name="videocam"
+                    size={20}
+                    color={colors.primary.gold}
+                  />
+                  <Typography variant="body" style={styles.virtualTourText}>
+                    {formData.virtualTour.name}
                   </Typography>
-                ) : (
-                  <TouchableOpacity onPress={retryVideoUpload}>
-                    <Typography variant="caption" style={styles.retryStatus}>
-                      ↻ Retry
+                  {formData.virtualTour.uploadedUrl ? (
+                    <Typography variant="caption" style={styles.uploadStatus}>
+                      ✓ Uploaded
                     </Typography>
-                  </TouchableOpacity>
-                )}
+                  ) : (
+                    <TouchableOpacity onPress={retryVideoUpload}>
+                      <Typography variant="caption" style={styles.retryStatus}>
+                        ↻ Retry
+                      </Typography>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity onPress={removeVirtualTour}>
+                  <Ionicons
+                    name="close"
+                    size={20}
+                    color={colors.text.secondary}
+                  />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={removeVirtualTour}>
-                <Ionicons name="close" size={20} color={colors.text.secondary} />
-              </TouchableOpacity>
-            </View>
-          )}
+            )}
 
           {errors.virtualTour && (
             <Typography variant="caption" style={styles.errorText}>
@@ -857,10 +932,10 @@ export default function ResidentialPropertyMediaUploadScreen() {
         <Button
           title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
           onPress={handleNext}
-         // disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
+          // disabled={!isFormValid() || saveDraftPropertyMutation.isPending}
           style={styles.nextButton}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -875,14 +950,14 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.xl,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   fieldContainer: {
     marginBottom: spacing.xl,
   },
   label: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.sm,
   },
@@ -891,13 +966,13 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   uploadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: colors.neutral.white,
     borderWidth: 2,
     borderColor: colors.primary.gold,
-    borderStyle: 'dashed',
+    borderStyle: "dashed",
     borderRadius: radius.input,
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
@@ -905,37 +980,37 @@ const styles = StyleSheet.create({
   uploadButtonText: {
     marginLeft: spacing.sm,
     color: colors.primary.gold,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginTop: spacing.md,
     gap: spacing.sm,
   },
   photoItem: {
     width: (screenWidth - spacing.lg * 2 - spacing.sm * 2) / 3,
     aspectRatio: 1,
-    position: 'relative',
+    position: "relative",
   },
   photoImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
     borderRadius: radius.input,
   },
   removePhotoButton: {
-    position: 'absolute',
+    position: "absolute",
     top: -8,
     right: -8,
     backgroundColor: colors.neutral.white,
     borderRadius: 12,
   },
   photoInfo: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
     padding: spacing.xs,
     borderBottomLeftRadius: radius.input,
     borderBottomRightRadius: radius.input,
@@ -950,9 +1025,9 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   virtualTourDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: colors.neutral.white,
     borderWidth: 1,
     borderColor: colors.border.light,
@@ -961,8 +1036,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   virtualTourInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   virtualTourText: {
@@ -976,19 +1051,19 @@ const styles = StyleSheet.create({
   uploadStatus: {
     color: colors.status.success,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   retryStatus: {
     color: colors.primary.gold,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   nextButton: {
     marginTop: spacing.xl,
   },
   orDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginVertical: spacing.md,
   },
   dividerLine: {
@@ -1000,4 +1075,4 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     color: colors.text.secondary,
   },
-}); 
+});
