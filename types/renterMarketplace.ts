@@ -1,56 +1,76 @@
-import { PropertyType } from './homeownerProperty';
-
-export interface MarketplacePropertyResponse {
+export interface MarketplacePropertiesResponse {
   success: boolean;
   message: string;
   data: {
-    property: IMarketplaceProperty;
+    items: MarketplaceProperty[];
+    pagination: MarketplacePagination;
   } | null;
 }
 
-export interface IMarketplaceProperty {
-  id: string;
-  ownerId: string;
+export interface MarketplaceProperty {
+  _id: string;
   title: string;
   description: string;
-  location: {
-    address: string;
-    city: string;
-    country: string;
-    coordinates: {
-      latitude: number;
-      longitude: number;
+  type: 'residential' | 'commercial';
+  propertyCategory: string;
+  address: {
+    street: string;
+    area: string;
+    city: {
+      _id: string;
+      name: string;
     };
+    state: {
+      _id: string;
+      name: string;
+    };
+    country: {
+      _id: string;
+      name: string;
+    };
+    zipCode: string;
   };
-  price: {
-    rent: number;
-    investment: number;
+  rentAmount: {
+    basePrice: number;
     currency: string;
+    securityDeposit: number;
   };
-  propertyType: PropertyType;
-  bedrooms: number;
-  bathrooms: number;
-  mediaGallery: {
-    images: string[];
-    videos?: string[];
-    tour3D?: string;
+  specifications: {
+    bedrooms: number;
+    bathrooms: number;
+    area: number;
+    unit: string;
+    furnishing: string;
   };
-  amenities: string[];
-  smartHomeEntry?: string;
-  conciergeServices?: string;
-  availabilityCalendar: {
-    available: boolean;
-    bookedDates: string[];
-    availableDates?: string[];
+  media: {
+    images: Array<{
+      url: string;
+      key: string;
+    }>;
   };
-  investmentDetails: {
-    totalShares: number;
-    availableShares: number;
-    roiEstimate: number;
-    minimumInvestment: number;
-    fundedPercentage: number;
+  amenities: Amenity[];
+  availability: {
+    status: string;
+    availableFrom: string;
   };
-  rating: number;
-  reviews: number;
-  approvalStatus: "pending" | "approved" | "rejected";
+  owner: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Amenity {
+  _id: string;
+  name: string;
+  icon: string;
+}
+
+export interface MarketplacePagination {
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
 }

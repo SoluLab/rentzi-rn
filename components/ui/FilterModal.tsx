@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Modal,
@@ -28,6 +28,7 @@ import {
   Bed,
   Users,
   DollarSign,
+  Bath, // <-- Add Bath icon if available
 } from "lucide-react-native";
 
 const { height: screenHeight } = Dimensions.get("window");
@@ -72,7 +73,39 @@ export function FilterModal({
   onApplyFilters,
   onClearFilters,
 }: FilterModalProps) {
-  const [localFilters, setLocalFilters] = useState(filters);
+  // Ensure filters has default values to prevent undefined errors
+  const defaultFilters = {
+    priceRange: [0, 200000],
+    bedrooms: 0,
+    guests: 1,
+    bathrooms: 1,
+    propertyTypes: [],
+    amenities: [],
+    checkInDate: null,
+    checkOutDate: null,
+    location: "",
+    ...filters, // Override with actual filters if provided
+  };
+  
+  const [localFilters, setLocalFilters] = useState(defaultFilters);
+  
+  // Update localFilters when filters prop changes
+  useEffect(() => {
+    const updatedFilters = {
+      priceRange: [0, 200000],
+      bedrooms: 0,
+      guests: 1,
+      bathrooms: 1,
+      propertyTypes: [],
+      amenities: [],
+      checkInDate: null,
+      checkOutDate: null,
+      location: "",
+      ...filters, // Override with actual filters if provided
+    };
+    setLocalFilters(updatedFilters);
+  }, [filters]);
+  
   const updateFilter = (key: string, value: any) => {
     setLocalFilters((prev: any) => ({
       ...prev,
@@ -117,7 +150,6 @@ export function FilterModal({
       animationType={"slide"}
       transparent={true}
       onRequestClose={onClose}
-      title="Filter Properties"
     >
       <View style={styles.overlay}>
         <TouchableOpacity
@@ -132,7 +164,7 @@ export function FilterModal({
             keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
           >
             {/* Close Icon */}
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <TouchableOpacity style={styles.closeButton} onPress={onClose} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
               <X size={24} color={colors.text.primary} />
             </TouchableOpacity>
 
@@ -147,7 +179,7 @@ export function FilterModal({
               <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                   <Calendar size={20} color={colors.primary.gold} />
-                  <Typography variant="h5">Dates</Typography>
+                  <Typography variant="h5">Available Dates</Typography>
                 </View>
                 <View style={styles.dateContainer}>
                   <View style={styles.dateInput}>
@@ -155,8 +187,8 @@ export function FilterModal({
                       Check-in
                     </Typography>
                     <DatePicker
-                      value={localFilters.checkInDate}
-                      onChange={(date: Date) => updateFilter("checkInDate", date)}
+                      date={localFilters.checkInDate}
+                      onDateChange={(date: Date) => updateFilter("checkInDate", date)}
                       placeholder="Select date"
                       minimumDate={new Date()}
                     />
@@ -166,8 +198,8 @@ export function FilterModal({
                       Check-out
                     </Typography>
                     <DatePicker
-                      value={localFilters.checkOutDate}
-                      onChange={(date: Date) => updateFilter("checkOutDate", date)}
+                      date={localFilters.checkOutDate}
+                      onDateChange={(date: Date) => updateFilter("checkOutDate", date)}
                       placeholder="Select date"
                       minimumDate={localFilters.checkInDate ? localFilters.checkInDate : new Date()}
                     />
@@ -186,7 +218,7 @@ export function FilterModal({
                     min={0}
                     max={200000}
                     step={1000}
-                    values={localFilters.priceRange}
+                    values={Array.isArray(localFilters.priceRange) ? localFilters.priceRange : [0, 200000]}
                     onValuesChange={(values) =>
                       updateFilter("priceRange", values)
                     }
@@ -196,34 +228,55 @@ export function FilterModal({
                 </View>
               </View>
 
-              {/* Guests and Bedrooms Side by Side */}
+              {/* Guests, Bedrooms, and Bathrooms Side by Side */}
               <View style={styles.section}>
                 <View style={styles.guestBedroomContainer}>
                   <View style={styles.guestBedroomItem}>
                     <View style={styles.sectionHeader}>
                       <Users size={20} color={colors.primary.gold} />
-                      <Typography variant="h5">Guests</Typography>
+                      <Typography variant="caption">Guests</Typography>
                     </View>
-                    <Stepper
-                      value={localFilters.guests || 1}
-                      onValueChange={(value) => updateFilter("guests", value)}
-                      min={1}
-                      max={20}
-                      label="Number of guests"
-                    />
+                      <Stepper
+                        value={Number(localFilters.guests) || 1}
+                        onValueChange={(value) => updateFilter("guests", value)}
+                        min={1}
+                        max={20}
+                        label="Number of guests"
+                        compact={true}
+                      />
                   </View>
                   <View style={styles.guestBedroomItem}>
                     <View style={styles.sectionHeader}>
                       <Bed size={20} color={colors.primary.gold} />
-                      <Typography variant="h5">Bedrooms</Typography>
+                      <Typography variant="caption">Bedrooms</Typography>
                     </View>
-                    <Stepper
-                      value={localFilters.bedrooms || 1}
-                      onValueChange={(value) => updateFilter("bedrooms", value)}
-                      min={1}
-                      max={10}
-                      label="Number of bedrooms"
-                    />
+                      <Stepper
+                        value={Number(localFilters.bedrooms) || 0}
+                        onValueChange={(value) => updateFilter("bedrooms", value)}
+                        min={0}
+                        max={10}
+                        label="Number of bedrooms"
+                        compact={true}
+                      />
+                  </View>
+                  <View style={styles.guestBedroomItem}>
+                    <View style={styles.sectionHeader}>
+                      {/* Use Bath icon if available, otherwise fallback to Bed */}
+                      {Bath ? (
+                        <Bath size={20} color={colors.primary.gold} />
+                      ) : (
+                        <Bed size={20} color={colors.primary.gold} />
+                      )}
+                      <Typography variant="caption">Bathrooms</Typography>
+                    </View>
+                      <Stepper
+                        value={Number(localFilters.bathrooms) || 1}
+                        onValueChange={(value) => updateFilter("bathrooms", value)}
+                        min={1}
+                        max={10}
+                        label="Number of bathrooms"
+                        compact={true}
+                      />
                   </View>
                 </View>
               </View>
@@ -353,12 +406,10 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     position: "absolute",
-    top: spacing.md,
-    right: spacing.md,
+    top: 0,
+    right: 0,
     zIndex: 10,
-    backgroundColor: colors.background.card,
-    borderRadius: radius.full,
-    padding: spacing.sm,
+    padding: 0,
   },
   section: {
     marginBottom: spacing.xl,

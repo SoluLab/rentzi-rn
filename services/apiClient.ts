@@ -144,7 +144,8 @@ console.log("[API Call] Config:", {
     console.log("------------------------------------------------");
 
     console.log("[API Call] Full URL:", `${baseURL}${endpoint}`);
-    console.log("[API Call] Request Method:", method);
+    //console.log("[API Call] Request Method:", method);
+    console.log("[API Call] Query Params:", JSON.stringify(params, null, 2));
     //console.log("[API Call] Platform:", Platform.OS);
     console.log("[API Call] Request Data:", JSON.stringify(data, null, 2));
     const response: AxiosResponse<T> = await axios(axiosConfig);
@@ -173,6 +174,7 @@ console.log("[API Call] Config:", {
         message = axiosError.message;
       }
 
+      console.log("------------------------------------------------");
       console.log("[API Error] Details:", {
         code: axiosError.code,
         status: status,
@@ -180,6 +182,7 @@ console.log("[API Call] Config:", {
         url: axiosError.config?.url,
         method: axiosError.config?.method,
       });
+      console.log("------------------------------------------------");
 
       const apiError: ApiError = {
         status,
