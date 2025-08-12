@@ -1,142 +1,82 @@
-import {
-  useMutation,
-  useQueryClient,
-  UseQueryOptions,
-  UseMutationOptions,
-} from "@tanstack/react-query";
-import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
-import type { ApiError } from "@/types/auth";
-import type {
-  MarketplacePropertyResponse,
-  IMarketplaceProperty,
-} from "@/types/renterMarketplace";
-import { apiPut, apiDelete, useApiQuery, useApiMutation } from "./apiClient";
+import { UseQueryOptions } from "@tanstack/react-query";
+import { ENDPOINTS, getRenterAuthBaseURL } from "@/constants/urls";
+import type { ApiError } from "./apiClient";
+import { useApiQuery, queryKeys } from "./apiClient";
+import type { MarketplacePropertiesResponse } from "@/types/renterMarketplace";
+import { toast } from "@/components/ui/Toast";
+import { TOAST_MESSAGES } from "@/constants/toastMessages";
 
-// 1. Get all properties (with filters/pagination)
-export const useMarketplaceGetProperties = (
-  params?: Record<string, any>,
-  options?: Omit<
-    UseQueryOptions<MarketplacePropertyResponse, ApiError>,
-    "queryKey" | "queryFn"
-  >
+// Get All Marketplace Properties (with filters/pagination)
+export interface MarketplaceFilters {
+  minPrice?: number;
+  maxPrice?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  amenities?: string[];
+}
+
+export const useRenterMarketplaceGetProperties = (
+  params?: { 
+    page?: number; 
+    limit?: number; 
+    type?: 'residential' | 'commercial'; 
+    search?: string;
+    filters?: MarketplaceFilters;
+  },
+  options?: Omit<UseQueryOptions<MarketplacePropertiesResponse, ApiError>, "queryKey" | "queryFn"> & {
+    onSuccess?: (data: MarketplacePropertiesResponse) => void;
+    onError?: (error: ApiError) => void;
+  }
 ) => {
-  return useApiQuery(
-    ["marketplace", "properties", params],
+  const baseURL = getRenterAuthBaseURL();
+  // Filter out empty search parameter and flatten filters
+  const cleanParams: Record<string, any> = params ? {
+    page: params.page,
+    limit: params.limit,
+    type: params.type,
+    ...(params.search && params.search.trim() ? { search: params.search.trim() } : {}),
+    // Flatten filter object into individual query params
+    ...(params.filters?.minPrice ? { minPrice: params.filters.minPrice } : {}),
+    ...(params.filters?.maxPrice ? { maxPrice: params.filters.maxPrice } : {}),
+    ...(params.filters?.bedrooms ? { bedrooms: params.filters.bedrooms } : {}),
+    ...(params.filters?.bathrooms ? { bathrooms: params.filters.bathrooms } : {}),
+    ...(params.filters?.amenities && params.filters.amenities.length > 0 ? { amenities: params.filters.amenities } : {}),
+  } : {};
+
+  return useApiQuery<MarketplacePropertiesResponse>(
+    ["marketplace", "properties", cleanParams.page || 1, cleanParams.limit || 10, cleanParams.type || 'residential', cleanParams.search || '', JSON.stringify(cleanParams)],
     {
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
+      baseURL,
       endpoint: ENDPOINTS.MARKETPLACE.GET_ALL_PROPERTIES,
-      params,
-      auth: true,
-    },
-    options
-  );
-};
-
-// 2. Get property by ID
-export const useMarketplaceGetProperty = (
-  id: string | number,
-  options?: Omit<
-    UseQueryOptions<MarketplacePropertyResponse, ApiError>,
-    "queryKey" | "queryFn"
-  >
-) => {
-  return useApiQuery(
-    ["marketplace", "property", id],
-    {
-      baseURL: "http://35.223.240.93:5001",
-      endpoint: `/api/property/${id}`,
-      auth: true,
-    },
-    options
-  );
-};
-
-// 3. Create property
-export const useMarketplaceCreateProperty = (
-  options?: Omit<
-    UseMutationOptions<
-      MarketplacePropertyResponse,
-      ApiError,
-      IMarketplaceProperty
-    >,
-    "mutationFn"
-  >
-) => {
-  const queryClient = useQueryClient();
-  return useApiMutation(
-    {
-      method: "post",
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-      endpoint: ENDPOINTS.MARKETPLACE.CREATE_PROPERTY,
+      params: cleanParams,
       auth: true,
     },
     {
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ["marketplace", "properties"],
-        });
+      staleTime: 2 * 60 * 1000, // 2 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnMount: true, // Allow initial mount fetch
+      refetchOnReconnect: false,
+      enabled: true,
+      retry: false, // Disable retries to prevent duplicate calls
+      retryDelay: 1000,
+      refetchInterval: false,
+      refetchIntervalInBackground: false,
+      onSuccess: (data: MarketplacePropertiesResponse) => {
+        if (data?.success === true) {
+          options?.onSuccess?.(data);
+        } else {
+          const errorMessage = data?.message || TOAST_MESSAGES.AUTH.GENERAL.UNEXPECTED_ERROR;
+          toast.error(errorMessage);
+          options?.onError?.({ message: errorMessage } as ApiError);
+        }
+      },
+      onError: (error: ApiError) => {
+        const errorMessage = error?.data?.message || error?.message || TOAST_MESSAGES.AUTH.GENERAL.UNEXPECTED_ERROR;
+        toast.error(errorMessage);
+        options?.onError?.(error);
       },
       ...options,
     }
   );
-};
-
-// 4. Update property
-export const useMarketplaceUpdateProperty = (
-  options?: Omit<
-    UseMutationOptions<
-      MarketplacePropertyResponse,
-      ApiError,
-      { id: string | number; data: Partial<IMarketplaceProperty> }
-    >,
-    "mutationFn"
-  >
-) => {
-  const queryClient = useQueryClient();
-  return useMutation<
-    MarketplacePropertyResponse,
-    ApiError,
-    { id: string | number; data: Partial<IMarketplaceProperty> }
-  >({
-    mutationFn: ({ id, data }) =>
-      apiPut({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.MARKETPLACE.UPDATE_PROPERTY(id.toString()),
-        data,
-        auth: true,
-      }),
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({
-        queryKey: ["marketplace", "properties"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["marketplace", "property", id],
-      });
-    },
-    ...options,
-  });
-};
-
-// 5. Delete property
-export const useMarketplaceDeleteProperty = (
-  options?: Omit<
-    UseMutationOptions<MarketplacePropertyResponse, ApiError, string | number>,
-    "mutationFn"
-  >
-) => {
-  const queryClient = useQueryClient();
-  return useMutation<MarketplacePropertyResponse, ApiError, string | number>({
-    mutationFn: (id) =>
-      apiDelete({
-        baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-        endpoint: ENDPOINTS.MARKETPLACE.DELETE_PROPERTY(id.toString()),
-        auth: true,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["marketplace", "properties"],
-      });
-    },
-    ...options,
-  });
 };

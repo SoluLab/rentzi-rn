@@ -8,6 +8,7 @@ import {
   TextInput,
   FlatList,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,7 +20,7 @@ import { Header } from '@/components/ui/Header';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
-import { usePropertyStore } from '@/stores/propertyStore';
+// import { usePropertyStore } from '@/stores/propertyStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { useWishlistStore } from '@/stores/wishlistStore';
 import { useAuthStore } from '@/stores/authStore';
@@ -36,119 +37,175 @@ import {
   Bell,
   Heart,
 } from 'lucide-react-native';
+import { useMarketplaceProperties } from '@/hooks/useMarketplaceProperties';
+import { MarketplaceFilters } from '@/services/renterMarketplace';
+
+// Helper functions to convert between filter formats
+const convertMarketplaceToModalFilters = (marketplaceFilters: MarketplaceFilters = {}) => {
+  return {
+    priceRange: [marketplaceFilters.minPrice || 0, marketplaceFilters.maxPrice || 200000],
+    bedrooms: marketplaceFilters.bedrooms || 0,
+    guests: marketplaceFilters.bathrooms || 1, // Map bathrooms to guests for now
+    propertyTypes: [],
+    amenities: marketplaceFilters.amenities || [],
+    checkInDate: null,
+    checkOutDate: null,
+    location: "",
+  };
+};
+
+const convertModalToMarketplaceFilters = (modalFilters: any = {}): MarketplaceFilters => {
+  const filters: MarketplaceFilters = {};
+  
+  if (modalFilters?.priceRange && Array.isArray(modalFilters.priceRange)) {
+    if (modalFilters.priceRange[0] > 0) {
+      filters.minPrice = modalFilters.priceRange[0];
+    }
+    if (modalFilters.priceRange[1] < 200000) {
+      filters.maxPrice = modalFilters.priceRange[1];
+    }
+  }
+  if (modalFilters?.bedrooms && modalFilters.bedrooms > 0) {
+    filters.bedrooms = modalFilters.bedrooms;
+  }
+  if (modalFilters?.guests && modalFilters.guests > 1) {
+    filters.bathrooms = modalFilters.guests; // Map guests back to bathrooms
+  }
+  if (modalFilters?.amenities && Array.isArray(modalFilters.amenities) && modalFilters.amenities.length > 0) {
+    filters.amenities = modalFilters.amenities;
+  }
+  
+  return filters;
+};
+
 export default function ExploreScreen() {
   const router = useRouter();
-  const {
-    filteredProperties,
-    searchQuery,
-    filters,
-    isLoading,
-    suggestions,
-    fetchProperties,
-    searchProperties,
-    filterProperties,
-    clearFilters,
-    hasActiveFilters,
-  } = usePropertyStore();
+  // const {
+  //   filteredProperties,
+  //   searchQuery,
+  //   filters,
+  //   isLoading,
+  //   suggestions,
+  //   fetchProperties,
+  //   searchProperties,
+  //   filterProperties,
+  //   clearFilters,
+  //   hasActiveFilters,
+  // } = usePropertyStore();
   const { unreadCount } = useNotificationStore();
   const { user } = useAuthStore();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlistStore();
   const { profile: profileData, isLoadingProfile: profileLoading, refetchProfile } = useRenterInvestorProfile();
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const [selectedTab, setSelectedTab] = useState<'Residential' | 'Commercial'>('Residential');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Debug refreshing state changes
   useEffect(() => {
-    fetchProperties();
-    // Fetch profile data when dashboard loads for renter_investor
-    console.log('Index - Fetching profile data for renter_investor user');
+    console.log("[ExploreScreen] Refreshing state changed:", refreshing);
+  }, [refreshing]);
+
+  // Use the new marketplace properties hook
+  const {
+    properties,
+    isPropertiesLoading,
+    propertiesError,
+    refetchProperties,
+    pagination,
+    loadMore,
+    changeType,
+    searchProperties,
+    applyFilters,
+    clearFilters,
+    hasActiveFilters,
+    currentType,
+    searchQuery,
+    filters,
+    page,
+  } = useMarketplaceProperties({});
+
+  useEffect(() => {
     refetchProfile();
-  }, [fetchProperties, refetchProfile]);
-  // Debounced search
-  const handleSearch = useCallback(
-    (query: string) => {
-      setLocalSearchQuery(query);
+  }, [refetchProfile]);
+
+  // Cleanup search timeout on unmount
+  useEffect(() => {
+    return () => {
       if (searchTimeout) {
         clearTimeout(searchTimeout);
       }
-      const timeout = setTimeout(() => {
-        searchProperties(query);
-      }, 300);
-      setSearchTimeout(timeout);
-    },
-    [searchTimeout, searchProperties]
-  );
+    };
+  }, [searchTimeout]);
+
+  const handleSearch = useCallback((query: string) => {
+    console.log("[ExploreScreen] Search input changed:", query);
+    setLocalSearchQuery(query);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Debounce search API call by 500ms
+    const timeout = setTimeout(() => {
+      console.log("[ExploreScreen] Triggering API search:", query);
+      searchProperties(query);
+    }, 500);
+    
+    setSearchTimeout(timeout);
+  }, [searchTimeout, searchProperties]);
+
   const handlePropertyPress = (propertyId: string) => {
     router.push(`/property/${propertyId}`);
   };
-  const handleApplyFilters = (newFilters: any) => {
-    filterProperties(newFilters);
-  };
-  const handleClearFilters = () => {
-    clearFilters();
+
+  const handleTabChange = (tab: 'residential' | 'commercial') => {
+    changeType(tab);
+    // Clear search when changing tabs
     setLocalSearchQuery('');
-  };
-  const handleTabChange = (tab: 'Residential' | 'Commercial') => {
-    setSelectedTab(tab);
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
+    console.log("[ExploreScreen] Pull to refresh triggered");
     setRefreshing(true);
     try {
-      await Promise.all([
-        fetchProperties(),
+      // Use Promise.allSettled to handle both promises regardless of individual failures
+      const results = await Promise.allSettled([
+        refetchProperties(),
         refetchProfile(),
       ]);
+      
+      // Log any failures
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.log(`[ExploreScreen] Refresh ${index === 0 ? 'properties' : 'profile'} failed:`, result.reason);
+        }
+      });
+      
+      console.log("[ExploreScreen] Pull to refresh completed");
+    } catch (error) {
+      console.log("[ExploreScreen] Refresh error:", error);
     } finally {
       setRefreshing(false);
     }
+  }, [refetchProperties, refetchProfile]);
+
+  const handleLoadMore = () => {
+    loadMore();
   };
-  // Filter properties based on selected tab
-  const getFilteredPropertiesByTab = () => {
-    let tabFilteredProperties = filteredProperties;
-    if (selectedTab === 'Commercial') {
-      // Commercial properties: office, retail, warehouse, etc.
-      tabFilteredProperties = filteredProperties.filter(
-        (property) =>
-          ['office', 'retail', 'warehouse', 'commercial'].includes(property.propertyType) ||
-          property.title.toLowerCase().includes('commercial') ||
-          property.title.toLowerCase().includes('office') ||
-          property.title.toLowerCase().includes('retail')
-      );
-    } else {
-      // Residential properties: villa, penthouse, mansion, apartment, etc.
-      tabFilteredProperties = filteredProperties.filter(
-        (property) =>
-          [
-            'villa',
-            'penthouse',
-            'mansion',
-            'apartment',
-            'house',
-            'condo',
-            'loft',
-            'cabin',
-            'treehouse',
-            'farmhouse',
-            'yacht',
-          ].includes(property.propertyType) ||
-          !['office', 'retail', 'warehouse', 'commercial'].includes(property.propertyType)
-      );
-    }
-    return tabFilteredProperties;
-  };
-  const handleNotifications = () => {
-    router.push('/notifications');
-  };
+
   const handleWishlistToggle = (property: any) => {
     if (!user) {
       toast.error('Please login to add to wishlist');
       return;
     }
-    const isWishlisted = isInWishlist(user.id, property.id);
+    const isWishlisted = isInWishlist(user.id, property._id);
     if (isWishlisted) {
-      removeFromWishlist(user.id, property.id);
+      removeFromWishlist(user.id, property._id);
       toast.success('Removed from wishlist');
     } else {
       addToWishlist(user.id, property);
@@ -156,10 +213,10 @@ export default function ExploreScreen() {
     }
   };
   const renderPropertyCard = ({ item: property }: { item: any }) => (
-    <TouchableOpacity onPress={() => handlePropertyPress(property.id)} style={styles.propertyItem}>
+    <TouchableOpacity onPress={() => handlePropertyPress(property._id)} style={styles.propertyItem}>
       <Card style={styles.propertyCard}>
         <View style={styles.imageContainer}>
-          <Image source={{ uri: property.mediaGallery.images[0] }} style={styles.propertyImage} />
+          <Image source={{ uri: property.media?.images?.[0]?.url }} style={styles.propertyImage} />
           <TouchableOpacity
             onPress={() => handleWishlistToggle(property)}
             style={styles.wishlistButton}
@@ -167,14 +224,8 @@ export default function ExploreScreen() {
           >
             <Heart
               size={20}
-              color={
-                user && isInWishlist(user.id, property.id)
-                  ? colors.status.error
-                  : colors.neutral.white
-              }
-              fill={
-                user && isInWishlist(user.id, property.id) ? colors.status.error : 'transparent'
-              }
+              color={user && isInWishlist(user.id, property._id) ? colors.status.error : colors.neutral.white}
+              fill={user && isInWishlist(user.id, property._id) ? colors.status.error : 'transparent'}
             />
           </TouchableOpacity>
         </View>
@@ -183,53 +234,37 @@ export default function ExploreScreen() {
             <Typography variant="h4" numberOfLines={1}>
               {property.title}
             </Typography>
-            <View style={styles.ratingContainer}>
-              <Star size={16} color={colors.primary.gold} fill={colors.primary.gold} />
-              <Typography variant="caption" color="secondary">
-                {property.rating}
-              </Typography>
-            </View>
+            {/* Optionally add rating if available */}
           </View>
           <View style={styles.locationContainer}>
             <MapPin size={14} color={colors.text.secondary} />
             <Typography variant="caption" color="secondary" numberOfLines={1}>
-              {property.location.city}, {property.location.country}
+              {property.address.city.name}, {property.address.country?.name || ''}
             </Typography>
           </View>
           <View style={styles.propertyDetails}>
             <Typography variant="caption" color="secondary">
-              {property.bedrooms} bed • {property.bathrooms} bath
+              {property.specifications.bedrooms} bed • {property.specifications.bathrooms} bath
             </Typography>
           </View>
           <View style={styles.propertyFooter}>
             <View>
               <Typography variant="body" color="gold">
-                ${property.price.rent}/night
+                ${property.rentAmount.basePrice}/month
               </Typography>
-              <Typography variant="caption" color="secondary">
-                Investment from ${property.price.investment.toLocaleString()}
-              </Typography>
-              <View style={styles.investmentInfo}>
-                <TrendingUp size={12} color={colors.status.success} />
-                <Typography variant="caption" color="success">
-                  {property.investmentDetails.roiEstimate}% yield
-                </Typography>
-                <Typography variant="caption" color="secondary">
-                  • {property.investmentDetails.fundedPercentage}% funded
-                </Typography>
-              </View>
+              {/* Optionally add investment info if available */}
             </View>
             <View style={styles.propertyType}>
               <Typography variant="caption" color="white">
-                {property.propertyType.toUpperCase()}
+                {property.type.toUpperCase()}
               </Typography>
             </View>
           </View>
           <View style={styles.amenitiesContainer}>
-            {property.amenities.slice(0, 3).map((amenity: string, index: number) => (
+            {property.amenities.slice(0, 3).map((amenity: any, index: number) => (
               <View key={index} style={styles.amenityTag}>
                 <Typography variant="label" color="secondary">
-                  {amenity}
+                  {amenity.name}
                 </Typography>
               </View>
             ))}
@@ -243,75 +278,9 @@ export default function ExploreScreen() {
       </Card>
     </TouchableOpacity>
   );
-  const renderSuggestions = () => {
-    if (filteredProperties.length > 0) return null;
-    return (
-      <View style={styles.suggestionsContainer}>
-        <ScrollView>
-          <View style={styles.noResultsHeader}>
-            <AlertCircle size={24} color={colors.text.secondary} />
-            <Typography variant="h4" color="secondary" align="center">
-              No properties found
-            </Typography>
-            <Typography variant="body" color="secondary" align="center">
-              Try adjusting your search criteria or explore our suggestions
-            </Typography>
-          </View>
-          {suggestions.nearestDates.length > 0 && (
-            <View style={styles.suggestionSection}>
-              <View style={styles.suggestionHeader}>
-                <Calendar size={20} color={colors.primary.gold} />
-                <Typography variant="h5">Nearest Available Dates</Typography>
-              </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.dateChips}>
-                  {suggestions.nearestDates.map((date, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.dateChip}
-                      onPress={() => {
-                        filterProperties({ checkInDate: date, checkOutDate: date });
-                        setShowFilters(false);
-                      }}
-                    >
-                      <Typography variant="caption" color="gold">
-                        {new Date(date).toLocaleDateString()}
-                      </Typography>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-          )}
-          {suggestions.similarInvestments.length > 0 && (
-            <View style={styles.suggestionSection}>
-              <View style={styles.suggestionHeader}>
-                <TrendingUp size={20} color={colors.primary.gold} />
-                <Typography variant="h5">High-Yield Investments</Typography>
-              </View>
-              <FlatList
-                data={suggestions.similarInvestments}
-                renderItem={renderPropertyCard}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.horizontalList}
-              />
-            </View>
-          )}
-          <Button
-            title="Clear All Filters"
-            onPress={handleClearFilters}
-            variant="outline"
-            style={styles.clearButton}
-          />
-        </ScrollView>
-      </View>
-    );
-  };
-  const activeFiltersCount = hasActiveFilters() ? 1 : 0;
+
   const headerRightComponent = (
-    <TouchableOpacity onPress={handleNotifications} style={styles.notificationButton}>
+    <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notificationButton}>
       <Bell size={24} color={colors.neutral.white} />
       {unreadCount > 0 && (
         <View style={styles.notificationBadge}>
@@ -322,6 +291,7 @@ export default function ExploreScreen() {
       )}
     </TouchableOpacity>
   );
+
   return (
     <View style={styles.container}>
       <Header
@@ -336,25 +306,26 @@ export default function ExploreScreen() {
           <Search size={20} color={colors.text.secondary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search properties, locations, amenities..."
+            placeholder="Search properties, locations..."
             value={localSearchQuery}
             onChangeText={handleSearch}
             placeholderTextColor={colors.text.secondary}
+            autoCapitalize="none"
+            autoCorrect={false}
+            clearButtonMode="while-editing"
           />
         </View>
         <TouchableOpacity
           onPress={() => setShowFilters(true)}
-          style={[styles.filterButton, activeFiltersCount > 0 && styles.activeFilterButton]}
+          style={[styles.filterButton, hasActiveFilters() && styles.activeFilterButton]}
         >
           <Filter
             size={20}
-            color={activeFiltersCount > 0 ? colors.neutral.white : colors.primary.gold}
+            color={hasActiveFilters() ? colors.neutral.white : colors.primary.gold}
           />
-          {activeFiltersCount > 0 && (
+          {hasActiveFilters() && (
             <View style={styles.filterBadge}>
-              <Typography variant="label" color="inverse" style={styles.filterBadgeText}>
-                {activeFiltersCount}
-              </Typography>
+              <View style={styles.filterDot} />
             </View>
           )}
         </TouchableOpacity>
@@ -365,7 +336,9 @@ export default function ExploreScreen() {
           <Typography variant="caption" color="secondary">
             Filters applied
           </Typography>
-          <TouchableOpacity onPress={handleClearFilters}>
+          <TouchableOpacity onPress={() => {
+            clearFilters();
+          }}>
             <Typography variant="caption" color="gold">
               Clear all
             </Typography>
@@ -375,24 +348,24 @@ export default function ExploreScreen() {
       {/* Property Type Tabs */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'Residential' && styles.activeTab]}
-          onPress={() => handleTabChange('Residential')}
+          style={[styles.tab, currentType === 'residential' && styles.activeTab]}
+          onPress={() => handleTabChange('residential')}
         >
           <Typography
             variant="body"
-            color={selectedTab === 'Residential' ? 'white' : 'secondary'}
+            color={currentType === 'residential' ? 'white' : 'secondary'}
             style={styles.tabText}
           >
             Residential
           </Typography>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, selectedTab === 'Commercial' && styles.activeTab]}
-          onPress={() => handleTabChange('Commercial')}
+          style={[styles.tab, currentType === 'commercial' && styles.activeTab]}
+          onPress={() => handleTabChange('commercial')}
         >
           <Typography
             variant="body"
-            color={selectedTab === 'Commercial' ? 'white' : 'secondary'}
+            color={currentType === 'commercial' ? 'white' : 'secondary'}
             style={styles.tabText}
           >
             Commercial
@@ -401,7 +374,7 @@ export default function ExploreScreen() {
       </View>
       {/* Results */}
       <View style={styles.resultsContainer}>
-        {isLoading ? (
+        {isPropertiesLoading && page === 1 ? (
           <View style={styles.loadingContainer}>
             <Typography variant="body" color="secondary" align="center">
               Loading luxury properties...
@@ -409,24 +382,53 @@ export default function ExploreScreen() {
           </View>
         ) : (
           <>
-            {getFilteredPropertiesByTab().length > 0 ? (
+            {properties.length > 0 ? (
               <FlatList
-                data={getFilteredPropertiesByTab()}
+                key={`${currentType}-${page}`}
+                data={properties}
                 renderItem={renderPropertyCard}
-                keyExtractor={(item) => item.id}
+                keyExtractor={(item) => item._id}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.propertiesList}
                 refreshControl={
                   <RefreshControl
                     refreshing={refreshing}
-                    onRefresh={onRefresh}
+                    onRefresh={() => {
+                      console.log("[ExploreScreen] RefreshControl triggered");
+                      onRefresh();
+                    }}
                     colors={[colors.primary.gold]}
                     tintColor={colors.primary.gold}
+                    progressBackgroundColor={colors.background.primary}
                   />
                 }
+                onEndReached={handleLoadMore}
+                onEndReachedThreshold={0.1}
+                ListFooterComponent={
+                  pagination && pagination.currentPage < pagination.totalPages ? (
+                    <View style={styles.loadMoreContainer}>
+                      {isPropertiesLoading ? (
+                        <ActivityIndicator size="small" color={colors.primary.gold} />
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.loadMoreButton}
+                          onPress={handleLoadMore}
+                        >
+                          <Typography variant="body" color="gold">
+                            Load More Properties
+                          </Typography>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ) : null
+                }
               />
-            ) : (
-              renderSuggestions()
+            ) : ( 
+              <View style={styles.suggestionsContainer}>
+                <Typography variant="h4" color="secondary" align="center">
+                  No properties found
+                </Typography>
+              </View>
             )}
           </>
         )}
@@ -434,9 +436,18 @@ export default function ExploreScreen() {
       <FilterModal
         visible={showFilters}
         onClose={() => setShowFilters(false)}
-        filters={filters}
-        onApplyFilters={handleApplyFilters}
-        onClearFilters={handleClearFilters}
+        filters={convertMarketplaceToModalFilters(filters)}
+        onApplyFilters={(modalFilters) => {
+          const marketplaceFilters = convertModalToMarketplaceFilters(modalFilters);
+          console.log("[ExploreScreen] Applying filters:", marketplaceFilters);
+          applyFilters(marketplaceFilters);
+          setShowFilters(false);
+        }}
+        onClearFilters={() => {
+          console.log("[ExploreScreen] Clearing filters");
+          clearFilters();
+          setShowFilters(false);
+        }}
       />
     </View>
   );
@@ -485,12 +496,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: colors.status.error,
+    backgroundColor: 'transparent',
     borderRadius: radius.full,
     minWidth: 16,
     height: 16,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    backgroundColor: colors.status.error,
+    borderRadius: 4,
   },
   filterBadgeText: {
     fontSize: 10,
@@ -670,5 +687,16 @@ const styles = StyleSheet.create({
   },
   tabText: {
     fontWeight: '600',
+  },
+  loadMoreContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.lg,
+  },
+  loadMoreButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background.secondary,
   },
 });

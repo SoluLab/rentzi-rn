@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Modal,
@@ -73,7 +73,39 @@ export function FilterModal({
   onApplyFilters,
   onClearFilters,
 }: FilterModalProps) {
-  const [localFilters, setLocalFilters] = useState(filters);
+  // Ensure filters has default values to prevent undefined errors
+  const defaultFilters = {
+    priceRange: [0, 200000],
+    bedrooms: 0,
+    guests: 1,
+    bathrooms: 1,
+    propertyTypes: [],
+    amenities: [],
+    checkInDate: null,
+    checkOutDate: null,
+    location: "",
+    ...filters, // Override with actual filters if provided
+  };
+  
+  const [localFilters, setLocalFilters] = useState(defaultFilters);
+  
+  // Update localFilters when filters prop changes
+  useEffect(() => {
+    const updatedFilters = {
+      priceRange: [0, 200000],
+      bedrooms: 0,
+      guests: 1,
+      bathrooms: 1,
+      propertyTypes: [],
+      amenities: [],
+      checkInDate: null,
+      checkOutDate: null,
+      location: "",
+      ...filters, // Override with actual filters if provided
+    };
+    setLocalFilters(updatedFilters);
+  }, [filters]);
+  
   const updateFilter = (key: string, value: any) => {
     setLocalFilters((prev: any) => ({
       ...prev,
@@ -186,7 +218,7 @@ export function FilterModal({
                     min={0}
                     max={200000}
                     step={1000}
-                    values={localFilters.priceRange}
+                    values={Array.isArray(localFilters.priceRange) ? localFilters.priceRange : [0, 200000]}
                     onValuesChange={(values) =>
                       updateFilter("priceRange", values)
                     }
@@ -205,7 +237,7 @@ export function FilterModal({
                       <Typography variant="caption">Guests</Typography>
                     </View>
                       <Stepper
-                        value={localFilters.guests || 1}
+                        value={Number(localFilters.guests) || 1}
                         onValueChange={(value) => updateFilter("guests", value)}
                         min={1}
                         max={20}
@@ -219,9 +251,9 @@ export function FilterModal({
                       <Typography variant="caption">Bedrooms</Typography>
                     </View>
                       <Stepper
-                        value={localFilters.bedrooms || 1}
+                        value={Number(localFilters.bedrooms) || 0}
                         onValueChange={(value) => updateFilter("bedrooms", value)}
-                        min={1}
+                        min={0}
                         max={10}
                         label="Number of bedrooms"
                         compact={true}
@@ -238,7 +270,7 @@ export function FilterModal({
                       <Typography variant="caption">Bathrooms</Typography>
                     </View>
                       <Stepper
-                        value={localFilters.bathrooms || 1}
+                        value={Number(localFilters.bathrooms) || 1}
                         onValueChange={(value) => updateFilter("bathrooms", value)}
                         min={1}
                         max={10}
