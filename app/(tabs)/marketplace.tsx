@@ -15,12 +15,12 @@ import { Card } from "@/components/ui/Card";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { colors } from "@/constants/colors";
 import { Header } from "@/components/ui/Header";
+import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
 import { useAuthStore } from "@/stores/authStore";
-import { ShoppingCart, ChevronDown } from "lucide-react-native";
+import { ShoppingCart, ChevronDown, Filter } from "lucide-react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 const { width } = Dimensions.get("window");
@@ -298,16 +298,28 @@ export default function MarketplaceScreen() {
       dialogTitle: "Export Purchases CSV",
     });
   };
+
+  // Header Right Component
+  const headerRightComponent = (
+    <TouchableOpacity 
+      onPress={() => {
+        // TODO: Implement filter functionality if needed
+        console.log("Filter pressed");
+      }}
+      style={{ padding: spacing.xs }}
+    >
+      <Filter size={20} color={colors.text.primary} />
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
-      {/* Header 
       <Header
         title="Secondary Marketplace"
-        subtitle="Track luxury real estate investments."
         showBackButton={false}
+        rightComponent={headerRightComponent}
       />
-      */}
-      {/* Tab Section - replaced with notification-style horizontal tab bar */}
+      
       <ScrollView
         style={styles.tabsScrollView}
         contentContainerStyle={styles.tabsContainer}
@@ -843,16 +855,14 @@ export default function MarketplaceScreen() {
                 // Anonymized buyer (e.g., 'Buyer 1234')
                 const anonymizedBuyer = "Buyer " + request.id.slice(-4);
                 return (
-                  <Card
-                    key={request.id}
-                    style={[
-                      styles.tokenListingCard,
-                      {
-                        flexDirection: "row",
-                        alignItems: "center",
-                        padding: 12,
-                      },
-                    ]}
+                  <Card 
+                    key={request.id} 
+                    style={{
+                      ...styles.tokenListingCard, 
+                      flexDirection: "row", 
+                      alignItems: "center", 
+                      padding: spacing.md
+                    }}
                   >
                     {/* Property Image/Thumbnail */}
                     <Image
@@ -979,16 +989,14 @@ export default function MarketplaceScreen() {
                     purchase.ownershipPercent ??
                     ((purchase.quantityBought / 1000) * 100).toFixed(2);
                   return (
-                    <Card
-                      key={purchase.id}
-                      style={[
-                        styles.tokenListingCard,
-                        {
-                          flexDirection: "row",
-                          alignItems: "center",
-                          padding: 12,
-                        },
-                      ]}
+                    <Card 
+                      key={purchase.id} 
+                      style={{
+                        ...styles.tokenListingCard, 
+                        flexDirection: "row", 
+                        alignItems: "center", 
+                        padding: spacing.md
+                      }}
                     >
                       {/* Property Image/Thumbnail */}
                       <Image
@@ -1258,12 +1266,8 @@ export default function MarketplaceScreen() {
   );
 }
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollView: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  scrollView: { flex: 1 },
   section: {
     paddingHorizontal: spacing.layout.screenPadding,
     paddingVertical: spacing.lg,
@@ -1279,9 +1283,7 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.xs,
   },
-  sectionTitle: {
-    marginBottom: 0,
-  },
+  sectionTitle: { marginBottom: 0 },
   sortContainer: {
     position: "relative",
     minWidth: 140,
@@ -1293,7 +1295,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     gap: spacing.xs,
     borderWidth: 1,
-    borderColor: colors.border.primary,
+    borderColor: colors.border.dark,
     alignItems: "center",
   },
   sortButtonText: {
@@ -1308,7 +1310,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background.primary,
     borderRadius: radius.md,
     borderWidth: 1,
-    borderColor: colors.border.primary,
+    borderColor: colors.border.dark,
     marginTop: spacing.xs,
     zIndex: 1000,
     ...Platform.select({
@@ -1327,660 +1329,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
+    borderBottomColor: colors.border.dark,
   },
   sortOptionSelected: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
+    backgroundColor: colors.interactive.hover,
   },
-  filterContainer: {
-    position: "relative",
-    minWidth: 160,
-  },
-  filterButton: {
+  tabsContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  filterDropdown: {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    right: 0,
-    backgroundColor: colors.background.primary,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    marginTop: spacing.xs,
-    zIndex: 1000,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.neutral.black,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  filterOption: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
-  },
-  filterOptionSelected: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-  },
-  statsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: "45%",
-  },
-  statContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  statText: {
-    flex: 1,
-  },
-  chartCard: {
-    paddingVertical: spacing.xl,
-  },
-  chartPlaceholder: {
-    alignItems: "center",
-    gap: spacing.md,
-  },
-  investmentCard: {
-    marginBottom: spacing.md,
-  },
-  investmentContent: {
-    flexDirection: "row",
-    gap: spacing.md,
-  },
-  investmentImage: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.md,
-  },
-  investmentDetails: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  investmentMetrics: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  tokenDetailsSection: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
-  },
-  tokenDetailsTitle: {
-    marginBottom: spacing.sm,
-    color: colors.primary.gold,
-  },
-  metric: {
-    alignItems: "center",
-    flex: 1,
-  },
-  investmentFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.sm,
-  },
-  statusBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
-  },
-  activeStatusBadge: {
-    backgroundColor: colors.status.success,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: "flex-start",
     paddingHorizontal: spacing.layout.screenPadding,
-    gap: spacing.lg,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Add padding to prevent content from being hidden behind the fixed button
-  },
-  bottomContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
     backgroundColor: colors.background.primary,
-    paddingHorizontal: spacing.layout.screenPadding,
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.neutral.black,
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
-  },
-  downloadPDFButton: {
-    backgroundColor: colors.primary.gold,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderRadius: radius.lg,
     gap: spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary.gold,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  downloadButtonText: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  payoutSection: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
-  },
-  payoutInfo: {
-    flex: 1,
-  },
-  claimPayoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.primary.gold,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    gap: spacing.xs,
-    marginLeft: spacing.md,
-  },
-  claimPayoutButtonDisabled: {
-    backgroundColor: colors.background.secondary,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  claimButtonText: {
-    fontWeight: "600",
-    fontSize: 12,
-  },
-  modalContent: {
-    maxHeight: "85%",
-  },
-  modalScrollContent: {
-    paddingBottom: spacing.xl,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
-  },
-  closeButton: {
-    padding: spacing.xs,
-  },
-  modalSection: {
-    marginBottom: spacing.lg,
-  },
-  modalSectionTitle: {
-    marginBottom: spacing.md,
-    color: colors.primary.gold,
-  },
-  propertyInfo: {
-    flexDirection: "row",
-    gap: spacing.md,
-    alignItems: "flex-start",
-  },
-  modalPropertyImage: {
-    width: 80,
-    height: 80,
-    borderRadius: radius.md,
-  },
-  propertyDetails: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  modalMetricsGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.md,
-  },
-  modalMetric: {
-    flex: 1,
-    minWidth: "45%",
-    alignItems: "center",
-    backgroundColor: colors.background.secondary,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    gap: spacing.xs,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border.primary,
-  },
-  payoutCard: {
-    backgroundColor: colors.background.secondary,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    gap: spacing.md,
-  },
-  payoutHeader: {
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  modalClaimButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary.gold,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  modalClaimButtonDisabled: {
-    backgroundColor: colors.background.primary,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  modalClaimButtonText: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  secondaryMarketplaceButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary.navy,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  listForSaleContainer: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  listForSaleDescription: {
-    textAlign: "center",
-    marginBottom: spacing.sm,
-  },
-  listForSaleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.primary.navy,
-    borderRadius: radius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    ...Platform.select({
-      ios: {
-        shadowColor: colors.primary.navy,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 6,
-      },
-    }),
-  },
-  listForSaleButtonText: {
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  listingModalContent: {
-    maxHeight: "90%",
-    width: "100%",
-  },
-  ownershipCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    alignItems: "center",
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  ownershipHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  inputSection: {
-    marginBottom: spacing.lg,
-  },
-  inputHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  inputContainer: {
-    marginBottom: 0,
-  },
-  totalSection: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    alignItems: "center",
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.primary.gold,
-  },
-  totalLabel: {
-    color: colors.primary.gold,
-  },
-  durationContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-  },
-  durationOption: {
-    flex: 1,
-    minWidth: "45%",
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  durationOptionSelected: {
-    backgroundColor: colors.primary.gold,
-    borderColor: colors.primary.gold,
-  },
-  listingModalActions: {
-    gap: spacing.md,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
-  },
-  propertyHeaderCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    gap: spacing.sm,
-  },
-  tokenSymbolContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
-  tokenSymbol: {
-    fontWeight: "600",
-    fontFamily: "monospace",
-  },
-  warningNote: {
-    backgroundColor: "rgba(255, 193, 7, 0.1)",
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.status.warning,
-  },
-  percentageNote: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.xs,
-    borderWidth: 1,
-    borderColor: colors.primary.gold,
-  },
-  marketPriceWarning: {
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-  },
-  readOnlyField: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.md,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    alignItems: "center",
-    gap: spacing.xs,
-  },
-  previewButton: {
-    borderColor: colors.primary.gold,
-  },
-  submitListingButton: {
-    backgroundColor: colors.primary.gold,
-  },
-  previewModalContent: {
-    maxHeight: "80%",
-    width: "100%",
-  },
-  previewSection: {
-    marginBottom: spacing.lg,
-  },
-  previewSectionTitle: {
-    marginBottom: spacing.md,
-    color: colors.primary.gold,
-  },
-  previewPropertyCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    gap: spacing.sm,
-  },
-  previewDetailsCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    gap: spacing.md,
-  },
-  previewDetailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  previewModalActions: {
-    gap: spacing.md,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border.primary,
-  },
-  successModalContent: {
-    maxHeight: "70%",
-    width: "100%",
-    alignItems: "center",
-  },
-  successHeader: {
-    alignItems: "center",
-    gap: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  successDetails: {
-    width: "100%",
-    marginBottom: spacing.xl,
-  },
-  successSectionTitle: {
-    marginBottom: spacing.md,
-    color: colors.primary.gold,
-    textAlign: "center",
-  },
-  successDetailsCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  successModalActions: {
-    width: "100%",
-    gap: spacing.md,
-  },
-  primarySuccessButton: {
-    backgroundColor: colors.primary.gold,
-  },
-  passiveIncomeCard: {
-    backgroundColor: "rgba(212, 175, 55, 0.1)",
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    alignItems: "center",
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.primary.gold,
-  },
-  claimHistoryCard: {
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-  },
-  claimHistoryHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: spacing.md,
-  },
-  claimHistoryDetails: {
-    gap: spacing.sm,
-  },
-  completedStatusBadge: {
-    backgroundColor: colors.status.success,
-  },
-  pendingStatusBadge: {
-    backgroundColor: colors.status.warning,
-  },
-  txHash: {
-    fontFamily: "monospace",
-    fontSize: 12,
-    color: colors.primary.gold,
-  },
-  claimHistoryList: {
-    gap: spacing.sm,
-    maxHeight: 200,
-  },
-  claimHistoryItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.background.secondary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border.primary,
-    gap: spacing.sm,
-  },
-  claimHistoryDate: {
-    flex: 1.2,
-    fontSize: 11,
-  },
-  claimHistoryAmount: {
-    flex: 1,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  claimHistoryProperty: {
-    flex: 1.5,
-    fontSize: 11,
-    textAlign: "center",
-  },
-  claimHistoryTxId: {
-    flex: 1.2,
-    fontSize: 10,
-    fontFamily: "monospace",
-    textAlign: "center",
-  },
-  claimHistoryStatus: {
-    fontSize: 9,
-  },
-  tabContainer: {
-    flexDirection: "row",
-    backgroundColor: colors.neutral.lightGray,
-    marginHorizontal: spacing.layout.screenPadding,
-    borderRadius: radius.md,
-    padding: spacing.xs,
   },
   tab: {
-    flex: 1,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.neutral.lightGray,
+    minWidth: 64,
     alignItems: "center",
     justifyContent: "center",
+    marginRight: spacing.sm,
   },
-  activeTab: {
+  tabActive: {
     backgroundColor: colors.primary.gold,
+    shadowColor: colors.primary.gold,
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  tabText: {
-    fontWeight: "600",
+  tabsScrollView: {
+    maxHeight: 50,
+    marginBottom: 0,
+    backgroundColor: colors.background.primary,
   },
-  // Secondary Market Token Card Styles
   tokenListingCard: {
     marginBottom: spacing.lg,
     borderRadius: radius.lg,
     overflow: "hidden",
     backgroundColor: colors.background.primary,
     borderWidth: 1,
-    borderColor: colors.border.primary,
+    borderColor: colors.border.dark,
     ...Platform.select({
       ios: {
         shadowColor: colors.neutral.black,
@@ -2009,6 +1400,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.md,
+    backgroundColor: colors.primary.gold,
     ...Platform.select({
       ios: {
         shadowColor: colors.neutral.black,
@@ -2026,7 +1418,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   tokenListingContent: {
-    padding: spacing.lg,
+    paddingTop: spacing.md,
+    //padding: spacing.sm,
     gap: spacing.md,
   },
   propertyTitleSection: {
@@ -2231,35 +1624,94 @@ const styles = StyleSheet.create({
   confirmPurchaseButton: {
     backgroundColor: colors.primary.gold,
   },
-  // Add custom tab styles
-  tabsContainer: {
-    flexDirection: "row",
-    justifyContent: "flex-start",
-    paddingHorizontal: spacing.layout.screenPadding,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background.primary,
-    gap: spacing.sm,
+  scrollContent: {
+    paddingBottom: 100, // Add padding to prevent content from being hidden behind the fixed button
   },
-  tab: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
-    borderRadius: radius.full,
-    backgroundColor: colors.neutral.lightGray,
-    minWidth: 64,
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.dark,
+  },
+  closeButton: {
+    padding: spacing.xs,
+  },
+  modalSection: {
+    marginBottom: spacing.lg,
+  },
+  modalSectionTitle: {
+    marginBottom: spacing.md,
+    color: colors.primary.gold,
+  },
+  inputSection: {
+    marginBottom: spacing.lg,
+  },
+  inputHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  inputContainer: {
+    marginBottom: 0,
+  },
+  downloadPDFButton: {
+    backgroundColor: colors.primary.gold,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    gap: spacing.sm,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary.gold,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
   },
-  tabActive: {
+  downloadButtonText: {
+    fontWeight: "600",
+    fontSize: 16,
+  },
+  payoutSection: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: spacing.md,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.dark,
+  },
+  payoutInfo: {
+    flex: 1,
+  },
+  claimPayoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.primary.gold,
-    shadowColor: colors.primary.gold,
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.xs,
+    marginLeft: spacing.md,
   },
-  tabsScrollView: {
-    maxHeight: 44,
-    marginBottom: 0,
-    backgroundColor: colors.background.primary,
+  claimPayoutButtonDisabled: {
+    backgroundColor: colors.background.secondary,
+    borderWidth: 1,
+    borderColor: colors.border.dark,
+  },
+  claimButtonText: {
+    fontWeight: "600",
+    fontSize: 12,
   },
 });
