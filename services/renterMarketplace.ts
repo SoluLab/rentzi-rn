@@ -44,7 +44,7 @@ export const useMarketplaceGetProperty = (
     ["marketplace", "property", id],
     {
       baseURL: "http://35.223.240.93:5001",
-      endpoint: `/api/property/${id}`,
+      endpoint: `/api/property/689b0d481fcbd94b6d083989`,
       auth: true,
     },
     options

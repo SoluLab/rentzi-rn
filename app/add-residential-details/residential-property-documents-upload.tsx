@@ -418,72 +418,65 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
       type: "residential",
     };
 
-    // Transform documents to match schema format based on schema.txt
+    // Helper function to extract CID from IPFS URL
+    const extractCidFromUrl = (url: string): string => {
+      if (url.includes('ipfs/')) {
+        return url.split('ipfs/')[1];
+      }
+      return '';
+    };
+
+    // Helper function to create document object with new structure
+    const createDocumentObject = (document: ExtendedDocumentData, defaultKey: string) => {
+      const ipfsUrl = document.uploadedUrl || '';
+      const cid = extractCidFromUrl(ipfsUrl);
+      const baseIpfsUrl = 'https://gateway.pinata.cloud/ipfs/';
+      return {
+        url: ipfsUrl,
+        cid: cid,
+        ipfsUrl: baseIpfsUrl
+      };
+    };
+
+    // Transform documents to match new schema format
     const documents: any = {};
 
     // Mandatory documents
     if (formData.propertyDeed) {
-      documents.propertyDeed = [{
-        key: (formData.propertyDeed as ExtendedDocumentData).uploadedKey || 'propertyDeed',
-        url: (formData.propertyDeed as ExtendedDocumentData).uploadedUrl || formData.propertyDeed.uri,
-      }];
+      documents.propertyDeed = [createDocumentObject(formData.propertyDeed as ExtendedDocumentData, 'propertyDeed')];
     }
 
     if (formData.governmentId) {
-      documents.governmentIssuedId = [{
-        key: (formData.governmentId as ExtendedDocumentData).uploadedKey || 'governmentId',
-        url: (formData.governmentId as ExtendedDocumentData).uploadedUrl || formData.governmentId.uri,
-      }];
+      documents.governmentIssuedId = [createDocumentObject(formData.governmentId as ExtendedDocumentData, 'governmentId')];
     }
 
     if (formData.propertyTaxBill) {
-      documents.propertyTaxBill = [{
-        key: (formData.propertyTaxBill as ExtendedDocumentData).uploadedKey || 'propertyTaxBill',
-        url: (formData.propertyTaxBill as ExtendedDocumentData).uploadedUrl || formData.propertyTaxBill.uri,
-      }];
+      documents.propertyTaxBill = [createDocumentObject(formData.propertyTaxBill as ExtendedDocumentData, 'propertyTaxBill')];
     }
 
     if (formData.proofOfInsurance) {
-      documents.proofOfInsurance = [{
-        key: (formData.proofOfInsurance as ExtendedDocumentData).uploadedKey || 'proofOfInsurance',
-        url: (formData.proofOfInsurance as ExtendedDocumentData).uploadedUrl || formData.proofOfInsurance.uri,
-      }];
+      documents.proofOfInsurance = [createDocumentObject(formData.proofOfInsurance as ExtendedDocumentData, 'proofOfInsurance')];
     }
 
     if (formData.utilityBill) {
-      documents.utilityBill = [{
-        key: (formData.utilityBill as ExtendedDocumentData).uploadedKey || 'utilityBill',
-        url: (formData.utilityBill as ExtendedDocumentData).uploadedUrl || formData.utilityBill.uri,
-      }];
+      documents.utilityBill = [createDocumentObject(formData.utilityBill as ExtendedDocumentData, 'utilityBill')];
     }
 
     if (formData.appraisalReport) {
-      documents.appraisalReport = [{
-        key: (formData.appraisalReport as ExtendedDocumentData).uploadedKey || 'appraisalReport',
-        url: (formData.appraisalReport as ExtendedDocumentData).uploadedUrl || formData.appraisalReport.uri,
-      }];
+      documents.appraisalReport = [createDocumentObject(formData.appraisalReport as ExtendedDocumentData, 'appraisalReport')];
     }
 
     if (formData.authorizationToSell) {
-      documents.authorizationToTokenize = [{
-        key: (formData.authorizationToSell as ExtendedDocumentData).uploadedKey || 'authorizationToSell',
-        url: (formData.authorizationToSell as ExtendedDocumentData).uploadedUrl || formData.authorizationToSell.uri,
-      }];
+      documents.authorizationToTokenize = [createDocumentObject(formData.authorizationToSell as ExtendedDocumentData, 'authorizationToSell')];
     }
 
     // Conditional documents
     if (formData.hasMortgage && formData.mortgageStatement) {
-      documents.mortgageStatement = [{
-        key: (formData.mortgageStatement as ExtendedDocumentData).uploadedKey || 'mortgageStatement',
-        url: (formData.mortgageStatement as ExtendedDocumentData).uploadedUrl || formData.mortgageStatement.uri,
-      }];
+      documents.mortgageStatement = [createDocumentObject(formData.mortgageStatement as ExtendedDocumentData, 'mortgageStatement')];
     }
 
     if (formData.hasHOA && formData.hoaDocuments) {
-      documents.hoaDocument = [{
-        key: (formData.hoaDocuments as ExtendedDocumentData).uploadedKey || 'hoaDocuments',
-        url: (formData.hoaDocuments as ExtendedDocumentData).uploadedUrl || formData.hoaDocuments.uri,
-      }];
+      documents.hoaDocument = [createDocumentObject(formData.hoaDocuments as ExtendedDocumentData, 'hoaDocuments')];
     }
 
     if (Object.keys(documents).length > 0) {

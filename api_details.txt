@@ -1,0 +1,291 @@
+{
+    "success": true,
+    "message": "Property retrieved successfully",
+    "data": {
+        "address": {
+            "coordinates": {
+                "latitude": 33.8303,
+                "longitude": -116.5453
+            },
+            "street": "New Delhi , india",
+            "zipCode": "345345"
+        },
+        "rentAmount": {
+            "basePrice": 150,
+            "currency": "USD",
+            "weekendPrice": 2000,
+            "peakSeasonPrice": 0
+        },
+        "maintenanceFee": {
+            "amount": 120,
+            "currency": "USD"
+        },
+        "area": {
+            "value": 454454
+        },
+        "propertyValueEstimate": {
+            "value": 1500000,
+            "currency": "USD"
+        },
+        "documents": {
+            "propertyDeed": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2f"
+                }
+            ],
+            "governmentIssuedId": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2e"
+                }
+            ],
+            "propertyTaxBill": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2d"
+                }
+            ],
+            "proofOfInsurance": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2c"
+                }
+            ],
+            "utilityBill": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2b"
+                }
+            ],
+            "appraisalReport": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a2a"
+                }
+            ],
+            "authorizationToTokenize": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a29"
+                }
+            ],
+            "mortgageStatement": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a28"
+                }
+            ],
+            "hoaDocument": [
+                {
+                    "key": "sample-local-pdf.pdf",
+                    "url": "https://gateway.pinata.cloud/ipfs/QmR2VB8ayFRKCeFReX9cFJXXByNtHffhqb45HxbcyYfuy5",
+                    "_id": "689b0f331fcbd94b6d083a27"
+                }
+            ],
+            "zoningCertificate": [],
+            "occupancyCertificate": [],
+            "titleReportOrInsurance": [],
+            "rentRoll": [],
+            "incomeandExpenseStatement": [],
+            "camAgreement": [],
+            "propertyConditionAssessment": [],
+            "propertyAppraisal": [],
+            "conditional": [],
+            "granchiseAgreement": [],
+            "businessLicense": [],
+            "adaComplianceReport": [],
+            "safetyReport": []
+        },
+        "_id": "689b0d481fcbd94b6d083989",
+        "_propertyOwner": {
+            "name": {
+                "firstName": "Vimal",
+                "lastName": "Kumar",
+                "fullName": "Vimal Kumar"
+            },
+            "_id": "6890850d2c38be5884264357",
+            "email": "vimal@solulab.co"
+        },
+        "title": "Property Title",
+        "description": "Tez hotel - Bungalow with 10 bedrooms and 10 bathrooms",
+        "type": "commercial",
+        "category": "bungalow",
+        "bedrooms": [
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": true,
+                "walkInCloset": true,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398a"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398b"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398c"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398d"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398e"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d08398f"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d083990"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d083991"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d083992"
+            },
+            {
+                "roomType": "master",
+                "bedType": "king",
+                "attachedBathroom": false,
+                "walkInCloset": false,
+                "roomSizeInSqft": 45445,
+                "hasBalcony": false,
+                "_id": "689b0d481fcbd94b6d083993"
+            }
+        ],
+        "bathrooms": 10,
+        "_amenities": [],
+        "status": "draft",
+        "blockchainStatus": "pending",
+        "_rules": [],
+        "yearOfBuilt": 2022,
+        "yearOfRenovated": 2025,
+        "_propertyFeatures": [],
+        "smartBuildingSystem": [
+            "Automated Lighting",
+            "Smart HVAC"
+        ],
+        "businessServiceProvided": [
+            "Reception Services",
+            "Cleaning Services"
+        ],
+        "images": [
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215411_1754991979806_00e2b0eb.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215411_1754991979806_00e2b0eb.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596779&Signature=D%2BKub1crz8J7XylwM%2F0sJfK31Ak4z1X%2Fo3j9QfVhAl4OmoKgQ39phZUfwyM4bVG%2B3Dwck5coVjYcjEc5WU6rbDH12AuNZXCpKgM4Q51VknWnUqvJfY2kx58E0RA47%2Bstwjs1CabW5NfgSeUPA1oO2oRuQvt%2FaracKb0xltYGh%2FF2AU0R7OQyYqdeSVSx8pV5aAfJ%2FKlnsENd6A9IdOF9E8ZvQC%2BZUoDRlg2bRznzFqV%2Ff7zGHIU60MmnLDPFu%2BZcL83Hgh0icIDXr9GqIYJHO1REHTrfdtj72Wri7ZIO%2FZDdpXnA5A6TFnDo9lvGYHMm3lFksw82QlWwNKk8fAMAcA%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839c5"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215331_1_1754991982735_e099e454.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215331_1_1754991982735_e099e454.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596782&Signature=lwxEPcBpzbz5YVAkiXr28gj%2F7WUqruNEzmE%2Br%2Bw8x5USH6Mljw3cz6O%2FK56IhnurqDxlb7kD%2FgkMIHlxkiW5RjeGy1vRJ%2FZh%2BAZpkCFInGBcoPf3THHOs8kF2dR2TdhxvoyO5KI9JZuTa9%2FZCR%2FX3RwwVmHX0gz3AkI9VawGyXsuwMAERkr4IwhGn076TJG7Qp08ej%2FEqmaR2gC%2FFrW%2Ff1zlPjGa%2BJ91EJjGUb4wq675GXs7vGrz2dJ2TkZskx1YdSUQn5OiBdoRvyE5Bbcza0fOy7gdq1j%2BAvp4B7HbNAk1l69p5WN4TrW1jB246yNTFvvCA0T6M8j5kkjtaLyQaQ%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839c6"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215331_1754991986479_7f3aa9fa.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215331_1754991986479_7f3aa9fa.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596786&Signature=gmY4YkHl8k%2FcLxjkjEnXG2Fab5HxG73NvAAI7HBHIciW26mIIv012Afe2hd2PLDquyXfCFCfriAaevRXXsE%2FsP2x2Z65dGJ7i43fz8a%2FkrTCNtWNw2pLHqwj%2FCxDMdBOIC%2BiZ%2FjNmTkJDSpwp7Q5MrrksrIYA3btmJere8Jfc0BWtyMGgHCmEAaa%2B0tpXfEzaqSiq6LGQHQER1hLu7HQVyIKLAewJmrHRKD10Q9GVHHxGHGQUtLtjbPEF6ADJZLOOZ6rfELpRiu2amTeMEyJPoUOvJa0MdqnLJtLFUhsqlFwnCVSCNGhVqD2zoFMYpd923eND4VxjS%2BM60hQqG4jKQ%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839c7"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215330_1_1754991989412_87dbb011.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215330_1_1754991989412_87dbb011.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596789&Signature=d5PFtyUwZ5CzPAqefjd3UXHA%2Bco%2FRS7tLzNv8ans7LlZfQgIZsd4f79l8x9zn9hlXqxthro6xJYwfPt%2F%2BVf%2BT9yHgURORiu2AO76eJkZww2VqTIqZZil%2F7yQLI40BmmOdA8AVHwLll%2FGi4VTLbE1CLVFbNj2LP0%2FM8xYYA%2F7HaUQXM1bR4Pi0tiN6E2AIqLXRaieYT1A7N0FLVOBEEwZwxjS4NIDRKFmDLmufdt5%2Bl15XWKfgR7K1DdcNhd0xYVx2WN7e6aTlU3473TrKoqRHZKe9tbkocG6h5lqTg4Zz2TZHwpZLUZ6%2FQtdBnHfHINFmn85az1D8nsYhyETqUjPpw%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839c8"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215330_1754991992491_b60b61b9.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215330_1754991992491_b60b61b9.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596792&Signature=Lyi9eZ9GwsqP%2FlfxFQ2mX3hL2Yk1K4Fy0%2BR2XECNKB3md2lyezjgLnhM2tPph2Qum4rSnkarPu8YDC2a73EIz99oUxQ2O0PttQUHeoONylu%2FKxaf%2FC8Gj9ghhSK7RYvWL1mWXG7HjxqPJWw7gqCemLw7dL6jSCC4KwePRCmMhPfDzPzz6%2FnQOc410wlt%2FUZdMH66bjAgejAR7orBnN40tgv8uaUV%2Bx2WocVh66U%2B94C%2FQ4gz6cxkhbs%2B%2BWI2%2FWqmCJ9f1TKQ%2BDJdaWToshIRGNipHCe1swAHK78tadok9P%2F1RWhElZnFOaQk1RNcDoXsJYeMZkXvJk6hJXapMeuFVg%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839c9"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215329_1754992010292_39e5ee32.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215329_1754992010292_39e5ee32.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596810&Signature=dTWvs2BP9ma4WR0z40N%2BIUY7NFxbuns3EZuY27ULLmm7dKNEofN7%2FHKE%2Bo%2BJM54f5xN4F7gQTcxwPJCFuaHwSwibfFaAR%2F9PtQQ9q6FVmP%2B7TU9t8oRFhM6ICMRUf5f%2BHxSvpixU3ARnDSDg3KoUiWTaf0LxAqC8K%2FQ1MEjQg4wYBjhBNtysXeVboX46giaqL0X3JhU5A8dPCI%2F4NA%2FB%2BUMdfrhitfDG%2BBHnma%2FwsL6sJYjiZWYCxmpu3ZIDtEnDP8ocovV9%2F539djVtSU6%2Bu5jjeNpxWZRmSimAZtCcSlpzghZ8gwYfQd5UhNc4ixV9QAE%2BR%2FQ1BoUFaH9400Bnmg%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839ca"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215328_1754992000336_4110ace6.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_215328_1754992000336_4110ace6.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596800&Signature=T2QXf0HTokopBxzM4%2BDQ8dooNWvU2QHUM%2FT8zQLp7EjSCnh%2BC3tNbnVyk2YGfGCwo5czny5AvCW%2BxIpZqRvU2Yut7HxHU3VwHHWdMvYzsj5xXeBXrvsf6VmsJkRI13THZxO3jPDEDg5JllZ0FRo%2FCnv48ccD1hyCT%2Bwgs1sLkioom9C0C3rBF4Ik1OMddC4kdbB5qvdT9Qcu8e0b5gyb8WIRMstEo7DSTZ3JwYhdvQzU0qnQtgdCOb9PX8DqsQEqZkLTVf9Hqrfqy%2BZ5%2BenJfaI6gSFV3I2nXhhPKrxc9B8DfZGnTRP5OpOCHpS%2Fr3hBFLXu1OFGOzxPI6xHt00ljg%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839cb"
+            },
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_191347_1754992003895_7379ae90.jpg",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/images/IMG_20250805_191347_1754992003895_7379ae90.jpg?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596803&Signature=HG76kMtjiRGl5vsWw7QeK1dKk4PxrjPPuTXV1tOYvbW6mU%2BDTck9IuorzDgTaIOmTuccOLOnNQKswMr5ZzDaOjqtLEApOtZKC4i1e8nrEslqQB2TksTIdpdkwn8mAwwVQ7hYKczIJmuwdUxA%2FI4HaZGYOmkDlPsObmJJoVjBP4aEfHLKJv6uwZOVhyUi73G9BowQA0lmFprtYPRNnXeYq8VcfHlaHTzGNq3thrx6BEmp9WzLjo2HkmBuZ3a%2B4%2FkPHnkoX5YYlbYVYmk9IRluh1CzwMgUVRjQncZxbda3jbkECaMPx1JulsWhTzOx8jalCvmEu3iJ76PvcA3NxclUtA%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839cc"
+            }
+        ],
+        "videos": [
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/videos/VID_20250805_215439_1754992116239_f5ff8f90.mp4",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/videos/VID_20250805_215439_1754992116239_f5ff8f90.mp4?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755596916&Signature=GIm0pOyk8ESEKYEXAS84AP5b1IlGyhC8IRG5W49ugTM6fE0zDxGvZ52qHoDqROrvavi3r822I%2FDi5ZxCFib%2BiQ9BLCWgBD11S30a6H93KM2t%2B2iIDqmi2HOiep6TGuQEXiFWQkCPat1yDc7mgXu9VIIq%2F%2BIaHDc6j1x%2Bba%2BAt3fI84sVEBs9IIkaDoQt9cU2FvUtOBl9ERE72GRSwwbIGVEAGLsBT5j8dkUcvnRJCuD17o%2BePTiRY4jRJT3%2BjvnClOvYWYWwA57CAiZvIBDDTnCI7VKjDWQK1uADfRJ3o8cdr8lNHOh29WYYcpLmbgT6NnJOtVro34YNpdf%2BttMHcg%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839cd"
+            }
+        ],
+        "videos360": [
+            {
+                "key": "user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/videos/VID_20250805_215439_1754992257806_804a6437.mp4",
+                "url": "https://storage.googleapis.com/rentzi_dev/user/6890850d2c38be5884264357/property/689b0d481fcbd94b6d083989/videos/VID_20250805_215439_1754992257806_804a6437.mp4?GoogleAccessId=rentzi-dev-sa%40gold-episode-346919.iam.gserviceaccount.com&Expires=1755597057&Signature=Ez58W32uwHub6manc5F511Sm03f2W%2Bm2zeUzo0Dh15Tn0Qs%2FCE54F%2F60cpCYXAN%2Fise%2BcKA0B9hWYQsA4TXtEcCaw%2B85KiRtNNy6M2v0336H0PaUY0tAmALyhh2rtxvD7LEAO1YTFYR56mm9SmcJAimp%2BFv2i7Si0JzZRHi%2FlDvzAlPtJ1JXmdccLI%2B3H0VHTepGWdqRSt8QZhGCMTilQD96DtFhS8ppDY0a7F7KYAGt2AhleIK4HzA34AxPN%2Fp01FW8rLqhiWloiYitibAfiIywAJLOBQCIm119XorUb1T3m8L14BxgHDV%2FFLwIdGcy7tgaE3CXoXe7Sh6jrKzrrQ%3D%3D",
+                "_id": "689b0e881fcbd94b6d0839ce"
+            }
+        ],
+        "createdAt": "2025-08-12T09:45:44.976Z",
+        "updatedAt": "2025-08-12T09:54:51.683Z",
+        "availableWeeksPerYear": 40,
+        "allowsFractionalization": false
+    }
+}

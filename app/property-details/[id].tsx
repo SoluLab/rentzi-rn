@@ -51,8 +51,8 @@ import {
   Trash2,
   Calendar,
 } from "lucide-react-native";
-import { useMarketplaceGetProperty } from '@/services/renterMarketplace';
-import { useHomeownerDeleteProperty } from '@/services/homeownerAddProperty';
+import { useMarketplaceGetProperty } from "@/services/renterMarketplace";
+import { useHomeownerDeleteProperty } from "@/services/homeownerAddProperty";
 
 interface PropertyDetails {
   id: string;
@@ -71,6 +71,8 @@ interface PropertyDetails {
   rating: number;
   reviews: number;
   yearBuilt: number;
+  yearRenovated?: number;
+  documents: Document[];
 }
 
 interface Document {
@@ -78,6 +80,8 @@ interface Document {
   name: string;
   type: string;
   size: string;
+  url: string;
+  category: string;
 }
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -89,43 +93,91 @@ export default function PropertyDetailsScreen() {
   const [isFavorite, setIsFavorite] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [expandedSections, setExpandedSections] = useState({
-    documents: true,
+    documents: false,
     amenities: true,
   });
+  const [showAllDocuments, setShowAllDocuments] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
-  
+
   // Use the new API hook
-  const { data: apiResponse, isLoading, error } = useMarketplaceGetProperty(id as string);
+  const {
+    data: apiResponse,
+    isLoading,
+    error,
+  } = useMarketplaceGetProperty(id as string);
   useEffect(() => {
     if (apiResponse) {
-      console.log('Property API Response:', apiResponse);
+      console.log("Property API Response:", apiResponse);
     }
     if (error) {
-      console.log('Property API Error:', error);
+      console.log("Property API Error:", error);
     }
   }, [apiResponse, error]);
 
   useEffect(() => {
     if (apiResponse?.data) {
       const propertyData = apiResponse.data;
+      // Extract image URLs from the API response
+      const imageUrls = Array.isArray((propertyData as any).images)
+        ? (propertyData as any).images.map((img: any) => img.url)
+        : [];
+
+      // Extract documents from API response
+      const apiDocuments = (propertyData as any).documents || {};
+      const allDocuments: Document[] = [];
+      
+      // Process each document category and add non-empty ones
+      Object.entries(apiDocuments).forEach(([category, docs]: [string, any]) => {
+        if (Array.isArray(docs) && docs.length > 0) {
+          docs.forEach((doc: any) => {
+            if (doc.url && doc.key) {
+              allDocuments.push({
+                id: doc._id || Math.random().toString(),
+                name: doc.key,
+                type: "PDF",
+                size: "Document",
+                url: doc.url,
+                category: category
+              });
+            }
+          });
+        }
+      });
+
       setProperty({
         id: (propertyData as any)._id,
         title: (propertyData as any).title,
-        description: (propertyData as any).description || 'No description available.',
+        description:
+          (propertyData as any).description || "No description available.",
         price: (propertyData as any).rentAmount?.value || 0, // If available, else 0
-        address: (propertyData as any).address?.street || 'Address not available',
-        bedrooms: Array.isArray((propertyData as any).bedrooms) ? (propertyData as any).bedrooms.length : 0,
+        address:
+          (propertyData as any).address?.street || "Address not available",
+        bedrooms: Array.isArray((propertyData as any).bedrooms)
+          ? (propertyData as any).bedrooms.length
+          : 0,
         bathrooms: (propertyData as any).bathrooms || 0,
-        area: (typeof (propertyData as any).area === 'number' ? (propertyData as any).area : (propertyData as any).area?.value) || 0,
-        type: (propertyData as any).category || 'Property',
-        status: (propertyData as any).status === 'active' ? 'Available' : (propertyData as any).status === 'inactive' ? 'Under Maintenance' : (propertyData as any).status === 'pending' ? 'Pending' : 'Available',
-        furnishing: 'Unfurnished', // Not available in API
-        images: (propertyData as any).images || [],
+        area:
+          (typeof (propertyData as any).area === "number"
+            ? (propertyData as any).area
+            : (propertyData as any).area?.value) || 0,
+        type: (propertyData as any).category ? (propertyData as any).category.charAt(0).toUpperCase() + (propertyData as any).category.slice(1) : "Property",
+        status:
+          (propertyData as any).status === "active"
+            ? "Available"
+            : (propertyData as any).status === "inactive"
+            ? "Under Maintenance"
+            : (propertyData as any).status === "pending"
+            ? "Pending"
+            : "Available",
+        furnishing: "Unfurnished", // Not available in API
+        images: imageUrls,
         amenities: (propertyData as any)._amenities || [],
         rating: 4.8, // Placeholder, not available in API
         reviews: 127, // Placeholder, not available in API
         yearBuilt: (propertyData as any).yearOfBuilt || 0,
+        yearRenovated: (propertyData as any).yearOfRenovated || undefined,
+        documents: allDocuments,
       });
     } else if (error) {
       setProperty(null);
@@ -160,11 +212,11 @@ export default function PropertyDetailsScreen() {
     onSuccess: () => {
       setDeleteSheetVisible(false);
       setDeleteConfirmChecked(false);
-      Alert.alert('Success', 'Property deleted successfully');
+      Alert.alert("Success", "Property deleted successfully");
       router.back();
     },
     onError: (error) => {
-      Alert.alert('Error', error.message || 'Failed to delete property');
+      Alert.alert("Error", error.message || "Failed to delete property");
       setDeleteSheetVisible(false);
       setDeleteConfirmChecked(false);
     },
@@ -193,7 +245,10 @@ export default function PropertyDetailsScreen() {
       { text: "Cancel", style: "cancel" },
       {
         text: "Download",
-        onPress: () => console.log(`Downloading ${document.name}`),
+        onPress: () => {
+          console.log(`Downloading ${document.name} from ${document.url}`);
+          // Here you can implement actual download logic using the document.url
+        },
       },
     ]);
   };
@@ -276,22 +331,30 @@ export default function PropertyDetailsScreen() {
     }
   };
 
-  const documents: Document[] = [
-    { id: "1", name: "Ownership Paper.pdf", type: "PDF", size: "2.3 MB" },
-    { id: "2", name: "Electricity Bill", type: "PDF", size: "1.1 MB" },
-    { id: "3", name: "Aadhar.pdf", type: "PDF", size: "856 KB" },
-  ];
+  const formatDocumentCategory = (category: string) => {
+    // Convert camelCase to Title Case with spaces
+    return category
+      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+      .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+      .trim();
+  };
 
-  const amenitiesList = property?.amenities && property.amenities.length > 0 ? property.amenities : [
-    "Lift",
-    "Gym",
-    "Power Backup",
-    "Security",
-    "Park",
-    "WiFi",
-    "Parking",
-    "Coffee Shop",
-  ];
+  // Use API documents if available, otherwise show empty state
+  const documents = property?.documents || [];
+
+  const amenitiesList =
+    property?.amenities && property.amenities.length > 0
+      ? property.amenities
+      : [
+          "Lift",
+          "Gym",
+          "Power Backup",
+          "Security",
+          "Park",
+          "WiFi",
+          "Parking",
+          "Coffee Shop",
+        ];
 
   if (isLoading) {
     return (
@@ -318,9 +381,10 @@ export default function PropertyDetailsScreen() {
   }
 
   // Prepare images array for carousel (use placeholder if empty)
-  const imagesForCarousel = property.images && property.images.length > 0
-    ? property.images
-    : [require('@/assets/images/placeholder.png')];
+  const imagesForCarousel =
+    property.images && property.images.length > 0
+      ? property.images
+      : [require("@/assets/images/placeholder.png")];
 
   return (
     <View style={{ flex: 1 }}>
@@ -353,7 +417,7 @@ export default function PropertyDetailsScreen() {
             data={imagesForCarousel}
             renderItem={({ item }) => (
               <View style={styles.imageSlide}>
-                {typeof item === 'string' ? (
+                {typeof item === "string" ? (
                   <Image
                     source={{ uri: item }}
                     style={styles.carouselImage}
@@ -535,13 +599,33 @@ export default function PropertyDetailsScreen() {
               </View>
               <View style={styles.detailRow}>
                 <Calendar size={18} color={colors.text.secondary} />
-                <Typography variant="body" color="secondary" style={styles.detailLabel}>
+                <Typography
+                  variant="body"
+                  color="secondary"
+                  style={styles.detailLabel}
+                >
                   Year Built:
                 </Typography>
                 <Typography variant="body" color="primary" weight="semibold">
                   {property.yearBuilt}
                 </Typography>
               </View>
+              
+              {property.yearRenovated && (
+                <View style={styles.detailRow}>
+                  <Calendar size={18} color={colors.text.secondary} />
+                  <Typography
+                    variant="body"
+                    color="secondary"
+                    style={styles.detailLabel}
+                  >
+                    Year Renovated:
+                  </Typography>
+                  <Typography variant="body" color="primary" weight="semibold">
+                    {property.yearRenovated}
+                  </Typography>
+                </View>
+              )}
             </View>
           </Card>
 
@@ -588,31 +672,61 @@ export default function PropertyDetailsScreen() {
 
             {expandedSections.documents && (
               <View style={styles.accordionContent}>
-                {documents.map((doc) => (
-                  <View key={doc.id} style={styles.documentItem}>
-                    <View style={styles.documentInfo}>
-                      <FileText size={16} color={colors.text.secondary} />
-                      <View style={styles.documentDetails}>
-                        <Typography
-                          variant="body"
-                          color="primary"
-                          weight="medium"
-                        >
-                          {doc.name}
-                        </Typography>
-                        <Typography variant="caption" color="secondary">
-                          {doc.type} • {doc.size}
-                        </Typography>
-                      </View>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.downloadButton}
-                      onPress={() => handleDownloadDocument(doc)}
-                    >
-                      <Download size={16} color={colors.primary.gold} />
-                    </TouchableOpacity>
+                {documents.length > 0 ? (
+                  <>
+                                         {/* Show first 5 documents or all if expanded */}
+                     {(showAllDocuments ? documents : documents.slice(0, 5)).map((doc) => (
+                       <View key={doc.id} style={styles.documentItem}>
+                         <View style={styles.documentInfo}>
+                           <FileText size={16} color={colors.text.secondary} />
+                           <View style={styles.documentDetails}>
+                             <Typography
+                               variant="body"
+                               color="primary"
+                               weight="medium"
+                             >
+                               {formatDocumentCategory(doc.category)}
+                             </Typography>
+                             <Typography variant="caption" color="secondary">
+                               {doc.name} • {doc.type}
+                             </Typography>
+                           </View>
+                         </View>
+                         <TouchableOpacity
+                           style={styles.downloadButton}
+                           onPress={() => handleDownloadDocument(doc)}
+                         >
+                           <Download size={16} color={colors.primary.gold} />
+                         </TouchableOpacity>
+                       </View>
+                     ))}
+                    
+                    {/* Show expand/collapse button if more than 5 documents */}
+                    {documents.length > 5 && (
+                      <TouchableOpacity
+                        style={styles.expandButton}
+                        onPress={() => setShowAllDocuments(!showAllDocuments)}
+                      >
+                        <View style={styles.expandButtonContent}>
+                          <Typography variant="body" color="primary" weight="medium">
+                            {showAllDocuments ? "Show Less" : `Show ${documents.length - 5} More`}
+                          </Typography>
+                          {showAllDocuments ? (
+                            <ChevronUp size={16} color={colors.primary.gold} />
+                          ) : (
+                            <ChevronDown size={16} color={colors.primary.gold} />
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </>
+                ) : (
+                  <View style={styles.emptyDocuments}>
+                    <Typography variant="body" color="secondary">
+                      No documents available
+                    </Typography>
                   </View>
-                ))}
+                )}
               </View>
             )}
           </Card>
@@ -671,7 +785,12 @@ export default function PropertyDetailsScreen() {
           backgroundColor: colors.background.primary,
         }}
       >
-        <Button title="Edit" onPress={handleEdit} variant="primary" style={{ width: "100%" }} />
+        <Button
+          title="Edit"
+          onPress={handleEdit}
+          variant="primary"
+          style={{ width: "100%" }}
+        />
         {(property.status === "Available" || property.status === "Pending") && (
           <Button
             title="Delete"
@@ -689,50 +808,74 @@ export default function PropertyDetailsScreen() {
         transparent
         onRequestClose={handleCancelDelete}
       >
-        <Pressable style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' }} onPress={handleCancelDelete} />
-        <View style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: colors.background.primary,
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          padding: spacing.lg,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-          elevation: 10,
-        }}>
-          <Typography variant="h4" color="error" style={{ marginBottom: spacing.md }}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.3)" }}
+          onPress={handleCancelDelete}
+        />
+        <View
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: colors.background.primary,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            padding: spacing.lg,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 10,
+          }}
+        >
+          <Typography
+            variant="h4"
+            color="error"
+            style={{ marginBottom: spacing.md }}
+          >
             Delete Property
           </Typography>
-          <Typography variant="body" color="secondary" style={{ marginBottom: spacing.md }}>
-            Are you sure you want to delete this property? This action cannot be undone.
+          <Typography
+            variant="body"
+            color="secondary"
+            style={{ marginBottom: spacing.md }}
+          >
+            Are you sure you want to delete this property? This action cannot be
+            undone.
           </Typography>
           <Pressable
-            style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}
-            onPress={() => setDeleteConfirmChecked(v => !v)}
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginBottom: spacing.md,
+            }}
+            onPress={() => setDeleteConfirmChecked((v) => !v)}
           >
-            <View style={{
-              width: 22,
-              height: 22,
-              borderRadius: 4,
-              borderWidth: 2,
-              borderColor: colors.status.error,
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: spacing.sm,
-              backgroundColor: deleteConfirmChecked ? colors.status.error : 'transparent',
-            }}>
-              {deleteConfirmChecked && <CheckCircle size={16} color={colors.neutral.white} />}
+            <View
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 4,
+                borderWidth: 2,
+                borderColor: colors.status.error,
+                alignItems: "center",
+                justifyContent: "center",
+                marginRight: spacing.sm,
+                backgroundColor: deleteConfirmChecked
+                  ? colors.status.error
+                  : "transparent",
+              }}
+            >
+              {deleteConfirmChecked && (
+                <CheckCircle size={16} color={colors.neutral.white} />
+              )}
             </View>
             <Typography variant="body" color="primary">
               I understand this action cannot be undone
             </Typography>
           </Pressable>
-          <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <View style={{ flexDirection: "row", gap: spacing.md }}>
             <Button
               title="Cancel"
               onPress={handleCancelDelete}
@@ -740,11 +883,15 @@ export default function PropertyDetailsScreen() {
               style={{ flex: 1 }}
             />
             <Button
-              title={deletePropertyMutation.isPending ? "Deleting..." : "Delete"}
+              title={
+                deletePropertyMutation.isPending ? "Deleting..." : "Delete"
+              }
               onPress={handleConfirmDelete}
               variant="primary"
               style={{ flex: 1 }}
-              disabled={!deleteConfirmChecked || deletePropertyMutation.isPending}
+              disabled={
+                !deleteConfirmChecked || deletePropertyMutation.isPending
+              }
               textStyle={{ color: colors.neutral.white }}
             />
           </View>
@@ -963,5 +1110,21 @@ const styles = StyleSheet.create({
   },
   amenityTagText: {
     // Styles handled by Typography component
+  },
+  expandButton: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    marginTop: spacing.sm,
+  },
+  expandButtonContent: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  emptyDocuments: {
+    paddingVertical: spacing.lg,
+    alignItems: "center",
   },
 });

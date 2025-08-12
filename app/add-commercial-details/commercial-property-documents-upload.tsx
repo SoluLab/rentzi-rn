@@ -254,149 +254,110 @@ export default function CommercialPropertyDocumentsUploadScreen() {
       type: "commercial",
     };
 
-    // Transform documents to match schema format based on schema.txt
+    // Helper function to extract CID from IPFS URL
+    const extractCidFromUrl = (url: string): string => {
+      if (url.includes('ipfs/')) {
+        return url.split('ipfs/')[1];
+      }
+      return '';
+    };
+
+    // Helper function to create document object with new structure
+    const createDocumentObject = (document: DocumentFile, defaultKey: string) => {
+      const ipfsUrl = document.uploadedUrl || '';
+      const cid = extractCidFromUrl(ipfsUrl);
+      const baseIpfsUrl = 'https://gateway.pinata.cloud/ipfs/';
+      
+      return {
+        url: ipfsUrl,
+        cid: cid,
+        ipfsUrl: baseIpfsUrl
+      };
+    };
+
+    // Transform documents to match new schema format
     const documents: any = {};
 
     // Mandatory documents
     if (formData.propertyDeed) {
-      documents.propertyDeed = [{
-        key: formData.propertyDeed.uploadedKey || 'propertyDeed',
-        url: formData.propertyDeed.uploadedUrl || formData.propertyDeed.uri,
-      }];
+      documents.propertyDeed = [createDocumentObject(formData.propertyDeed, 'propertyDeed')];
     }
 
     if (formData.zoningCertificate) {
-      documents.zoningCertificate = [{
-        key: formData.zoningCertificate.uploadedKey || 'zoningCertificate',
-        url: formData.zoningCertificate.uploadedUrl || formData.zoningCertificate.uri,
-      }];
+      documents.zoningCertificate = [createDocumentObject(formData.zoningCertificate, 'zoningCertificate')];
     }
 
     if (formData.titleReport) {
-      documents.titleReportOrInsurance = [{
-        key: formData.titleReport.uploadedKey || 'titleReport',
-        url: formData.titleReport.uploadedUrl || formData.titleReport.uri,
-      }];
+      documents.titleReportOrInsurance = [createDocumentObject(formData.titleReport, 'titleReport')];
     }
 
     if (formData.governmentId) {
-      documents.governmentIssuedId = [{
-        key: formData.governmentId.uploadedKey || 'governmentId',
-        url: formData.governmentId.uploadedUrl || formData.governmentId.uri,
-      }];
+      documents.governmentIssuedId = [createDocumentObject(formData.governmentId, 'governmentId')];
     }
 
     if (formData.certificateOfOccupancy) {
-      documents.occupancyCertificate = [{
-        key: formData.certificateOfOccupancy.uploadedKey || 'certificateOfOccupancy',
-        url: formData.certificateOfOccupancy.uploadedUrl || formData.certificateOfOccupancy.uri,
-      }];
+      documents.occupancyCertificate = [createDocumentObject(formData.certificateOfOccupancy, 'certificateOfOccupancy')];
     }
 
     if (formData.rentRoll) {
-      documents.rentRoll = [{
-        key: formData.rentRoll.uploadedKey || 'rentRoll',
-        url: formData.rentRoll.uploadedUrl || formData.rentRoll.uri,
-      }];
+      documents.rentRoll = [createDocumentObject(formData.rentRoll, 'rentRoll')];
     }
 
     if (formData.incomeExpenseStatements) {
-      documents.incomeandExpenseStatement = [{
-        key: formData.incomeExpenseStatements.uploadedKey || 'incomeExpenseStatements',
-        url: formData.incomeExpenseStatements.uploadedUrl || formData.incomeExpenseStatements.uri,
-      }];
+      documents.incomeandExpenseStatement = [createDocumentObject(formData.incomeExpenseStatements, 'incomeExpenseStatements')];
     }
 
     if (formData.camAgreement) {
-      documents.camAgreement = [{
-        key: formData.camAgreement.uploadedKey || 'camAgreement',
-        url: formData.camAgreement.uploadedUrl || formData.camAgreement.uri,
-      }];
+      documents.camAgreement = [createDocumentObject(formData.camAgreement, 'camAgreement')];
     }
 
     if (formData.environmentalReport) {
-      documents.propertyConditionAssessment = [{
-        key: formData.environmentalReport.uploadedKey || 'environmentalReport',
-        url: formData.environmentalReport.uploadedUrl || formData.environmentalReport.uri,
-      }];
+      documents.propertyConditionAssessment = [createDocumentObject(formData.environmentalReport, 'environmentalReport')];
     }
 
     if (formData.propertyConditionAssessment) {
-      documents.propertyConditionAssessment = [{
-        key: formData.propertyConditionAssessment.uploadedKey || 'propertyConditionAssessment',
-        url: formData.propertyConditionAssessment.uploadedUrl || formData.propertyConditionAssessment.uri,
-      }];
+      documents.propertyConditionAssessment = [createDocumentObject(formData.propertyConditionAssessment, 'propertyConditionAssessment')];
     }
 
     if (formData.proofOfInsurance) {
-      documents.proofOfInsurance = [{
-        key: formData.proofOfInsurance.uploadedKey || 'proofOfInsurance',
-        url: formData.proofOfInsurance.uploadedUrl || formData.proofOfInsurance.uri,
-      }];
+      documents.proofOfInsurance = [createDocumentObject(formData.proofOfInsurance, 'proofOfInsurance')];
     }
 
     if (formData.utilityBill) {
-      documents.utilityBill = [{
-        key: formData.utilityBill.uploadedKey || 'utilityBill',
-        url: formData.utilityBill.uploadedUrl || formData.utilityBill.uri,
-      }];
+      documents.utilityBill = [createDocumentObject(formData.utilityBill, 'utilityBill')];
     }
 
     if (formData.propertyAppraisal) {
-      documents.propertyAppraisal = [{
-        key: formData.propertyAppraisal.uploadedKey || 'propertyAppraisal',
-        url: formData.propertyAppraisal.uploadedUrl || formData.propertyAppraisal.uri,
-      }];
+      documents.propertyAppraisal = [createDocumentObject(formData.propertyAppraisal, 'propertyAppraisal')];
     }
 
     if (formData.authorizationToTokenize) {
-      documents.authorizationToTokenize = [{
-        key: formData.authorizationToTokenize.uploadedKey || 'authorizationToTokenize',
-        url: formData.authorizationToTokenize.uploadedUrl || formData.authorizationToTokenize.uri,
-      }];
+      documents.authorizationToTokenize = [createDocumentObject(formData.authorizationToTokenize, 'authorizationToTokenize')];
     }
 
     // Conditional documents
     if (formData.mortgageStatement) {
-      documents.mortgageStatement = [{
-        key: formData.mortgageStatement.uploadedKey || 'mortgageStatement',
-        url: formData.mortgageStatement.uploadedUrl || formData.mortgageStatement.uri,
-      }];
+      documents.mortgageStatement = [createDocumentObject(formData.mortgageStatement, 'mortgageStatement')];
     }
 
     if (formData.hoaDocuments) {
-      documents.hoaDocument = [{
-        key: formData.hoaDocuments.uploadedKey || 'hoaDocuments',
-        url: formData.hoaDocuments.uploadedUrl || formData.hoaDocuments.uri,
-      }];
+      documents.hoaDocument = [createDocumentObject(formData.hoaDocuments, 'hoaDocuments')];
     }
 
     if (formData.franchiseAgreement) {
-      documents.granchiseAgreement = [{
-        key: formData.franchiseAgreement.uploadedKey || 'franchiseAgreement',
-        url: formData.franchiseAgreement.uploadedUrl || formData.franchiseAgreement.uri,
-      }];
+      documents.granchiseAgreement = [createDocumentObject(formData.franchiseAgreement, 'franchiseAgreement')];
     }
 
     if (formData.businessLicenses) {
-      documents.businessLicense = [{
-        key: formData.businessLicenses.uploadedKey || 'businessLicenses',
-        url: formData.businessLicenses.uploadedUrl || formData.businessLicenses.uri,
-      }];
+      documents.businessLicense = [createDocumentObject(formData.businessLicenses, 'businessLicenses')];
     }
 
     if (formData.adaComplianceReport) {
-      documents.adaComplianceReport = [{
-        key: formData.adaComplianceReport.uploadedKey || 'adaComplianceReport',
-        url: formData.adaComplianceReport.uploadedUrl || formData.adaComplianceReport.uri,
-      }];
+      documents.adaComplianceReport = [createDocumentObject(formData.adaComplianceReport, 'adaComplianceReport')];
     }
 
     if (formData.fireSafetyInspection) {
-      documents.safetyReport = [{
-        key: formData.fireSafetyInspection.uploadedKey || 'fireSafetyInspection',
-        url: formData.fireSafetyInspection.uploadedUrl || formData.fireSafetyInspection.uri,
-      }];
+      documents.safetyReport = [createDocumentObject(formData.fireSafetyInspection, 'fireSafetyInspection')];
     }
 
     if (Object.keys(documents).length > 0) {

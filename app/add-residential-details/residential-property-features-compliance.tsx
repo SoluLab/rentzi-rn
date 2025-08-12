@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
   Platform,
+  ScrollView,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
@@ -42,6 +43,25 @@ const FEATURED_AMENITIES = [
   "Gym",
   "Wi-Fi",
   "Workstation",
+  "Parking",
+  "Garden",
+  "Balcony",
+  "Air Conditioning",
+  "Heating",
+  "Security System",
+  "Elevator",
+  "Doorman",
+  "Storage",
+  "Pet Friendly",
+  "Furnished",
+  "High-Speed Internet",
+  "Cable TV",
+  "Dishwasher",
+  "Washing Machine",
+  "Dryer",
+  "Fireplace",
+  "Walk-in Closet",
+  "Hardwood Floors",
 ];
 
 // House rules options
@@ -108,6 +128,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   const [customAmenityInput, setCustomAmenityInput] = useState("");
   const [smartFeatureInput, setSmartFeatureInput] = useState("");
   const [businessServiceInput, setBusinessServiceInput] = useState("");
+  const [showAmenitiesDropdown, setShowAmenitiesDropdown] = useState(false);
 
   // Validation functions
   const validateFurnishingDescription = (
@@ -475,13 +496,137 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           >
             Select at least one amenity
           </Typography>
-          <View style={styles.amenitiesContainer}>
-            {FEATURED_AMENITIES.map((amenity) => (
-              <View key={amenity} style={styles.amenityWrapper}>
-                {renderAmenityItem({ item: amenity })}
+          
+          {/* Selected Amenities Chips */}
+          {formData.featuredAmenities.length > 0 && (
+            <View style={styles.selectedChipsContainer}>
+              {formData.featuredAmenities.map((amenity) => (
+                <View key={amenity} style={styles.selectedChip}>
+                  <Typography variant="body" style={styles.chipText}>
+                    {amenity}
+                  </Typography>
+                  <TouchableOpacity
+                    onPress={() => toggleAmenity(amenity)}
+                    style={styles.removeChipButton}
+                  >
+                    <X size={16} color={colors.text.secondary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Dropdown Toggle */}
+          <TouchableOpacity
+            style={[
+              styles.amenitiesDropdownToggle,
+              showAmenitiesDropdown && styles.amenitiesDropdownToggleOpen
+            ]}
+            onPress={() => setShowAmenitiesDropdown(!showAmenitiesDropdown)}
+          >
+            <Typography variant="body" style={styles.dropdownToggleText}>
+              {formData.featuredAmenities.length > 0 
+                ? `${formData.featuredAmenities.length} amenity selected`
+                : "Select amenities"
+              }
+            </Typography>
+            <ChevronDown 
+              size={20} 
+              color={colors.text.secondary}
+              style={[
+                styles.dropdownArrow,
+                showAmenitiesDropdown && styles.dropdownArrowUp
+              ]}
+            />
+          </TouchableOpacity>
+          
+
+          
+
+          
+
+          
+
+          
+          {/* Amenities Modal */}
+          <Modal
+            visible={showAmenitiesDropdown}
+            animationType="slide"
+            presentationStyle="pageSheet"
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Typography variant="h4">Select Amenities</Typography>
+                <TouchableOpacity onPress={() => setShowAmenitiesDropdown(false)}>
+                  <Typography variant="h4">✕</Typography>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
+
+
+
+              {/* Selected Count */}
+              <View style={styles.selectedCountContainer}>
+                <Typography variant="caption" color="secondary">
+                  {formData.featuredAmenities.length} of {FEATURED_AMENITIES.length} amenities selected
+                </Typography>
+              </View>
+
+              {/* Amenities List */}
+              <FlatList
+                data={FEATURED_AMENITIES}
+                renderItem={({ item }) => {
+                  const isSelected = formData.featuredAmenities.includes(item);
+                  return (
+                    <TouchableOpacity
+                      style={[
+                        styles.modalItem,
+                        isSelected && styles.modalItemSelected
+                      ]}
+                      onPress={() => toggleAmenity(item)}
+                    >
+                      <View style={[
+                        styles.amenityCheckbox,
+                        isSelected && styles.amenityCheckboxSelected
+                      ]}>
+                        {isSelected && (
+                          <Check size={16} color={colors.neutral.white} />
+                        )}
+                      </View>
+                      <Typography variant="body" style={{
+                        ...styles.amenityText,
+                        ...(isSelected && styles.amenityTextSelected)
+                      }}>
+                        {item}
+                      </Typography>
+
+                    </TouchableOpacity>
+                  );
+                }}
+                keyExtractor={(item) => item}
+                style={styles.modalList}
+                showsVerticalScrollIndicator={false}
+              />
+
+              {/* Footer Actions */}
+              <View style={styles.modalFooter}>
+                <Button
+                  title="Clear All"
+                  onPress={() => {
+                    updateFormData('featuredAmenities', []);
+                  }}
+                  variant="outline"
+                  style={styles.clearButton}
+                />
+                <Button
+                  title="Done"
+                  onPress={() => setShowAmenitiesDropdown(false)}
+                  variant="primary"
+                  style={styles.doneButton}
+                />
+              </View>
+            </View>
+          </Modal>
+          
           {errors.featuredAmenities && (
             <Typography
               variant="caption"
@@ -492,39 +637,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
             </Typography>
           )}
         </View>
-
-        {/* Custom Amenities */}
-        <View style={styles.fieldContainer}>
-          <Typography
-            variant="caption"
-            color="secondary"
-            style={styles.helperText}
-          >
-            Add any additional amenities not listed above
-          </Typography>
-
-          {formData.customAmenities.map((amenity, index) => (
-            <View key={index} style={styles.customAmenityItem}>
-              <Typography variant="body" style={styles.customAmenityText}>
-                {amenity}
-              </Typography>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeCustomAmenity(index)}
-              >
-                <X size={16} color={colors.status.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          <Button
-            title="Add Custom Amenity"
-            onPress={() => setShowCustomAmenityModal(true)}
-            variant="outline"
-            style={styles.addButton}
-          />
-        </View>
-
+ 
         {/* Smart Home Features */}
         <View style={styles.fieldContainer}>
           <Typography variant="body" style={styles.label}>
@@ -1196,6 +1309,78 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  modalItemSelected: {
+    backgroundColor: colors.background.secondary,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.gold,
+  },
+  // Search and Selection Styles
+  searchContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.background.secondary,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.md,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+  searchIcon: {
+    padding: spacing.sm,
+  },
+  searchIconText: {
+    fontSize: 18,
+  },
+  selectedCountContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    gap: spacing.md,
+  },
+  clearButton: {
+    flex: 1,
+  },
+  doneButton: {
+    flex: 1,
+  },
+  selectedIndicator: {
+    marginLeft: 'auto',
+    backgroundColor: colors.primary.gold,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedIndicatorText: {
+    color: colors.neutral.white,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  amenityTextSelected: {
+    color: colors.primary.gold,
+    fontWeight: '600',
   },
   timePickerButton: {
     flexDirection: "row",
@@ -1300,4 +1485,121 @@ const styles = StyleSheet.create({
     minHeight: 48,
     minWidth: 48,
   },
+  selectedChipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+     selectedChip: {
+     flexDirection: "row",
+     alignItems: "center",
+     backgroundColor: colors.neutral.white,
+     borderWidth: 2,
+     borderColor: colors.primary.gold,
+     borderRadius: radius.input,
+     paddingHorizontal: spacing.sm,
+     paddingVertical: spacing.xs,
+     shadowColor: colors.neutral.black,
+     shadowOffset: { width: 0, height: 1 },
+     shadowOpacity: 0.05,
+     shadowRadius: 2,
+     elevation: 2,
+   },
+  chipText: {
+    fontSize: 14,
+    color: colors.text.primary,
+    marginRight: spacing.xs,
+  },
+  removeChipButton: {
+    padding: spacing.xs,
+  },
+     amenitiesDropdownToggle: {
+     flexDirection: "row",
+     alignItems: "center",
+     justifyContent: "space-between",
+     backgroundColor: colors.neutral.white,
+     borderWidth: 1,
+     borderColor: colors.border.light,
+     borderRadius: radius.input,
+     paddingHorizontal: spacing.md,
+     paddingVertical: spacing.md,
+     minHeight: 48,
+     shadowColor: colors.neutral.black,
+     shadowOffset: { width: 0, height: 1 },
+     shadowOpacity: 0.05,
+     shadowRadius: 2,
+     elevation: 1,
+   },
+   amenitiesDropdownToggleOpen: {
+     borderColor: colors.primary.gold,
+     borderWidth: 2,
+   },
+  dropdownToggleText: {
+    color: colors.text.primary,
+    fontSize: 16,
+  },
+  dropdownArrow: {
+    transform: [{ rotate: "0deg" }],
+  },
+  dropdownArrowUp: {
+    transform: [{ rotate: "180deg" }],
+  },
+     amenitiesDropdown: {
+     backgroundColor: colors.neutral.white,
+     borderWidth: 1,
+     borderColor: colors.border.light,
+     borderRadius: radius.input,
+     marginTop: spacing.sm,
+     maxHeight: 280, // Increased height to show more items
+     shadowColor: colors.neutral.black,
+     shadowOffset: { width: 0, height: 2 },
+     shadowOpacity: 0.1,
+     shadowRadius: 4,
+     elevation: 3,
+   },
+   amenitiesDropdownList: {
+     flex: 1,
+   },
+   amenitiesDropdownScroll: {
+     flex: 1,
+   },
+   amenitiesDropdownContent: {
+     paddingBottom: spacing.sm,
+   },
+      amenityDropdownItem: {
+     flexDirection: "row",
+     alignItems: "center",
+     padding: spacing.md,
+     borderBottomWidth: 1,
+     borderBottomColor: colors.border.light,
+     minHeight: 48, // Ensure consistent item height
+   },
+   amenityDropdownItemHover: {
+     backgroundColor: colors.background.secondary,
+   },
+   amenityDropdownItemLast: {
+     borderBottomWidth: 0,
+     borderBottomLeftRadius: radius.input,
+     borderBottomRightRadius: radius.input,
+   },
+     amenityCheckbox: {
+     width: 20,
+     height: 20,
+     borderRadius: 4,
+     borderWidth: 2,
+     borderColor: colors.border.light,
+     alignItems: "center",
+     justifyContent: "center",
+     marginRight: spacing.sm,
+   },
+   amenityCheckboxSelected: {
+     backgroundColor: colors.primary.gold,
+     borderColor: colors.primary.gold,
+   },
+  amenityDropdownText: {
+    fontSize: 16,
+    color: colors.text.primary,
+  },
+
 });
