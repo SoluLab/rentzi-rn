@@ -84,7 +84,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
       furnishingDescription: "",
       featuredAmenities: [],
       customAmenities: [],
-      smartHomeFeatures: false,
+      smartHomeFeatures: "",
       conciergeServices: "",
       checkInTime: {
         hour: 3,
@@ -106,6 +106,8 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   const [showCheckInTimeModal, setShowCheckInTimeModal] = useState(false);
   const [showCheckOutTimeModal, setShowCheckOutTimeModal] = useState(false);
   const [customAmenityInput, setCustomAmenityInput] = useState("");
+  const [smartFeatureInput, setSmartFeatureInput] = useState("");
+  const [businessServiceInput, setBusinessServiceInput] = useState("");
 
   // Validation functions
   const validateFurnishingDescription = (
@@ -229,6 +231,36 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     updateFormData("customAmenities", newCustomAmenities);
   };
 
+  const addSmartFeature = () => {
+    if (smartFeatureInput.trim()) {
+      const currentFeatures = formData.smartHomeFeatures ? formData.smartHomeFeatures.split(',').filter(f => f.trim()) : [];
+      const newFeatures = [...currentFeatures, smartFeatureInput.trim()];
+      updateFormData("smartHomeFeatures", newFeatures.join(', '));
+      setSmartFeatureInput("");
+    }
+  };
+
+  const removeSmartFeature = (index: number) => {
+    const currentFeatures = formData.smartHomeFeatures ? formData.smartHomeFeatures.split(',').filter(f => f.trim()) : [];
+    const newFeatures = currentFeatures.filter((_, i) => i !== index);
+    updateFormData("smartHomeFeatures", newFeatures.join(', '));
+  };
+
+  const addBusinessService = () => {
+    if (businessServiceInput.trim()) {
+      const currentServices = formData.conciergeServices ? formData.conciergeServices.split(',').filter(s => s.trim()) : [];
+      const newServices = [...currentServices, businessServiceInput.trim()];
+      updateFormData("conciergeServices", newServices.join(', '));
+      setBusinessServiceInput("");
+    }
+  };
+
+  const removeBusinessService = (index: number) => {
+    const currentServices = formData.conciergeServices ? formData.conciergeServices.split(',').filter(s => s.trim()) : [];
+    const newServices = currentServices.filter((_, i) => i !== index);
+    updateFormData("conciergeServices", newServices.join(', '));
+  };
+
   const formatTime = (time: {
     hour: number;
     minute: number;
@@ -287,7 +319,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     checkInCheckOutTimes: {
       checkIn: `${formData.checkInTime.hour}:${formData.checkInTime.minute
         .toString()
-        .padStart(2, "0")} ${formData.checkInTime.period}`,
+        .padStart(2, "0")} ${formData.checkOutTime.period}`,
       checkOut: `${formData.checkOutTime.hour}:${formData.checkOutTime.minute
         .toString()
         .padStart(2, "0")} ${formData.checkOutTime.period}`,
@@ -296,7 +328,14 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     isFurnished:
       formData.furnishingDescription === "Fully Furnished" ||
       formData.furnishingDescription === "Partially Furnished",
-    conciergeServicesIncluded: formData.conciergeServices,
+    businessServiceProvided: formData.conciergeServices
+      ? formData.conciergeServices.split(',').filter(s => s.trim()).map(s => s.trim())
+      : [],
+    smartBuildingSystem: formData.smartHomeFeatures
+      ? formData.smartHomeFeatures.split(',').filter(f => f.trim()).map(f => f.trim())
+      : [],
+    _amenities: formData.featuredAmenities,
+    _rules: formData.houseRules,
   });
 
   const renderFurnishingItem = ({ item }: { item: string }) => (
@@ -488,51 +527,101 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
 
         {/* Smart Home Features */}
         <View style={styles.fieldContainer}>
-          <View style={styles.toggleContainer}>
-            <Typography variant="body" style={styles.label}>
-              Smart Home Features
-            </Typography>
-            <Switch
-              value={formData.smartHomeFeatures}
-              onValueChange={(value) =>
-                updateFormData("smartHomeFeatures", value)
-              }
-              trackColor={{
-                false: colors.border.light,
-                true: colors.primary.gold,
-              }}
-              thumbColor={
-                formData.smartHomeFeatures
-                  ? colors.neutral.white
-                  : colors.text.secondary
-              }
-            />
-          </View>
+          <Typography variant="body" style={styles.label}>
+            Smart Building System
+          </Typography>
           <Typography
             variant="caption"
             color="secondary"
             style={styles.helperText}
           >
-            Optional: Enable if your property has smart home features
+            Optional: Add smart building features (press Enter after each feature)
           </Typography>
+          
+          {/* Smart Features Tags */}
+          <View style={styles.tagsContainer}>
+            {formData.smartHomeFeatures.split(',').filter(tag => tag.trim()).map((tag, index) => (
+              <View key={index} style={styles.tagItem}>
+                <Typography variant="body" style={styles.tagText}>
+                  {tag.trim()}
+                </Typography>
+                <TouchableOpacity
+                  style={styles.removeTagButton}
+                  onPress={() => removeSmartFeature(index)}
+                >
+                  <X size={14} color={colors.status.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          {/* Add New Feature Input */}
+          <View style={styles.addFeatureContainer}>
+            <TextInput
+              style={styles.featureInput}
+              placeholder="e.g., Smart lighting"
+              value={smartFeatureInput}
+              onChangeText={setSmartFeatureInput}
+              onSubmitEditing={addSmartFeature}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={styles.addFeatureButton}
+              onPress={addSmartFeature}
+            >
+              <Plus size={20} color={colors.primary.gold} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Concierge Services */}
-        <Input
-          label="Concierge Services"
-          value={formData.conciergeServices}
-          onChangeText={(value) => updateFormData("conciergeServices", value)}
-          placeholder="e.g., 24/7 concierge, valet parking, room service"
-          multiline
-          numberOfLines={3}
-        />
-        <Typography
-          variant="caption"
-          color="secondary"
-          style={styles.helperText}
-        >
-          Optional: Describe any concierge services available
-        </Typography>
+        <View style={styles.fieldContainer}>
+          <Typography variant="body" style={styles.label}>
+            Business Services Provided
+          </Typography>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.helperText}
+          >
+            Optional: Add business services (press Enter after each service)
+          </Typography>
+          
+          {/* Business Services Tags */}
+          <View style={styles.tagsContainer}>
+            {formData.conciergeServices.split(',').filter(tag => tag.trim()).map((tag, index) => (
+              <View key={index} style={styles.tagItem}>
+                <Typography variant="body" style={styles.tagText}>
+                  {tag.trim()}
+                </Typography>
+                <TouchableOpacity
+                  style={styles.removeTagButton}
+                  onPress={() => removeBusinessService(index)}
+                >
+                  <X size={14} color={colors.status.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+
+          {/* Add New Service Input */}
+          <View style={styles.addFeatureContainer}>
+            <TextInput
+              style={styles.featureInput}
+              placeholder="e.g., 24/7 concierge"
+              value={businessServiceInput}
+              onChangeText={setBusinessServiceInput}
+              onSubmitEditing={addBusinessService}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={styles.addFeatureButton}
+              onPress={addBusinessService}
+            >
+              <Plus size={20} color={colors.primary.gold} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Check-in Time */}
         <View style={styles.fieldContainer}>
@@ -1159,5 +1248,56 @@ const styles = StyleSheet.create({
     color: colors.neutral.white,
     fontSize: 16,
     fontWeight: "500",
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  tagItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary.platinum,
+    borderWidth: 1,
+    borderColor: colors.primary.gold,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  tagText: {
+    fontSize: 14,
+    color: colors.text.primary,
+    marginRight: spacing.xs,
+  },
+  removeTagButton: {
+    padding: 2,
+  },
+  addFeatureContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  featureInput: {
+    flex: 1,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+    fontSize: 16,
+  },
+  addFeatureButton: {
+    padding: spacing.md,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    minWidth: 48,
   },
 });

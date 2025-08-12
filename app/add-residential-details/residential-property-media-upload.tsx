@@ -61,11 +61,13 @@ interface VideoFile {
 interface MediaFormData {
   photos: MediaFile[];
   virtualTour: VideoFile | string;
+  video360: VideoFile | null; // Add 360° video field
 }
 
 interface MediaValidationErrors {
   photos?: string;
   virtualTour?: string;
+  video360?: string; // Add validation for 360° video
 }
 
 const MAX_PHOTO_SIZE_MB = 25;
@@ -110,15 +112,24 @@ export default function ResidentialPropertyMediaUploadScreen() {
     },
   });
 
-  // API mutation hook for uploading videos - using dedicated service
-  const uploadVideosMutation = useHomeownerUploadPropertyVideos({
+  // Create separate mutation instances for different video types
+  const uploadVirtualTourMutation = useHomeownerUploadPropertyVideos({
     onSuccess: (response) => {
-      console.log("Videos uploaded successfully:", response);
-      // The uploaded URLs will be handled in the upload function
+      console.log("Virtual tour video uploaded successfully:", response);
     },
     onError: (error) => {
-      console.error("Error uploading videos:", error);
-      Alert.alert("Error", "Failed to upload videos. Please try again.");
+      console.error("Error uploading virtual tour video:", error);
+      Alert.alert("Error", "Failed to upload virtual tour video. Please try again.");
+    },
+  });
+
+  const uploadVideo360Mutation = useHomeownerUploadPropertyVideos({
+    onSuccess: (response) => {
+      console.log("360° video uploaded successfully:", response);
+    },
+    onError: (error) => {
+      console.error("Error uploading 360° video:", error);
+      Alert.alert("Error", "Failed to upload 360° video. Please try again.");
     },
   });
 
@@ -134,16 +145,19 @@ export default function ResidentialPropertyMediaUploadScreen() {
           height: photo.height || 0,
         })) as MediaFile[],
         virtualTour: (existingData.virtualTour as any).type === 'link' ? (existingData.virtualTour as any).value : '',
+        video360: null, // Ensure video360 is null for new format
       };
     }
     return {
       photos: [],
       virtualTour: '',
+      video360: null, // Ensure video360 is null for new format
     };
   });
   const [errors, setErrors] = useState<MediaValidationErrors>({});
   const [isUploading, setIsUploading] = useState(false);
   const [isVideoUploading, setIsVideoUploading] = useState(false);
+  const [isVideo360Uploading, setIsVideo360Uploading] = useState(false); // Add state for 360° video upload
   const [uploadRetries, setUploadRetries] = useState<{ [key: number]: number }>({});
   const [hasUnuploadedImages, setHasUnuploadedImages] = useState(false);
 
@@ -230,17 +244,31 @@ export default function ResidentialPropertyMediaUploadScreen() {
     return undefined;
   };
 
+  const validateVideo360 = (video360: MediaFormData['video360']): string | undefined => {
+    // 360° video is optional for residential properties, so no validation errors if not provided
+    if (!video360) return undefined;
+    
+    if (video360.size && video360.size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+      return `360° video file "${video360.name}" exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`;
+    }
+    if (video360.name && !video360.name.toLowerCase().endsWith('.mp4')) {
+      return 'Only MP4 files are allowed for 360° video.';
+    }
+    return undefined;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: MediaValidationErrors = {};
 
     newErrors.photos = validatePhotos(formData.photos);
     newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
+    newErrors.video360 = validateVideo360(formData.video360);
 
     setErrors(newErrors);
     return Object.values(newErrors).every(error => !error);
   };
 
-  const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string | { uri: string; name: string; size: number; type: string; }) => {
+  const updateFormData = (field: keyof MediaFormData, value: MediaFile[] | string | { uri: string; name: string; size: number; type: string; } | null) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
     updateMediaUpload(newFormData);
@@ -250,14 +278,36 @@ export default function ResidentialPropertyMediaUploadScreen() {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
 
-    // Just clear any existing video file when URL is added
-    if (field === 'virtualTour' && typeof value === 'string' && value.trim()) {
-      const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
-      const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
-      
-      if (youtubeRegex.test(value) || vimeoRegex.test(value)) {
-        // Clear any existing video file when URL is added
-        console.log("🔄 URL added, clearing any existing video file");
+    // Handle virtual tour field specifically
+    if (field === 'virtualTour') {
+      if (typeof value === 'string') {
+        if (value.trim()) {
+          // URL is being added
+          const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/;
+          const vimeoRegex = /^(https?:\/\/)?(www\.)?(vimeo\.com)\/.+/;
+          
+          if (youtubeRegex.test(value) || vimeoRegex.test(value)) {
+            console.log("🔄 URL added, clearing any existing video file");
+          }
+        } else {
+          // Empty string means removal
+          setIsVideoUploading(false);
+        }
+      } else {
+        // Video object is being added
+        console.log("🎬 Video file added");
+      }
+    }
+
+    // Handle video360 field specifically
+    if (field === 'video360') {
+      if (value === null) {
+        // 360° video is being removed
+        console.log("🗑️ 360° video removed");
+        setIsVideo360Uploading(false);
+      } else if (field === 'video360' && typeof value === 'object' && 'uri' in value) {
+        // 360° video object is being added
+        console.log("🎬 360° video file added");
       }
     }
   };
@@ -268,6 +318,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
 
     newErrors.photos = validatePhotos(formData.photos);
     newErrors.virtualTour = validateVirtualTour(formData.virtualTour);
+    newErrors.video360 = validateVideo360(formData.video360);
 
     // Check if all images are uploaded
     const unuploadedPhotos = formData.photos.filter(photo => !photo.uploadedUrl);
@@ -282,7 +333,13 @@ export default function ResidentialPropertyMediaUploadScreen() {
       typeof formData.virtualTour === 'object' && 
       formData.virtualTour.uri && 
       !formData.virtualTour.uploadedUrl &&
-      (isVideoUploading || uploadVideosMutation.isPending);
+      (isVideoUploading || uploadVirtualTourMutation.isPending);
+
+    // Check if 360° video is still uploading
+    const isVideo360UploadingCheck = 
+      formData.video360 && 
+      !formData.video360.uploadedUrl &&
+      (isVideo360Uploading || uploadVideo360Mutation.isPending);
 
     console.log("🔍 Form validation check:");
     console.log("📸 Photos count:", formData.photos.length);
@@ -291,8 +348,10 @@ export default function ResidentialPropertyMediaUploadScreen() {
     console.log("⏳ Is video uploading check:", isVideoUploadingCheck);
     console.log("📱 Is uploading:", isUploading);
     console.log("🎬 Is video uploading:", isVideoUploading);
+    console.log("🎥 Is 360° video uploading:", isVideo360Uploading);
     console.log("🖼️ Images mutation pending:", uploadImagesMutation.isPending);
-    console.log("🎬 Videos mutation pending:", uploadVideosMutation.isPending);
+    console.log("🎬 Virtual tour mutation pending:", uploadVirtualTourMutation.isPending);
+    console.log("🎥 360° video mutation pending:", uploadVideo360Mutation.isPending);
 
     // Form is valid when:
     // 1. At least 3 photos and all are uploaded
@@ -304,9 +363,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
       unuploadedPhotos.length === 0 &&
       hasValidVirtualTour &&
       !isVideoUploadingCheck &&
+      !isVideo360UploadingCheck &&
       !isUploading &&
       !uploadImagesMutation.isPending &&
-      !uploadVideosMutation.isPending &&
+      !uploadVirtualTourMutation.isPending &&
+      !uploadVideo360Mutation.isPending &&
       Object.values(newErrors).every(error => !error)
     );
   };
@@ -458,7 +519,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
         return;
       }
       
-      const response = await uploadVideosMutation.mutateAsync({
+      const response = await uploadVirtualTourMutation.mutateAsync({
         propertyId,
         videos: [file],
       });
@@ -729,6 +790,109 @@ export default function ResidentialPropertyMediaUploadScreen() {
     }
   };
 
+  const retryVideo360Upload = async () => {
+    const video360 = formData.video360;
+    if (video360 && !video360.uploadedUrl) {
+      console.log(`Retrying upload for 360° video:`, video360.name);
+      await uploadVideo360ToServer(video360);
+    }
+  };
+
+  const uploadVideo360ToServer = async (videoFile: VideoFile) => {
+    try {
+      setIsVideo360Uploading(true);
+      
+      const propertyId = data.propertyId;
+      if (!propertyId) {
+        console.error("Property ID not found for 360° video upload");
+        Alert.alert("Error", "Property ID not found. Please go back and try again.");
+        setIsVideo360Uploading(false);
+        return;
+      }
+
+      // Create file object for upload - ensure proper format for React Native
+      const file = {
+        uri: videoFile.uri,
+        type: videoFile.type || 'video/mp4',
+        name: videoFile.name || `video360_${Date.now()}.mp4`,
+      };
+
+      const response = await uploadVideo360Mutation.mutateAsync({
+        propertyId,
+        videos: [file],
+      });
+
+      console.log("360° video upload response:", response);
+
+      // Update the video with uploaded URL and key
+      if (response.data?.uploadedFiles?.[0]) {
+        const uploadedFile = response.data.uploadedFiles[0];
+        
+        // Create a new form data object to ensure state update
+        setFormData(prevFormData => {
+          const updatedVideo360: VideoFile = {
+            ...videoFile,
+            uploadedUrl: uploadedFile.url,
+            uploadedKey: uploadedFile.key,
+            originalName: uploadedFile.originalName,
+            fileName: uploadedFile.fileName,
+            size: uploadedFile.size,
+            type: uploadedFile.type,
+            mimetype: uploadedFile.mimetype,
+            expiresAt: uploadedFile.expiresAt,
+          };
+          
+          const newFormData = { ...prevFormData, video360: updatedVideo360 };
+          
+          // Update the store
+          updateMediaUpload(newFormData);
+          
+          console.log("Updated 360° video with uploaded URL:", uploadedFile.url);
+          
+          return newFormData;
+        });
+        
+        return videoFile;
+      } else {
+        console.warn("No uploaded files in response:", response);
+        return null;
+      }
+    } catch (error: any) {
+      console.error("Error uploading 360° video to server:", error);
+      
+      // Show a more specific error message
+      if (error?.message === "Network Error") {
+        Alert.alert(
+          "Upload Failed", 
+          "Network error occurred. Please check your internet connection and try again."
+        );
+      } else if (error?.status === 401) {
+        Alert.alert(
+          "Authentication Error", 
+          "Please log in again to continue."
+        );
+      } else if (error?.status === 413) {
+        Alert.alert(
+          "File Too Large", 
+          "The 360° video file is too large. Please select a smaller video."
+        );
+      } else if (error?.status === 422) {
+        Alert.alert(
+          "Upload Failed", 
+          "Invalid 360° video format. Please try again with a different video."
+        );
+      } else {
+        Alert.alert(
+          "Upload Failed", 
+          "Failed to upload 360° video. Please try again."
+        );
+      }
+      return null;
+    } finally {
+      setIsVideo360Uploading(false);
+    }
+  };
+
   const uploadAllImages = async () => {
     console.log("🚀 Upload All Images button clicked!");
     
@@ -815,6 +979,41 @@ export default function ResidentialPropertyMediaUploadScreen() {
     }
   };
 
+  const takeVideo360 = async () => {
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: 'videos',
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        // Get file size
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const size = blob.size;
+        if (size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+          Alert.alert('Error', `360° video file size (${(size / (1024 * 1024)).toFixed(1)}MB) exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`);
+          return;
+        }
+        const newVideo360: VideoFile = {
+          uri: asset.uri,
+          name: asset.fileName || `video360_${Date.now()}.mp4`,
+          size: size,
+          type: 'video/mp4',
+        };
+        
+        // Add to form data first
+        updateFormData('video360', newVideo360);
+
+        // Upload video immediately
+        await uploadVideo360ToServer(newVideo360);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to take 360° video. Please try again.');
+    }
+  };
+
   const pickVideoFromLibrary = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -853,6 +1052,69 @@ export default function ResidentialPropertyMediaUploadScreen() {
     }
   };
 
+  const pickVideo360FromLibrary = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'videos',
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const asset = result.assets[0];
+        // Get file size
+        const response = await fetch(asset.uri);
+        const blob = await response.blob();
+        const size = blob.size;
+        if (size > MAX_VIDEO_SIZE_MB * 1024 * 1024) {
+          Alert.alert('Error', `360° video file size (${(size / (1024 * 1024)).toFixed(1)}MB) exceeds ${MAX_VIDEO_SIZE_MB}MB limit.`);
+          return;
+        }
+        const newVideo360: VideoFile = {
+          uri: asset.uri,
+          name: asset.fileName || `video360_${Date.now()}.mp4`,
+          size: size,
+          type: 'video/mp4',
+        };
+        
+        // Add to form data first
+        updateFormData('video360', newVideo360);
+
+        // Upload video immediately
+        await uploadVideo360ToServer(newVideo360);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick 360° video file. Please try again.');
+    }
+  };
+
+  const showVideo360PickerOptions = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['Cancel', 'Take 360° Video', 'Choose from Library'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            takeVideo360();
+          } else if (buttonIndex === 2) {
+            pickVideo360FromLibrary();
+          }
+        }
+      );
+    } else {
+      Alert.alert(
+        'Upload 360° Video',
+        'Choose an option',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Take 360° Video', onPress: takeVideo360 },
+          { text: 'Choose from Library', onPress: pickVideo360FromLibrary },
+        ]
+      );
+    }
+  };
+
   const transformFormDataToApiFormat = () => {
     const apiData: any = {
       title: data.propertyDetails?.propertyTitle || "",
@@ -875,21 +1137,30 @@ export default function ResidentialPropertyMediaUploadScreen() {
       console.log("📝 API images array:", apiData.images);
     }
 
-    // Transform virtual tour
+    // Transform virtual tour - goes to videos array
     if (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) {
       // For YouTube/Vimeo URLs, store in videos array
       apiData.videos = [{
         key: 'virtual_tour_url',
         url: formData.virtualTour
       }];
-      console.log("🎥 Virtual tour URL added:", formData.virtualTour);
+      console.log("🎥 Virtual tour URL added to videos:", formData.virtualTour);
     } else if (typeof formData.virtualTour === 'object' && formData.virtualTour.uploadedUrl) {
       // For uploaded video files, only include if successfully uploaded
       apiData.videos = [{
         key: formData.virtualTour.uploadedKey || formData.virtualTour.fileName || formData.virtualTour.name,
         url: formData.virtualTour.uploadedUrl,
       }];
-      console.log("🎥 Virtual tour video uploaded:", formData.virtualTour.uploadedUrl);
+      console.log("🎥 Virtual tour video uploaded to videos:", formData.virtualTour.uploadedUrl);
+    }
+
+    // Transform 360° video - goes to videos360 array (separate from regular videos)
+    if (formData.video360 && formData.video360.uploadedUrl) {
+      apiData.videos360 = [{
+        key: formData.video360.uploadedKey || formData.video360.fileName || formData.video360.name,
+        url: formData.video360.uploadedUrl,
+      }];
+      console.log("🎥 360° video uploaded to videos360:", formData.video360.uploadedUrl);
     }
 
     console.log("🚀 Final API data being sent to draft:", apiData);
@@ -901,14 +1172,18 @@ export default function ResidentialPropertyMediaUploadScreen() {
       // Check if there are unuploaded photos
       const unuploadedPhotos = formData.photos.filter(photo => !photo.uploadedUrl);
       const hasUnuploadedVideo = typeof formData.virtualTour === 'object' && formData.virtualTour.uri && !formData.virtualTour.uploadedUrl;
+      const hasUnuploadedVideo360 = formData.video360 && formData.video360.uri && !formData.video360.uploadedUrl;
 
-      if (unuploadedPhotos.length > 0 || hasUnuploadedVideo) {
+      if (unuploadedPhotos.length > 0 || hasUnuploadedVideo || hasUnuploadedVideo360) {
         let message = "";
         if (unuploadedPhotos.length > 0) {
           message += `${unuploadedPhotos.length} photos are not yet uploaded to the server. `;
         }
         if (hasUnuploadedVideo) {
-          message += "Video is not yet uploaded to the server. ";
+          message += "Virtual tour video is not yet uploaded to the server. ";
+        }
+        if (hasUnuploadedVideo360) {
+          message += "360° video is not yet uploaded to the server. ";
         }
         message += "You can continue, but the media may not be saved properly.";
 
@@ -1103,11 +1378,11 @@ export default function ResidentialPropertyMediaUploadScreen() {
               (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? { opacity: 0.5 } : {}
             ]}
             onPress={showVideoPickerOptions}
-            disabled={isVideoUploading || uploadVideosMutation.isPending || Boolean(typeof formData.virtualTour === 'string' && formData.virtualTour.trim())}
+            disabled={isVideoUploading || uploadVirtualTourMutation.isPending || Boolean(typeof formData.virtualTour === 'string' && formData.virtualTour.trim())}
           >
             <Video size={24} color={colors.primary.gold} />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {(isVideoUploading || uploadVideosMutation.isPending) ? "Uploading Video..." : 
+              {(isVideoUploading || uploadVirtualTourMutation.isPending) ? "Uploading Video..." : 
                (typeof formData.virtualTour === 'string' && formData.virtualTour.trim()) ? "URL Already Added" : 
                "Upload Video File"}
             </Typography>
@@ -1131,7 +1406,7 @@ export default function ResidentialPropertyMediaUploadScreen() {
                       <Typography variant="caption" style={styles.uploadedText}>
                         ✓ Uploaded
                       </Typography>
-                    ) : (isVideoUploading || uploadVideosMutation.isPending) ? (
+                    ) : (isVideoUploading || uploadVirtualTourMutation.isPending) ? (
                       <Typography variant="caption" style={styles.uploadingText}>
                         ⏳ Uploading...
                       </Typography>
@@ -1147,17 +1422,95 @@ export default function ResidentialPropertyMediaUploadScreen() {
               <TouchableOpacity onPress={() => {
                 console.log("🗑️ Removing video file");
                 console.log("Before removal - virtualTour:", formData.virtualTour);
-                console.log("Before removal - isPending:", uploadVideosMutation.isPending);
+                console.log("Before removal - isPending:", uploadVirtualTourMutation.isPending);
                 
                 // Cancel any ongoing video upload
-                if (uploadVideosMutation.isPending) {
+                if (uploadVirtualTourMutation.isPending) {
                   console.log("⏹️ Cancelling ongoing video upload");
-                  uploadVideosMutation.reset();
+                  uploadVirtualTourMutation.reset();
                 }
                 
                 setIsVideoUploading(false);
                 updateFormData('virtualTour', '');
                 console.log("After removal - should be empty string");
+              }}>
+                <X size={20} color={colors.text.secondary} />
+                </TouchableOpacity>
+              </View>
+          )}
+        </View>
+
+        {/* 360° Video Section */}
+        <View style={styles.uploadSection}>
+          <Typography variant="h5" style={styles.sectionSubtitle}>
+            360° Video Upload (Optional)
+          </Typography>
+
+          <Typography variant="caption" color="secondary" style={styles.validationText}>
+            Upload a 360° video for immersive property viewing experience • MP4 only • Max {MAX_VIDEO_SIZE_MB}MB
+          </Typography>
+
+          <TouchableOpacity
+            style={[
+              styles.uploadButton, 
+              (formData.video360 && formData.video360.uri) ? { opacity: 0.5 } : {}
+            ]}
+            onPress={showVideo360PickerOptions}
+            disabled={isVideo360Uploading || uploadVideo360Mutation.isPending || Boolean(formData.video360 && formData.video360.uri)}
+          >
+            <Video size={24} color={colors.primary.gold} />
+            <Typography variant="body" style={styles.uploadButtonText}>
+              {(isVideo360Uploading || uploadVideo360Mutation.isPending) ? "Uploading 360° Video..." : 
+               (formData.video360 && formData.video360.uri) ? "360° Video Already Added" : 
+               "Upload 360° Video"}
+            </Typography>
+          </TouchableOpacity>
+
+          {/* Show selected 360° video info if present */}
+          {formData.video360 && formData.video360.uri && (
+              <View style={styles.virtualTourDisplay}>
+                <View style={styles.virtualTourInfo}>
+                <Video size={20} color={colors.primary.gold} />
+                  <View style={styles.videoTextContainer}>
+                    <Typography variant="body" style={styles.virtualTourText} numberOfLines={2}>
+                      {truncateVideoTitle(formData.video360.name)} (360°)
+                    </Typography>
+                    <Typography variant="caption" style={styles.videoSizeText}>
+                      {formatFileSize(formData.video360.size)}
+                    </Typography>
+                  </View>
+                  <View style={styles.videoStatusContainer}>
+                    {formData.video360.uploadedUrl ? (
+                      <Typography variant="caption" style={styles.uploadedText}>
+                        ✓ Uploaded
+                      </Typography>
+                    ) : (isVideo360Uploading || uploadVideo360Mutation.isPending) ? (
+                      <Typography variant="caption" style={styles.uploadingText}>
+                        ⏳ Uploading...
+                      </Typography>
+                    ) : (
+                      <TouchableOpacity onPress={retryVideo360Upload}>
+                        <Typography variant="caption" style={styles.retryText}>
+                          ↻ Retry
+                        </Typography>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              <TouchableOpacity onPress={() => {
+                console.log("🗑️ Removing 360° video file");
+                console.log("Before removal - video360:", formData.video360);
+                console.log("Before removal - isPending:", uploadVideo360Mutation.isPending);
+                
+                // Cancel any ongoing video upload
+                if (uploadVideo360Mutation.isPending) {
+                  console.log("⏹️ Cancelling ongoing 360° video upload");
+                  uploadVideo360Mutation.reset();
+                }
+                
+                setIsVideo360Uploading(false);
+                updateFormData('video360', null);
+                console.log("After removal - should be null");
               }}>
                 <X size={20} color={colors.text.secondary} />
                 </TouchableOpacity>

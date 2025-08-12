@@ -34,7 +34,7 @@ export interface FeaturesComplianceData {
   furnishingDescription: string;
   featuredAmenities: string[];
   customAmenities: string[];
-  smartHomeFeatures: boolean;
+  smartHomeFeatures: string;
   conciergeServices: string;
   checkInTime: {
     hour: number;
@@ -82,6 +82,7 @@ export interface VideoFile {
 export interface MediaUploadData {
   photos: MediaFile[];
   virtualTour: VideoFile | string;
+  video360: VideoFile | null; // Add 360° video field
 }
 
 // Documents upload interface
@@ -203,7 +204,7 @@ const initialData: ResidentialPropertyData = {
     furnishingDescription: '',
     featuredAmenities: [],
     customAmenities: [],
-    smartHomeFeatures: false,
+    smartHomeFeatures: '',
     conciergeServices: '',
     checkInTime: {
       hour: 3,
@@ -221,6 +222,7 @@ const initialData: ResidentialPropertyData = {
   mediaUpload: {
     photos: [],
     virtualTour: '',
+    video360: null,
   },
   documentsUpload: {
     propertyDeed: null,

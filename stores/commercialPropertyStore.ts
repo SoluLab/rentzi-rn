@@ -71,9 +71,24 @@ declare type VirtualTourType = string | {
   mimetype?: string;
   expiresAt?: string;
 };
+
+declare type Video360Type = { 
+  uri: string; 
+  name: string; 
+  size: number; 
+  type: string; 
+  uploadedUrl?: string;
+  uploadedKey?: string;
+  originalName?: string;
+  fileName?: string;
+  mimetype?: string;
+  expiresAt?: string;
+} | null;
+
 export interface MediaUploads {
   photos: MediaFile[];
   virtualTour: VirtualTourType;
+  video360: Video360Type;
 }
 
 // Documents interface
@@ -200,6 +215,7 @@ const initialData: CommercialPropertyData = {
   mediaUploads: {
     photos: [],
     virtualTour: '',
+    video360: null,
   },
   documents: {
     propertyDeed: null,

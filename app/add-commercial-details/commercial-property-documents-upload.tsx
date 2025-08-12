@@ -116,7 +116,8 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   
   const [formData, setFormData] = useState<DocumentsFormData>(data.documents);
   const [errors, setErrors] = useState<DocumentsValidationErrors>({});
-  const [isUploading, setIsUploading] = useState<string | null>(null);
+  // Track upload status for each document field individually
+  const [uploadingFields, setUploadingFields] = useState<Set<keyof DocumentsFormData>>(new Set());
 
   // Validation functions
   const validateDocument = (document: DocumentFile | null, fieldName: string): string | undefined => {
@@ -171,7 +172,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
 
   const uploadDocumentToServer = async (document: DocumentFile, documentField: keyof DocumentsFormData) => {
     try {
-      setIsUploading(documentField);
+      setUploadingFields(prev => new Set([...prev, documentField]));
       // 1. Upload to Pinata (IPFS)
       const ipfsUrl = await uploadToPinata({
         uri: document.uri,
@@ -185,11 +186,19 @@ export default function CommercialPropertyDocumentsUploadScreen() {
         uploadedKey: document.name,
       };
       updateFormData(documentField, updatedDocument);
-      setIsUploading(null);
+      setUploadingFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentField);
+        return newSet;
+      });
       // 3. (Optional) If you still want to upload to your backend, do it here
       // await uploadFilesMutation.mutateAsync({ ... })
     } catch (error: any) {
-      setIsUploading(null);
+      setUploadingFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentField);
+        return newSet;
+      });
       console.error('Error uploading document to IPFS:', error);
       Alert.alert('Upload Failed', 'Failed to upload document to IPFS. Please try again.');
     }
@@ -506,7 +515,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   ) => {
     const document = formData[fieldName];
     const error = errors[fieldName as keyof DocumentsValidationErrors];
-    const isUploadingField = isUploading === fieldName;
+    const isUploadingField = uploadingFields.has(fieldName);
 
     return (
       <View style={styles.documentField}>

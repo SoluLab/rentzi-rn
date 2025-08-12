@@ -6,6 +6,7 @@ import {
   Modal,
   FlatList,
   Alert,
+  TextInput,
 } from "react-native";
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { useRouter } from "expo-router";
@@ -114,6 +115,8 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   });
   const [showCustomAmenityModal, setShowCustomAmenityModal] = useState(false);
   const [customAmenityInput, setCustomAmenityInput] = useState('');
+  const [smartSystemInput, setSmartSystemInput] = useState('');
+  const [businessServiceInput, setBusinessServiceInput] = useState('');
   const [errors, setErrors] = useState<FeaturesValidationErrors>({});
   const [showAccessTypeModal, setShowAccessTypeModal] = useState(false);
 
@@ -231,6 +234,32 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     updateFormData('customAmenities', newCustomAmenities);
   };
 
+  const addSmartSystem = () => {
+    if (smartSystemInput.trim()) {
+      const newSystems = [...formData.smartBuildingSystems, smartSystemInput.trim()];
+      updateFormData("smartBuildingSystems", newSystems);
+      setSmartSystemInput("");
+    }
+  };
+
+  const removeSmartSystem = (index: number) => {
+    const newSystems = formData.smartBuildingSystems.filter((_, i) => i !== index);
+    updateFormData("smartBuildingSystems", newSystems);
+  };
+
+  const addBusinessService = () => {
+    if (businessServiceInput.trim()) {
+      const newServices = [...formData.businessServicesProvided, businessServiceInput.trim()];
+      updateFormData("businessServicesProvided", newServices);
+      setBusinessServiceInput("");
+    }
+  };
+
+  const removeBusinessService = (index: number) => {
+    const newServices = formData.businessServicesProvided.filter((_, i) => i !== index);
+    updateFormData("businessServicesProvided", newServices);
+  };
+
   const transformFormDataToApiFormat = () => {
     // Combine building amenities and custom amenities
     const allBuildingAmenities = [
@@ -241,9 +270,9 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     return {
       title: data.propertyDetails?.propertyTitle || "",
       type: "commercial",
-      buildingAmenities: allBuildingAmenities,
-      smartBuildingSystems: formData.smartBuildingSystems,
-      businessServicesProvided: formData.businessServicesProvided,
+      _amenities: allBuildingAmenities,
+      smartBuildingSystem: formData.smartBuildingSystems,
+      businessServiceProvided: formData.businessServicesProvided,
       accessType: formData.accessType,
       propertyHighlights: formData.propertyHighlights,
     };
@@ -450,14 +479,42 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
             color="secondary"
             style={styles.helperText}
           >
-            Optional: Select any smart building systems or technology features
+            Optional: Add smart building systems (press Enter after each system)
           </Typography>
-          <View style={styles.amenitiesContainer}>
-            {SMART_BUILDING_SYSTEMS.map((system) => (
-              <View key={system} style={styles.amenityWrapper}>
-                {renderSmartSystemItem({ item: system })}
+          
+          {/* Smart Systems Tags */}
+          <View style={styles.tagsContainer}>
+            {formData.smartBuildingSystems.map((system, index) => (
+              <View key={index} style={styles.tagItem}>
+                <Typography variant="body" style={styles.tagText}>
+                  {system}
+                </Typography>
+                <TouchableOpacity
+                  style={styles.removeTagButton}
+                  onPress={() => removeSmartSystem(index)}
+                >
+                  <X size={14} color={colors.status.error} />
+                </TouchableOpacity>
               </View>
             ))}
+          </View>
+
+          {/* Add New System Input */}
+          <View style={styles.addFeatureContainer}>
+            <TextInput
+              style={styles.featureInput}
+              placeholder="e.g., Automated Lighting"
+              value={smartSystemInput}
+              onChangeText={setSmartSystemInput}
+              onSubmitEditing={addSmartSystem}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={styles.addFeatureButton}
+              onPress={addSmartSystem}
+            >
+              <Plus size={20} color={colors.primary.gold} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -471,14 +528,42 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
             color="secondary"
             style={styles.helperText}
           >
-            Optional: Select any business services included with the property
+            Optional: Add business services (press Enter after each service)
           </Typography>
-          <View style={styles.amenitiesContainer}>
-            {BUSINESS_SERVICES.map((service) => (
-              <View key={service} style={styles.amenityWrapper}>
-                {renderBusinessServiceItem({ item: service })}
+          
+          {/* Business Services Tags */}
+          <View style={styles.tagsContainer}>
+            {formData.businessServicesProvided.map((service, index) => (
+              <View key={index} style={styles.tagItem}>
+                <Typography variant="body" style={styles.tagText}>
+                  {service}
+                </Typography>
+                <TouchableOpacity
+                  style={styles.removeTagButton}
+                  onPress={() => removeBusinessService(index)}
+                >
+                  <X size={14} color={colors.status.error} />
+                </TouchableOpacity>
               </View>
             ))}
+          </View>
+
+          {/* Add New Service Input */}
+          <View style={styles.addFeatureContainer}>
+            <TextInput
+              style={styles.featureInput}
+              placeholder="e.g., Reception Services"
+              value={businessServiceInput}
+              onChangeText={setBusinessServiceInput}
+              onSubmitEditing={addBusinessService}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              style={styles.addFeatureButton}
+              onPress={addBusinessService}
+            >
+              <Plus size={20} color={colors.primary.gold} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -752,5 +837,56 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border.light,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  tagItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.primary.platinum,
+    borderWidth: 1,
+    borderColor: colors.primary.gold,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  tagText: {
+    fontSize: 14,
+    color: colors.text.primary,
+    marginRight: spacing.xs,
+  },
+  removeTagButton: {
+    padding: 2,
+  },
+  addFeatureContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  featureInput: {
+    flex: 1,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+    fontSize: 16,
+  },
+  addFeatureButton: {
+    padding: spacing.md,
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    minWidth: 48,
   },
 });

@@ -146,6 +146,8 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [previewDocumentData, setPreviewDocumentData] =
     useState<DocumentData | null>(null);
+  // Track upload status for each document field individually
+  const [uploadingFields, setUploadingFields] = useState<Set<keyof DocumentsUploadData>>(new Set());
 
   // Validation functions
   const validateDocument = (
@@ -378,12 +380,16 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
   const uploadDocumentToServer = async (document: DocumentData, documentField: keyof DocumentsUploadData) => {
     try {
+      // Set this specific field as uploading
+      setUploadingFields(prev => new Set(prev).add(documentField));
+      
       // 1. Upload to Pinata (IPFS)
       const ipfsUrl = await uploadToPinata({
         uri: document.uri,
         name: document.name,
         type: document.type,
       });
+      
       // 2. Update formData with IPFS url
       const updatedDocument: ExtendedDocumentData = {
         ...document,
@@ -391,9 +397,18 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         uploadedKey: document.name,
       };
       updateFormData(documentField, updatedDocument);
+      
+      console.log(`✅ Document ${documentField} uploaded successfully to IPFS:`, ipfsUrl);
     } catch (error: any) {
-      console.error('Error uploading document to IPFS:', error);
-      Alert.alert('Upload Failed', 'Failed to upload document to IPFS. Please try again.');
+      console.error(`❌ Error uploading document ${documentField} to IPFS:`, error);
+      Alert.alert('Upload Failed', `Failed to upload ${documentField} to IPFS. Please try again.`);
+    } finally {
+      // Remove this field from uploading state
+      setUploadingFields(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(documentField);
+        return newSet;
+      });
     }
   };
 
@@ -555,6 +570,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
       field in errors
         ? errors[field as keyof DocumentsUploadErrors]
         : undefined;
+    const isFieldUploading = uploadingFields.has(field);
 
     return (
       <View style={styles.fieldContainer}>
@@ -585,19 +601,23 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                 color={colors.primary.gold}
               />
               <View style={styles.documentDetails}>
-                <Typography variant="body" style={styles.documentName}>
+                <Typography variant="caption" style={styles.documentName}>
                   {document.name}
                 </Typography>
                 <Typography variant="caption" style={styles.documentSize}>
                   {formatFileSize(document.size)}
                 </Typography>
                 {(document as ExtendedDocumentData).uploadedUrl ? (
-                  <Typography variant="caption" style={styles.uploadStatus}>
+                  <Typography variant="caption" style={styles.uploadedText}>
                     ✓ Uploaded
+                  </Typography>
+                ) : isFieldUploading ? (
+                  <Typography variant="caption" style={styles.uploadingText}>
+                    ⏳ Uploading...
                   </Typography>
                 ) : (
                   <TouchableOpacity onPress={() => retryUpload(field)}>
-                    <Typography variant="caption" style={styles.retryStatus}>
+                    <Typography variant="caption" style={styles.retryText}>
                       ↻ Retry
                     </Typography>
                   </TouchableOpacity>
@@ -612,7 +632,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           <TouchableOpacity
             style={styles.uploadButton}
             onPress={() => pickDocument(field)}
-            disabled={uploadFilesMutation.isPending}
+            disabled={isFieldUploading}
           >
             <Ionicons
               name="cloud-upload"
@@ -620,7 +640,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               color={colors.primary.gold}
             />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {uploadFilesMutation.isPending ? "Uploading..." : `Upload ${label}`}
+              {isFieldUploading ? "Uploading..." : `Upload ${label}`}
             </Typography>
           </TouchableOpacity>
         )}
@@ -1041,5 +1061,20 @@ const styles = StyleSheet.create({
   previewDetails: {
     color: colors.text.secondary,
     marginBottom: spacing.sm,
+  },
+  uploadedText: {
+    color: colors.status.success,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  uploadingText: {
+    color: colors.primary.gold,
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  retryText: {
+    color: colors.primary.gold,
+    fontSize: 9,
+    fontWeight: '600',
   },
 });

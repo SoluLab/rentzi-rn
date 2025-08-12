@@ -90,8 +90,8 @@ export default function ResidentialPropertyPricingValuationScreen() {
     if (isNaN(numValue)) {
       return "Please enter a valid number";
     }
-    if (numValue <= 0) {
-      return "Estimated property value must be greater than 0";
+    if (numValue < 1500000) {
+      return "Estimated property value must be at least $1,500,000";
     }
     return undefined;
   };
@@ -342,7 +342,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
           onChangeText={(value) =>
             updateFormData("estimatedPropertyValue", formatCurrency(value))
           }
-          placeholder="$500,000"
+          placeholder="$1,500,000"
           error={errors.estimatedPropertyValue}
           keyboardType="numeric"
         />
@@ -351,7 +351,7 @@ export default function ResidentialPropertyPricingValuationScreen() {
           color="secondary"
           style={styles.helperText}
         >
-          Enter the estimated market value of your property
+          Enter the estimated market value of your property (minimum: $1,500,000)
         </Typography>
 
         {/* Nightly Rate */}

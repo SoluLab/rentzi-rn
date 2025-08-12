@@ -45,6 +45,7 @@ import {
 } from 'lucide-react-native';
 import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
+import { useHomeownerSubmitPropertyForReview } from '@/services/homeownerAddProperty';
 
 interface ReviewSection {
   id: string;
@@ -115,6 +116,28 @@ export default function ResidentialPropertyReviewScreen() {
 
   const completionStatus = getCompletionStatus();
 
+  // API mutation hook for submitting property for review
+  const submitForReviewMutation = useHomeownerSubmitPropertyForReview({
+    onSuccess: async () => {
+      try {
+        // Submit property to store
+        submitProperty();
+        
+        // Sync with homeowner property store
+        await syncFromResidentialStore();
+        
+        setShowSuccessPopup(true);
+      } catch (error) {
+        console.error('Error syncing with homeowner store:', error);
+        Alert.alert('Sync Error', 'Property submitted but sync failed. Please check your dashboard.');
+      }
+    },
+    onError: (error) => {
+      console.error('Error submitting property for review:', error);
+      Alert.alert('Submission Failed', error.message || 'Please try again later.');
+    },
+  });
+
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(sectionId)) {
@@ -148,19 +171,22 @@ export default function ResidentialPropertyReviewScreen() {
       return;
     }
 
+    if (!data.propertyId) {
+      Alert.alert(
+        'Error',
+        'Property ID not found. Please go back and try again.'
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     
     try {
-      // Submit property to store
-      submitProperty();
-      
-      // Sync with homeowner property store
-      await syncFromResidentialStore();
-      
-      setShowSuccessPopup(true);
+      // Submit property for review using API
+      await submitForReviewMutation.mutateAsync({ propertyId: data.propertyId });
     } catch (error) {
-      console.error('Error submitting residential property:', error);
-      Alert.alert('Submission Failed', 'Please try again later.');
+      // Error is handled by the mutation's onError callback
+      console.error('Error in handleSubmit:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -247,63 +273,39 @@ export default function ResidentialPropertyReviewScreen() {
     return (
       <View style={styles.sectionContent}>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Furnishing Description:</Typography>
+          <Typography variant="body" color="secondary">Estimated Property Value:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.furnishingDescription || 'Not provided'}
+            {formatCurrency(pricingValuation.estimatedPropertyValue)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Featured Amenities:</Typography>
+          <Typography variant="body" color="secondary">Nightly Rate:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.featuredAmenities.length > 0 
-              ? pricingValuation.featuredAmenities.join(', ')
-              : 'Not provided'}
+            {formatCurrency(pricingValuation.nightlyRate)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Custom Amenities:</Typography>
+          <Typography variant="body" color="secondary">Weekend Rate:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.customAmenities.length > 0 
-              ? pricingValuation.customAmenities.join(', ')
-              : 'Not provided'}
+            {formatCurrency(pricingValuation.weekendRate)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Smart Home Features:</Typography>
+          <Typography variant="body" color="secondary">Cleaning Fee:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.smartHomeFeatures ? 'Yes' : 'No'}
+            {formatCurrency(pricingValuation.cleaningFee)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Concierge Services:</Typography>
+          <Typography variant="body" color="secondary">Rental Availability:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.conciergeServices || 'Not provided'}
+            {pricingValuation.rentalAvailability || 'Not provided'}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Check-in Time:</Typography>
+          <Typography variant="body" color="secondary">Minimum Stay:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {`${pricingValuation.checkInTime.hour}:${pricingValuation.checkInTime.minute.toString().padStart(2, '0')} ${pricingValuation.checkInTime.period}`}
-          </Typography>
-        </View>
-        <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Check-out Time:</Typography>
-          <Typography variant="body" style={styles.detailValue}>
-            {`${pricingValuation.checkOutTime.hour}:${pricingValuation.checkOutTime.minute.toString().padStart(2, '0')} ${pricingValuation.checkOutTime.period}`}
-          </Typography>
-        </View>
-        <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">House Rules:</Typography>
-          <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.houseRules.length > 0 
-              ? pricingValuation.houseRules.join(', ')
-              : 'Not provided'}
-          </Typography>
-        </View>
-        <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Local Highlights:</Typography>
-          <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.localHighlights || 'Not provided'}
+            {pricingValuation.minimumStay || 'Not provided'}
           </Typography>
         </View>
       </View>
@@ -323,7 +325,9 @@ export default function ResidentialPropertyReviewScreen() {
         <View style={styles.detailRow}>
           <Typography variant="body" color="secondary">Virtual Tour:</Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {mediaUpload.virtualTour.value || 'Not provided'}
+            {typeof mediaUpload.virtualTour === 'string' 
+              ? mediaUpload.virtualTour || 'Not provided'
+              : mediaUpload.virtualTour?.name || 'Not provided'}
           </Typography>
         </View>
         {mediaUpload.photos.length > 0 && (
