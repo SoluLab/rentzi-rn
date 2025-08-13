@@ -13,12 +13,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import { UserTypeTabs, QuickAccessButtons } from "@/components/ui/auth";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { useLoginForm } from "@/hooks/useLoginForm";
 import { useFocusEffect } from "@react-navigation/native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import type { CountryCode } from "@/types/auth";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,6 +34,10 @@ export default function LoginScreen() {
     handleLogin,
     quickAccessLogin,
   } = useLoginForm();
+
+  const [isPhoneMode, setIsPhoneMode] = React.useState(false);
+  const [phoneCountry, setPhoneCountry] = React.useState<CountryCode | undefined>(undefined);
+  const [phoneNumber, setPhoneNumber] = React.useState("");
 
   useFocusEffect(
     React.useCallback(() => {
@@ -104,15 +110,42 @@ export default function LoginScreen() {
                   onUserTypeChange={setUserType}
                 />
 
-                <Input
-                  label="Email/Mobile Number"
-                  value={formData.identifier}
-                  onChangeText={(value) => updateField("identifier", value)}
-                  placeholder="Enter your email or mobile number"
-                  keyboardType="default"
-                  autoCapitalize="none"
-                  error={errors.identifier}
-                />
+                {!isPhoneMode ? (
+                  <Input
+                    label="Email ID"
+                    value={formData.identifier}
+                    onChangeText={(value) => updateField("identifier", value)}
+                    placeholder="Enter your email address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    error={errors.identifier}
+                  />
+                ) : (
+                  <PhoneInput
+                    label="Mobile Number"
+                    value={phoneNumber}
+                    onChangeText={(value) => {
+                      setPhoneNumber(value);
+                      const code = phoneCountry?.phoneCode || "";
+                      updateField(
+                        "identifier",
+                        JSON.stringify({ countryCode: code, mobile: value })
+                      );
+                    }}
+                    placeholder="Enter your mobile number"
+                    error={errors.identifier}
+                    selectedCountry={phoneCountry}
+                    onCountryChange={(country) => {
+                      setPhoneCountry(country);
+                      if (phoneNumber) {
+                        updateField(
+                          "identifier",
+                          JSON.stringify({ countryCode: country.phoneCode, mobile: phoneNumber })
+                        );
+                      }
+                    }}
+                  />
+                )}
 
                 <Input
                   label="Password"
@@ -139,6 +172,17 @@ export default function LoginScreen() {
                   style={styles.loginButton}
                   variant="primary"
                 />
+
+                <View style={[styles.divider, { justifyContent: "center" }]}>
+                  <Typography
+                    variant="body"
+                    color="primary"
+                    style={StyleSheet.flatten([styles.dividerText, styles.linkText])}
+                    onPress={() => setIsPhoneMode((prev) => !prev)}
+                  >
+                    {isPhoneMode ? "SignIn with Email ID" : "SignIn with Mobile Number"}
+                  </Typography>
+                </View>
 
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
@@ -253,6 +297,11 @@ const styles = StyleSheet.create({
   },
   dividerText: {
     paddingHorizontal: spacing.sm,
+  },
+  linkText: {
+    color: colors.primary.blue,
+    textDecorationLine: "underline",
+    fontWeight: "600",
   },
   buttonSection: {
     paddingHorizontal: spacing.md,

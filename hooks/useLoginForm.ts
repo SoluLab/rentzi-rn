@@ -64,10 +64,13 @@ export const useLoginForm = (): UseLoginFormReturn => {
       if (response.success && response.data) {
         if (response.data.requiresOTP) {
           toast.info(TOAST_MESSAGES.AUTH.LOGIN.OTP_SENT);
+          const emailParam = typeof variables.identifier === 'string' ? variables.identifier : '';
+          const phoneParam = typeof variables.identifier === 'object' ? JSON.stringify(variables.identifier) : '';
           router.push({
             pathname: "/(auth)/otp-verification",
             params: {
-              email: variables.identifier,
+              email: emailParam,
+              phone: phoneParam,
               sessionId: response.data.sessionId,
               userId: response.data.userId,
               type: "login",
@@ -93,8 +96,38 @@ export const useLoginForm = (): UseLoginFormReturn => {
   const loginMutation = userType === "homeowner" ? homeownerLoginMutation : renterInvestorLoginMutation;
 
   const validateForm = useCallback((): boolean => {
-    const { isValid, errors: validationErrors } = validateWithZod(loginSchema, formData);
-    setErrors(validationErrors);
+    // Prepare identifier for validation: if it's a JSON string (phone mode), validate as "+<cc><mobile>"
+    let identifierForValidation = formData.identifier;
+    const trimmed = identifierForValidation.trim();
+    let parsedPhone: { countryCode: string; mobile: string } | null = null;
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (parsed && typeof parsed.countryCode === "string" && typeof parsed.mobile === "string") {
+          parsedPhone = parsed;
+          identifierForValidation = `${parsed.countryCode}${parsed.mobile}`;
+        }
+      } catch (_) {
+        // ignore parse error; keep original
+      }
+    }
+
+    const { isValid, errors: validationErrors } = validateWithZod(loginSchema, {
+      ...formData,
+      identifier: identifierForValidation,
+    } as any);
+    // Customize identifier error message based on mode
+    if (validationErrors.identifier) {
+      const customErrors = { ...validationErrors };
+      if (parsedPhone) {
+        customErrors.identifier = "Please enter a valid mobile number (including country code)";
+      } else {
+        customErrors.identifier = "Please enter a valid email address";
+      }
+      setErrors(customErrors);
+    } else {
+      setErrors(validationErrors);
+    }
     return isValid;
   }, [formData]);
 
@@ -108,7 +141,27 @@ export const useLoginForm = (): UseLoginFormReturn => {
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
 
-    const payload = { identifier: formData.identifier, password: formData.password };
+    const rawIdentifier = formData.identifier.trim();
+    let identifier: any = rawIdentifier;
+
+    // If identifier is a JSON string from phone UI, parse it
+    if (rawIdentifier.startsWith("{") && rawIdentifier.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(rawIdentifier);
+        if (
+          parsed &&
+          typeof parsed === "object" &&
+          typeof parsed.countryCode === "string" &&
+          typeof parsed.mobile === "string"
+        ) {
+          identifier = parsed;
+        }
+      } catch (_) {
+        // fall back to raw string if parse fails
+      }
+    }
+
+    const payload = { identifier, password: formData.password } as any;
 
     loginMutation.mutate(payload);
   }, [formData, userType, validateForm, loginMutation]);

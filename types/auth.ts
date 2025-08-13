@@ -43,7 +43,10 @@ export interface ApiErrorResponse {
 }
 
 export interface LoginRequest {
-  identifier: string;
+  identifier: string | {
+    countryCode: string;
+    mobile: string;
+  };
   password: string;
 }
 
