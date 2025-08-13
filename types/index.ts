@@ -98,5 +98,6 @@ export * from "./auth";
 export * from "./homeownerProperty";
 export * from "./renterMarketplace";
 export * from "./homeownerProfile";
+export * from "./homeownerDropdown";
 export * from "./renterInvestorProfile";
 export * from "./kyc";

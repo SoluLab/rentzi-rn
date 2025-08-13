@@ -76,6 +76,9 @@ export const ENDPOINTS = {
     UPLOAD_VIDEOS: (id: string) => `/property/${id}/files/video`,
     DELETE_FILE: (id: string, fileName: string) =>
       `/property/${id}/files/${fileName}`,
+
+    // Property dropdowns
+    AMENITIES_DROPDOWN: "/property/dropdowns/amenities",
   },
 
   HOMEOWNER_DASHBOARD: {

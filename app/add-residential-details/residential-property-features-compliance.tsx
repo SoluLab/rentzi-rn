@@ -27,6 +27,7 @@ import {
   FeaturesComplianceData,
 } from "@/stores/residentialPropertyStore";
 import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
+import { useHomeownerDropdown } from "@/hooks/useHomeownerDropdown";
 
 // Furnishing options
 const FURNISHING_OPTIONS = [
@@ -35,34 +36,10 @@ const FURNISHING_OPTIONS = [
   "Unfurnished",
 ];
 
-// Featured amenities options
-const FEATURED_AMENITIES = [
-  "Pool",
-  "Jacuzzi",
-  "Chef Kitchen",
-  "Gym",
-  "Wi-Fi",
-  "Workstation",
-  "Parking",
-  "Garden",
-  "Balcony",
-  "Air Conditioning",
-  "Heating",
-  "Security System",
-  "Elevator",
-  "Doorman",
-  "Storage",
-  "Pet Friendly",
-  "Furnished",
-  "High-Speed Internet",
-  "Cable TV",
-  "Dishwasher",
-  "Washing Machine",
-  "Dryer",
-  "Fireplace",
-  "Walk-in Closet",
-  "Hardwood Floors",
-];
+// Featured amenities options - will be populated from API
+let FEATURED_AMENITIES: string[] = [];
+let AMENITIES_MAP: { [key: string]: string } = {}; // name -> id mapping
+let AMENITIES_REVERSE_MAP: { [key: string]: string } = {}; // id -> name mapping
 
 // House rules options
 const HOUSE_RULES = ["No Parties", "No Pets", "No Smoking", "Quiet Hours"];
@@ -99,6 +76,9 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     },
   });
 
+  // Amenities dropdown hook
+  const { amenities, amenitiesLoading } = useHomeownerDropdown();
+
   const [formData, setFormData] = useState<FeaturesComplianceData>(
     data.featuresCompliance || {
       furnishingDescription: "",
@@ -129,6 +109,18 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   const [smartFeatureInput, setSmartFeatureInput] = useState("");
   const [businessServiceInput, setBusinessServiceInput] = useState("");
   const [showAmenitiesDropdown, setShowAmenitiesDropdown] = useState(false);
+
+  // Populate amenities from API when data loads
+  useEffect(() => {
+    if (amenities && amenities.length > 0) {
+      FEATURED_AMENITIES = amenities.map(amenity => amenity.name);
+      // Create mapping from name to id and id to name
+      amenities.forEach(amenity => {
+        AMENITIES_MAP[amenity.name] = amenity._id;
+        AMENITIES_REVERSE_MAP[amenity._id] = amenity.name;
+      });
+    }
+  }, [amenities]);
 
   // Validation functions
   const validateFurnishingDescription = (
@@ -207,14 +199,17 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     }
   };
 
-  const toggleAmenity = (amenity: string) => {
+  const toggleAmenity = (amenityName: string) => {
+    const amenityId = AMENITIES_MAP[amenityName];
+    if (!amenityId) return;
+    
     const currentAmenities = [...formData.featuredAmenities];
-    const index = currentAmenities.indexOf(amenity);
+    const index = currentAmenities.indexOf(amenityId);
 
     if (index > -1) {
       currentAmenities.splice(index, 1);
     } else {
-      currentAmenities.push(amenity);
+      currentAmenities.push(amenityId);
     }
 
     updateFormData("featuredAmenities", currentAmenities);
@@ -500,13 +495,13 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           {/* Selected Amenities Chips */}
           {formData.featuredAmenities.length > 0 && (
             <View style={styles.selectedChipsContainer}>
-              {formData.featuredAmenities.map((amenity) => (
-                <View key={amenity} style={styles.selectedChip}>
+              {formData.featuredAmenities.map((amenityId) => (
+                <View key={amenityId} style={styles.selectedChip}>
                   <Typography variant="body" style={styles.chipText}>
-                    {amenity}
+                    {AMENITIES_REVERSE_MAP[amenityId] || amenityId}
                   </Typography>
                   <TouchableOpacity
-                    onPress={() => toggleAmenity(amenity)}
+                    onPress={() => toggleAmenity(AMENITIES_REVERSE_MAP[amenityId] || '')}
                     style={styles.removeChipButton}
                   >
                     <X size={16} color={colors.text.secondary} />
@@ -575,7 +570,8 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
               <FlatList
                 data={FEATURED_AMENITIES}
                 renderItem={({ item }) => {
-                  const isSelected = formData.featuredAmenities.includes(item);
+                  const amenityId = AMENITIES_MAP[item];
+                  const isSelected = amenityId ? formData.featuredAmenities.includes(amenityId) : false;
                   return (
                     <TouchableOpacity
                       style={[
