@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { Header } from "@/components/ui/Header";
 import { ScreenContainer } from "@/components/ui/ScreenContainer";
 import SuccessPopup from "@/components/ui/SuccessPopup";
+import { toast } from "@/components/ui/Toast";
 import { colors } from "@/constants/colors";
 import { spacing } from "@/constants/spacing";
 import { radius } from "@/constants/radius";
@@ -110,7 +111,7 @@ export default function CommercialPropertyReviewScreen() {
 
   // API mutation hook for submitting property for review
   const submitForReviewMutation = useHomeownerSubmitPropertyForReview({
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       try {
         // Submit property to store
         submitProperty();
@@ -121,12 +122,12 @@ export default function CommercialPropertyReviewScreen() {
         setShowSuccessPopup(true);
       } catch (error) {
         console.error("Error syncing with homeowner store:", error);
-        Alert.alert("Sync Error", "Property submitted but sync failed. Please check your dashboard.");
+        toast.error("Property submitted but sync failed. Please check your dashboard.");
       }
     },
     onError: (error) => {
       console.error("Error submitting property for review:", error);
-      Alert.alert("Submission Failed", error.message || "Please try again later.");
+      toast.error(error.message || "Please try again later.");
     },
   });
 
@@ -159,18 +160,12 @@ export default function CommercialPropertyReviewScreen() {
 
   const handleSubmit = async () => {
     if (!isAllSectionsComplete()) {
-      Alert.alert(
-        "Incomplete Sections",
-        "Please complete all required sections before submitting."
-      );
+      toast.error("Please complete all required sections before submitting.");
       return;
     }
 
     if (!data.propertyId) {
-      Alert.alert(
-        "Error",
-        "Property ID not found. Please go back and try again."
-      );
+      toast.error("Property ID not found. Please go back and try again.");
       return;
     }
 

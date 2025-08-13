@@ -1,51 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { useRouter } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import SuccessPopup from "@/components/ui/SuccessPopup";
+import { toast } from "@/components/ui/Toast";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import SuccessPopup from '@/components/ui/SuccessPopup';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Check, 
-  X, 
-  AlertTriangle, 
-  FileText, 
-  Image, 
-  Home, 
-  DollarSign, 
-  Settings, 
-  Upload, 
-  Shield, 
+  ChevronDown,
+  ChevronUp,
+  Check,
+  X,
+  AlertTriangle,
+  FileText,
+  Image,
+  Home,
+  DollarSign,
+  Upload,
+  Shield,
   Users,
-  MapPin,
-  Calendar,
-  Square,
-  Award,
-  Wifi,
-  Lock,
-  Star,
-  Mail,
-  Phone,
-  Bell,
-  Bed,
-  Bath,
   Users as UsersIcon,
-} from 'lucide-react-native';
-import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
-import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
-import { useHomeownerSubmitPropertyForReview } from '@/services/homeownerAddProperty';
+} from "lucide-react-native";
+import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
+import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
+import { useHomeownerSubmitPropertyForReview } from "@/services/homeownerAddProperty";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 interface ReviewSection {
   id: string;
@@ -57,60 +39,58 @@ interface ReviewSection {
 
 const REVIEW_SECTIONS: ReviewSection[] = [
   {
-    id: 'propertyDetails',
-    title: 'Property Details',
+    id: "propertyDetails",
+    title: "Property Details",
     icon: Home,
     isComplete: false,
-    route: 'add-residential-property',
+    route: "add-residential-property",
   },
   {
-    id: 'pricingValuation',
-    title: 'Pricing & Valuation',
+    id: "pricingValuation",
+    title: "Pricing & Valuation",
     icon: DollarSign,
     isComplete: false,
-    route: 'residential-property-pricing-valuation',
+    route: "residential-property-pricing-valuation",
   },
   {
-    id: 'mediaUpload',
-    title: 'Media Uploads',
+    id: "mediaUpload",
+    title: "Media Uploads",
     icon: Upload,
     isComplete: false,
-    route: 'residential-property-media-upload',
+    route: "residential-property-media-upload",
   },
   {
-    id: 'documentsUpload',
-    title: 'Required Documents',
+    id: "documentsUpload",
+    title: "Required Documents",
     icon: FileText,
     isComplete: false,
-    route: 'residential-property-documents-upload',
+    route: "residential-property-documents-upload",
   },
   {
-    id: 'legalConsents',
-    title: 'Legal Consents & Terms',
+    id: "legalConsents",
+    title: "Legal Consents & Terms",
     icon: Shield,
     isComplete: false,
-    route: 'residential-property-legal-consents',
+    route: "residential-property-legal-consents",
   },
   {
-    id: 'listingPurpose',
-    title: 'Listing Purpose',
+    id: "listingPurpose",
+    title: "Listing Purpose",
     icon: Users,
     isComplete: false,
-    route: 'residential-property-listing-purpose',
+    route: "residential-property-listing-purpose",
   },
 ];
 
 export default function ResidentialPropertyReviewScreen() {
   const router = useRouter();
-  const { 
-    data, 
-    submitProperty, 
-    isAllSectionsComplete,
-    getCompletionStatus 
-  } = useResidentialPropertyStore();
+  const { data, submitProperty, isAllSectionsComplete, getCompletionStatus } =
+    useResidentialPropertyStore();
   const { syncFromResidentialStore } = useHomeownerPropertyStore();
 
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
@@ -118,23 +98,25 @@ export default function ResidentialPropertyReviewScreen() {
 
   // API mutation hook for submitting property for review
   const submitForReviewMutation = useHomeownerSubmitPropertyForReview({
-    onSuccess: async () => {
+    onSuccess: async (response) => {
       try {
         // Submit property to store
         submitProperty();
-        
+
         // Sync with homeowner property store
         await syncFromResidentialStore();
-        
+
         setShowSuccessPopup(true);
       } catch (error) {
-        console.error('Error syncing with homeowner store:', error);
-        Alert.alert('Sync Error', 'Property submitted but sync failed. Please check your dashboard.');
+        console.error("Error syncing with homeowner store:", error);
+        toast.error(
+          "Property submitted but sync failed. Please check your dashboard."
+        );
       }
     },
     onError: (error) => {
-      console.error('Error submitting property for review:', error);
-      Alert.alert('Submission Failed', error.message || 'Please try again later.');
+      console.error("Error submitting property for review:", error);
+      toast.error(error.message || "Please try again later.");
     },
   });
 
@@ -153,40 +135,39 @@ export default function ResidentialPropertyReviewScreen() {
   };
 
   const formatCurrency = (value: string) => {
-    if (!value) return 'Not provided';
+    if (!value) return "Not provided";
     return value;
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const handleSubmit = async () => {
     if (!isAllSectionsComplete()) {
-      Alert.alert('Incomplete Sections', 'Please complete all required sections before submitting.');
+      toast.error("Please complete all required sections before submitting.");
       return;
     }
 
     if (!data.propertyId) {
-      Alert.alert(
-        'Error',
-        'Property ID not found. Please go back and try again.'
-      );
+      toast.error("Property ID not found. Please go back and try again.");
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
       // Submit property for review using API
-      await submitForReviewMutation.mutateAsync({ propertyId: data.propertyId });
+      await submitForReviewMutation.mutateAsync({
+        propertyId: data.propertyId,
+      });
     } catch (error) {
       // Error is handled by the mutation's onError callback
-      console.error('Error in handleSubmit:', error);
+      console.error("Error in handleSubmit:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -195,7 +176,7 @@ export default function ResidentialPropertyReviewScreen() {
   const handleSuccessPopupClose = () => {
     setShowSuccessPopup(false);
     // Navigate to homeowner dashboard
-    router.push('/(homeowner-tabs)');
+    router.push("/(homeowner-tabs)");
   };
 
   const renderPropertyDetails = () => {
@@ -203,65 +184,87 @@ export default function ResidentialPropertyReviewScreen() {
     return (
       <View style={styles.sectionContent}>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Property Title:</Typography>
+          <Typography variant="body" color="secondary">
+            Property Title:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.propertyTitle || 'Not provided'}
+            {propertyDetails.propertyTitle || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Market:</Typography>
+          <Typography variant="body" color="secondary">
+            Market:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.market === 'Other' 
-              ? propertyDetails.otherMarket 
-              : propertyDetails.market || 'Not provided'}
+            {propertyDetails.market === "Other"
+              ? propertyDetails.otherMarket
+              : propertyDetails.market || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Pincode:</Typography>
+          <Typography variant="body" color="secondary">
+            Pincode:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.pincode || 'Not provided'}
+            {propertyDetails.pincode || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Address:</Typography>
+          <Typography variant="body" color="secondary">
+            Address:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.fullAddress || 'Not provided'}
+            {propertyDetails.fullAddress || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Property Type:</Typography>
+          <Typography variant="body" color="secondary">
+            Property Type:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.propertyType || 'Not provided'}
+            {propertyDetails.propertyType || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Year Built:</Typography>
+          <Typography variant="body" color="secondary">
+            Year Built:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.yearBuilt || 'Not provided'}
+            {propertyDetails.yearBuilt || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Bedrooms:</Typography>
+          <Typography variant="body" color="secondary">
+            Bedrooms:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.bedrooms || 'Not provided'}
+            {propertyDetails.bedrooms || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Bathrooms:</Typography>
+          <Typography variant="body" color="secondary">
+            Bathrooms:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.bathrooms || 'Not provided'}
+            {propertyDetails.bathrooms || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Guest Capacity:</Typography>
+          <Typography variant="body" color="secondary">
+            Guest Capacity:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.guestCapacity || 'Not provided'}
+            {propertyDetails.guestCapacity || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Square Footage:</Typography>
+          <Typography variant="body" color="secondary">
+            Square Footage:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {propertyDetails.squareFootage ? `${propertyDetails.squareFootage} sqft` : 'Not provided'}
+            {propertyDetails.squareFootage
+              ? `${propertyDetails.squareFootage} sqft`
+              : "Not provided"}
           </Typography>
         </View>
       </View>
@@ -273,39 +276,51 @@ export default function ResidentialPropertyReviewScreen() {
     return (
       <View style={styles.sectionContent}>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Estimated Property Value:</Typography>
+          <Typography variant="body" color="secondary">
+            Estimated Property Value:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
             {formatCurrency(pricingValuation.estimatedPropertyValue)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Nightly Rate:</Typography>
+          <Typography variant="body" color="secondary">
+            Nightly Rate:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
             {formatCurrency(pricingValuation.nightlyRate)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Weekend Rate:</Typography>
+          <Typography variant="body" color="secondary">
+            Weekend Rate:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
             {formatCurrency(pricingValuation.weekendRate)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Cleaning Fee:</Typography>
+          <Typography variant="body" color="secondary">
+            Cleaning Fee:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
             {formatCurrency(pricingValuation.cleaningFee)}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Rental Availability:</Typography>
+          <Typography variant="body" color="secondary">
+            Rental Availability:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.rentalAvailability || 'Not provided'}
+            {pricingValuation.rentalAvailability || "Not provided"}
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Minimum Stay:</Typography>
+          <Typography variant="body" color="secondary">
+            Minimum Stay:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {pricingValuation.minimumStay || 'Not provided'}
+            {pricingValuation.minimumStay || "Not provided"}
           </Typography>
         </View>
       </View>
@@ -317,17 +332,21 @@ export default function ResidentialPropertyReviewScreen() {
     return (
       <View style={styles.sectionContent}>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Photos Uploaded:</Typography>
+          <Typography variant="body" color="secondary">
+            Photos Uploaded:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
             {mediaUpload.photos.length} photos
           </Typography>
         </View>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Virtual Tour:</Typography>
+          <Typography variant="body" color="secondary">
+            Virtual Tour:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {typeof mediaUpload.virtualTour === 'string' 
-              ? mediaUpload.virtualTour || 'Not provided'
-              : mediaUpload.virtualTour?.name || 'Not provided'}
+            {typeof mediaUpload.virtualTour === "string"
+              ? mediaUpload.virtualTour || "Not provided"
+              : mediaUpload.virtualTour?.name || "Not provided"}
           </Typography>
         </View>
         {mediaUpload.photos.length > 0 && (
@@ -354,30 +373,71 @@ export default function ResidentialPropertyReviewScreen() {
   const renderDocumentsUpload = () => {
     const { documentsUpload } = data;
     const mandatoryDocuments = [
-      { key: 'propertyDeed', name: 'Property Deed', doc: documentsUpload.propertyDeed },
-      { key: 'governmentId', name: 'Government ID', doc: documentsUpload.governmentId },
-      { key: 'propertyTaxBill', name: 'Property Tax Bill', doc: documentsUpload.propertyTaxBill },
-      { key: 'proofOfInsurance', name: 'Proof of Insurance', doc: documentsUpload.proofOfInsurance },
-      { key: 'utilityBill', name: 'Utility Bill', doc: documentsUpload.utilityBill },
-      { key: 'appraisalReport', name: 'Appraisal Report', doc: documentsUpload.appraisalReport },
-      { key: 'authorizationToSell', name: 'Authorization to Sell', doc: documentsUpload.authorizationToSell },
+      {
+        key: "propertyDeed",
+        name: "Property Deed",
+        doc: documentsUpload.propertyDeed,
+      },
+      {
+        key: "governmentId",
+        name: "Government ID",
+        doc: documentsUpload.governmentId,
+      },
+      {
+        key: "propertyTaxBill",
+        name: "Property Tax Bill",
+        doc: documentsUpload.propertyTaxBill,
+      },
+      {
+        key: "proofOfInsurance",
+        name: "Proof of Insurance",
+        doc: documentsUpload.proofOfInsurance,
+      },
+      {
+        key: "utilityBill",
+        name: "Utility Bill",
+        doc: documentsUpload.utilityBill,
+      },
+      {
+        key: "appraisalReport",
+        name: "Appraisal Report",
+        doc: documentsUpload.appraisalReport,
+      },
+      {
+        key: "authorizationToSell",
+        name: "Authorization to Sell",
+        doc: documentsUpload.authorizationToSell,
+      },
     ];
 
     const conditionalDocuments = [];
     if (documentsUpload.hasMortgage) {
-      conditionalDocuments.push({ key: 'mortgageStatement', name: 'Mortgage Statement', doc: documentsUpload.mortgageStatement });
+      conditionalDocuments.push({
+        key: "mortgageStatement",
+        name: "Mortgage Statement",
+        doc: documentsUpload.mortgageStatement,
+      });
     }
     if (documentsUpload.hasHOA) {
-      conditionalDocuments.push({ key: 'hoaDocuments', name: 'HOA Documents', doc: documentsUpload.hoaDocuments });
+      conditionalDocuments.push({
+        key: "hoaDocuments",
+        name: "HOA Documents",
+        doc: documentsUpload.hoaDocuments,
+      });
     }
 
     return (
       <View style={styles.sectionContent}>
-        <Typography variant="h6" style={styles.subsectionTitle}>Mandatory Documents</Typography>
+        <Typography variant="h6" style={styles.subsectionTitle}>
+          Mandatory Documents
+        </Typography>
         {mandatoryDocuments.map(({ key, name, doc }) => (
           <View key={key} style={styles.documentRow}>
             <View style={styles.documentInfo}>
-              <FileText size={16} color={doc ? colors.status.success : colors.text.secondary} />
+              <FileText
+                size={16}
+                color={doc ? colors.status.success : colors.text.secondary}
+              />
               <Typography variant="body" style={styles.documentName}>
                 {name}
               </Typography>
@@ -404,11 +464,16 @@ export default function ResidentialPropertyReviewScreen() {
 
         {conditionalDocuments.length > 0 && (
           <>
-            <Typography variant="h6" style={styles.subsectionTitle}>Conditional Documents</Typography>
+            <Typography variant="h6" style={styles.subsectionTitle}>
+              Conditional Documents
+            </Typography>
             {conditionalDocuments.map(({ key, name, doc }) => (
               <View key={key} style={styles.documentRow}>
                 <View style={styles.documentInfo}>
-                  <FileText size={16} color={doc ? colors.status.success : colors.text.secondary} />
+                  <FileText
+                    size={16}
+                    color={doc ? colors.status.success : colors.text.secondary}
+                  />
                   <Typography variant="body" style={styles.documentName}>
                     {name}
                   </Typography>
@@ -441,13 +506,13 @@ export default function ResidentialPropertyReviewScreen() {
   const renderLegalConsents = () => {
     const { legalConsents } = data;
     const consentItems = [
-      { key: 'investmentRisks', name: 'Investment Risks Understanding' },
-      { key: 'platformTerms', name: 'Platform Terms Agreement' },
-      { key: 'variableIncome', name: 'Variable Income Understanding' },
-      { key: 'tokenizationConsent', name: 'Tokenization Consent' },
-      { key: 'usageRights', name: 'Usage Rights Agreement' },
-      { key: 'liquidityLimitations', name: 'Liquidity Limitations' },
-      { key: 'governanceRights', name: 'Governance and Voting Rights' },
+      { key: "investmentRisks", name: "Investment Risks Understanding" },
+      { key: "platformTerms", name: "Platform Terms Agreement" },
+      { key: "variableIncome", name: "Variable Income Understanding" },
+      { key: "tokenizationConsent", name: "Tokenization Consent" },
+      { key: "usageRights", name: "Usage Rights Agreement" },
+      { key: "liquidityLimitations", name: "Liquidity Limitations" },
+      { key: "governanceRights", name: "Governance and Voting Rights" },
     ];
 
     return (
@@ -455,7 +520,14 @@ export default function ResidentialPropertyReviewScreen() {
         {consentItems.map(({ key, name }) => (
           <View key={key} style={styles.consentRow}>
             <View style={styles.consentInfo}>
-              <Shield size={16} color={legalConsents[key as keyof typeof legalConsents] ? colors.status.success : colors.text.secondary} />
+              <Shield
+                size={16}
+                color={
+                  legalConsents[key as keyof typeof legalConsents]
+                    ? colors.status.success
+                    : colors.text.secondary
+                }
+              />
               <Typography variant="body" style={styles.consentName}>
                 {name}
               </Typography>
@@ -476,17 +548,23 @@ export default function ResidentialPropertyReviewScreen() {
   const renderListingPurpose = () => {
     const { listingPurpose } = data;
     const listingPurposes = {
-      'rental-only': 'Rental Only',
-      'fractional-ownership-rental': 'Fractional Ownership + Rental',
-      'fractional-ownership-only': 'Fractional Ownership Only',
+      "rental-only": "Rental Only",
+      "fractional-ownership-rental": "Fractional Ownership + Rental",
+      "fractional-ownership-only": "Fractional Ownership Only",
     };
 
     return (
       <View style={styles.sectionContent}>
         <View style={styles.detailRow}>
-          <Typography variant="body" color="secondary">Selected Listing Purpose:</Typography>
+          <Typography variant="body" color="secondary">
+            Selected Listing Purpose:
+          </Typography>
           <Typography variant="body" style={styles.detailValue}>
-            {listingPurpose.selectedPurpose ? listingPurposes[listingPurpose.selectedPurpose as keyof typeof listingPurposes] : 'Not selected'}
+            {listingPurpose.selectedPurpose
+              ? listingPurposes[
+                  listingPurpose.selectedPurpose as keyof typeof listingPurposes
+                ]
+              : "Not selected"}
           </Typography>
         </View>
       </View>
@@ -495,17 +573,17 @@ export default function ResidentialPropertyReviewScreen() {
 
   const renderSectionContent = (sectionId: string) => {
     switch (sectionId) {
-      case 'propertyDetails':
+      case "propertyDetails":
         return renderPropertyDetails();
-      case 'pricingValuation':
+      case "pricingValuation":
         return renderPricingValuation();
-      case 'mediaUpload':
+      case "mediaUpload":
         return renderMediaUpload();
-      case 'documentsUpload':
+      case "documentsUpload":
         return renderDocumentsUpload();
-      case 'legalConsents':
+      case "legalConsents":
         return renderLegalConsents();
-      case 'listingPurpose':
+      case "listingPurpose":
         return renderListingPurpose();
       default:
         return null;
@@ -514,17 +592,24 @@ export default function ResidentialPropertyReviewScreen() {
 
   const renderReviewSection = (section: ReviewSection) => {
     const isExpanded = expandedSections.has(section.id);
-    const isComplete = completionStatus[section.id as keyof typeof completionStatus];
+    const isComplete =
+      completionStatus[section.id as keyof typeof completionStatus];
     const IconComponent = section.icon;
 
     return (
       <View key={section.id} style={styles.reviewSection}>
         <TouchableOpacity
-          style={[styles.sectionHeader, !isComplete && styles.sectionHeaderIncomplete]}
+          style={[
+            styles.sectionHeader,
+            !isComplete && styles.sectionHeaderIncomplete,
+          ]}
           onPress={() => toggleSection(section.id)}
         >
           <View style={styles.sectionHeaderLeft}>
-            <IconComponent size={24} color={isComplete ? colors.primary.gold : colors.text.secondary} />
+            <IconComponent
+              size={24}
+              color={isComplete ? colors.primary.gold : colors.text.secondary}
+            />
             <View style={styles.sectionTitleContainer}>
               <Typography variant="h6" style={styles.sectionTitleText}>
                 {section.title}
@@ -557,7 +642,11 @@ export default function ResidentialPropertyReviewScreen() {
                 Edit
               </Typography>
             </TouchableOpacity>
-            {isExpanded ? <ChevronUp size={20} color={colors.text.secondary} /> : <ChevronDown size={20} color={colors.text.secondary} />}
+            {isExpanded ? (
+              <ChevronUp size={20} color={colors.text.secondary} />
+            ) : (
+              <ChevronDown size={20} color={colors.text.secondary} />
+            )}
           </View>
         </TouchableOpacity>
 
@@ -571,9 +660,10 @@ export default function ResidentialPropertyReviewScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1 }}>
       <Header title="Review & Submit" />
-      <ScrollView 
+
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -582,9 +672,14 @@ export default function ResidentialPropertyReviewScreen() {
           Review Your Property Details
         </Typography>
 
-        <Typography variant="body" color="secondary" style={styles.sectionDescription}>
-          Please review all the information below before submitting your residential property listing. 
-          You can edit any section by clicking the "Edit" button.
+        <Typography
+          variant="body"
+          color="secondary"
+          style={styles.sectionDescription}
+        >
+          Please review all the information below before submitting your
+          residential property listing. You can edit any section by clicking the
+          "Edit" button.
         </Typography>
 
         {/* Completion Summary */}
@@ -593,15 +688,26 @@ export default function ResidentialPropertyReviewScreen() {
             Completion Status
           </Typography>
           <View style={styles.progressBar}>
-            <View 
+            <View
               style={[
-                styles.progressFill, 
-                { width: `${(Object.values(completionStatus).filter(Boolean).length / Object.keys(completionStatus).length) * 100}%` }
-              ]} 
+                styles.progressFill,
+                {
+                  width: `${
+                    (Object.values(completionStatus).filter(Boolean).length /
+                      Object.keys(completionStatus).length) *
+                    100
+                  }%`,
+                },
+              ]}
             />
           </View>
-          <Typography variant="body" color="secondary" style={styles.summaryText}>
-            {Object.values(completionStatus).filter(Boolean).length} of {Object.keys(completionStatus).length} sections complete
+          <Typography
+            variant="body"
+            color="secondary"
+            style={styles.summaryText}
+          >
+            {Object.values(completionStatus).filter(Boolean).length} of{" "}
+            {Object.keys(completionStatus).length} sections complete
           </Typography>
         </View>
 
@@ -616,9 +722,14 @@ export default function ResidentialPropertyReviewScreen() {
             <Typography variant="h6" style={styles.submissionTitle}>
               Ready to Submit?
             </Typography>
-            <Typography variant="body" color="secondary" style={styles.submissionDescription}>
-              By submitting, you confirm that all information provided is accurate and complete. 
-              Our verification team will review your documents and contact you within 2-3 business days.
+            <Typography
+              variant="body"
+              color="secondary"
+              style={styles.submissionDescription}
+            >
+              By submitting, you confirm that all information provided is
+              accurate and complete. Our verification team will review your
+              documents and contact you within 2-3 business days.
             </Typography>
           </View>
 
@@ -632,13 +743,17 @@ export default function ResidentialPropertyReviewScreen() {
           {!isAllSectionsComplete() && (
             <View style={styles.warningContainer}>
               <AlertTriangle size={16} color={colors.status.warning} />
-              <Typography variant="caption" color="warning" style={styles.warningText}>
+              <Typography
+                variant="caption"
+                color="warning"
+                style={styles.warningText}
+              >
                 Please complete all required sections before submitting
               </Typography>
             </View>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Success Popup */}
       <SuccessPopup
@@ -648,7 +763,7 @@ export default function ResidentialPropertyReviewScreen() {
         message="Thank you for submitting your residential property. Our verification team is reviewing your documents. You will receive email, SMS, and in-app notifications with updates."
         buttonText="Go to Dashboard"
       />
-    </ScreenContainer>
+    </View>
   );
 }
 
@@ -662,7 +777,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.sm,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   sectionDescription: {
     marginBottom: spacing.xl,
@@ -675,7 +790,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   summaryTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.md,
     color: colors.text.primary,
   },
@@ -684,15 +799,15 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border.light,
     borderRadius: 4,
     marginBottom: spacing.sm,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   progressFill: {
-    height: '100%',
+    height: "100%",
     backgroundColor: colors.primary.gold,
     borderRadius: 4,
   },
   summaryText: {
-    textAlign: 'center',
+    textAlign: "center",
   },
   reviewSections: {
     marginBottom: spacing.xl,
@@ -703,12 +818,12 @@ const styles = StyleSheet.create({
     borderRadius: radius.input,
     borderWidth: 1,
     borderColor: colors.border.light,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     padding: spacing.lg,
   },
   sectionHeaderIncomplete: {
@@ -716,8 +831,8 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.status.error,
   },
   sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   sectionTitleContainer: {
@@ -725,22 +840,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   sectionTitleText: {
-    fontWeight: '600',
+    fontWeight: "600",
     color: colors.text.primary,
     marginBottom: spacing.xs,
   },
   sectionStatus: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
   },
   sectionHeaderRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
   },
   editButton: {
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    backgroundColor: colors.primary.gold + '20',
+    backgroundColor: colors.primary.gold + "20",
     borderRadius: 12,
   },
   sectionContent: {
@@ -748,9 +863,9 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: spacing.sm,
     paddingBottom: spacing.sm,
     borderBottomWidth: 1,
@@ -758,24 +873,24 @@ const styles = StyleSheet.create({
   },
   detailValue: {
     flex: 1,
-    textAlign: 'right',
-    fontWeight: '500',
+    textAlign: "right",
+    fontWeight: "500",
   },
   subsectionTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.md,
     color: colors.text.primary,
   },
   documentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: spacing.sm,
     paddingVertical: spacing.xs,
   },
   documentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   documentName: {
@@ -786,15 +901,15 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   consentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: spacing.sm,
     paddingVertical: spacing.xs,
   },
   consentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   consentName: {
@@ -805,14 +920,14 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     gap: spacing.sm,
     marginTop: spacing.sm,
   },
   photoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.background.secondary,
     padding: spacing.sm,
     borderRadius: radius.input,
@@ -822,8 +937,8 @@ const styles = StyleSheet.create({
     maxWidth: 80,
   },
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.status.success,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -831,8 +946,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   statusBadgeError: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: colors.status.error,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
@@ -842,18 +957,19 @@ const styles = StyleSheet.create({
   statusText: {
     color: colors.neutral.white,
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   submissionSection: {
     padding: spacing.lg,
     backgroundColor: colors.background.secondary,
     borderRadius: radius.input,
+    marginBottom: spacing.xxl,
   },
   submissionInfo: {
     marginBottom: spacing.lg,
   },
   submissionTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.sm,
     color: colors.text.primary,
   },
@@ -864,9 +980,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   warningContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.status.warning + '20',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.status.warning + "20",
     padding: spacing.md,
     borderRadius: radius.input,
     gap: spacing.sm,
@@ -876,4 +992,4 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.status.warning,
   },
-}); 
+});

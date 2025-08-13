@@ -63,7 +63,7 @@ export const ENDPOINTS = {
     // Create and manage properties
     CREATE_PROPERTY: "/property",
     SAVE_DRAFT: (id: string) => `/property/${id}/save`,
-    SUBMIT_FOR_REVIEW: "/property/submit",
+    SUBMIT_FOR_REVIEW: (id: string) => `/property/submit/${id}`,
 
     UPDATE_PROPERTY: (id: string) => `/property/${id}`,
     DELETE_PROPERTY: (id: string) => `/property/${id}`,

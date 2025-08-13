@@ -5,7 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
-  Alert, 
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as DocumentPicker from "expo-document-picker";
@@ -22,9 +22,12 @@ import {
   useResidentialPropertyStore,
   DocumentData,
 } from "@/stores/residentialPropertyStore";
-import { useHomeownerSavePropertyDraft, useHomeownerUploadPropertyFiles } from "@/services/homeownerAddProperty";
+import {
+  useHomeownerSavePropertyDraft,
+  useHomeownerUploadPropertyFiles,
+} from "@/services/homeownerAddProperty";
 import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
-import { uploadToPinata } from '@/utils/ipfsUpload';
+import { uploadToPinata } from "@/utils/ipfsUpload";
 
 interface DocumentsUploadData {
   // Mandatory documents
@@ -147,7 +150,9 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const [previewDocumentData, setPreviewDocumentData] =
     useState<DocumentData | null>(null);
   // Track upload status for each document field individually
-  const [uploadingFields, setUploadingFields] = useState<Set<keyof DocumentsUploadData>>(new Set());
+  const [uploadingFields, setUploadingFields] = useState<
+    Set<keyof DocumentsUploadData>
+  >(new Set());
 
   // Validation functions
   const validateDocument = (
@@ -342,7 +347,10 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const retryUpload = async (documentField: keyof DocumentsUploadData) => {
     const document = formData[documentField] as ExtendedDocumentData | null;
     if (document && !document.uploadedUrl) {
-      console.log(`Retrying upload for document ${documentField}:`, document.name);
+      console.log(
+        `Retrying upload for document ${documentField}:`,
+        document.name
+      );
       await uploadDocumentToServer(document, documentField);
     }
   };
@@ -378,18 +386,21 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     });
   };
 
-  const uploadDocumentToServer = async (document: DocumentData, documentField: keyof DocumentsUploadData) => {
+  const uploadDocumentToServer = async (
+    document: DocumentData,
+    documentField: keyof DocumentsUploadData
+  ) => {
     try {
       // Set this specific field as uploading
-      setUploadingFields(prev => new Set(prev).add(documentField));
-      
+      setUploadingFields((prev) => new Set(prev).add(documentField));
+
       // 1. Upload to Pinata (IPFS)
       const ipfsUrl = await uploadToPinata({
         uri: document.uri,
         name: document.name,
         type: document.type,
       });
-      
+
       // 2. Update formData with IPFS url
       const updatedDocument: ExtendedDocumentData = {
         ...document,
@@ -397,14 +408,23 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         uploadedKey: document.name,
       };
       updateFormData(documentField, updatedDocument);
-      
-      console.log(`✅ Document ${documentField} uploaded successfully to IPFS:`, ipfsUrl);
+
+      console.log(
+        `✅ Document ${documentField} uploaded successfully to IPFS:`,
+        ipfsUrl
+      );
     } catch (error: any) {
-      console.error(`❌ Error uploading document ${documentField} to IPFS:`, error);
-      Alert.alert('Upload Failed', `Failed to upload ${documentField} to IPFS. Please try again.`);
+      console.error(
+        `❌ Error uploading document ${documentField} to IPFS:`,
+        error
+      );
+      Alert.alert(
+        "Upload Failed",
+        `Failed to upload ${documentField} to IPFS. Please try again.`
+      );
     } finally {
       // Remove this field from uploading state
-      setUploadingFields(prev => {
+      setUploadingFields((prev) => {
         const newSet = new Set(prev);
         newSet.delete(documentField);
         return newSet;
@@ -420,21 +440,24 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
     // Helper function to extract CID from IPFS URL
     const extractCidFromUrl = (url: string): string => {
-      if (url.includes('ipfs/')) {
-        return url.split('ipfs/')[1];
+      if (url.includes("ipfs/")) {
+        return url.split("ipfs/")[1];
       }
-      return '';
+      return "";
     };
 
     // Helper function to create document object with new structure
-    const createDocumentObject = (document: ExtendedDocumentData, defaultKey: string) => {
-      const ipfsUrl = document.uploadedUrl || '';
+    const createDocumentObject = (
+      document: ExtendedDocumentData,
+      defaultKey: string
+    ) => {
+      const ipfsUrl = document.uploadedUrl || "";
       const cid = extractCidFromUrl(ipfsUrl);
-      const baseIpfsUrl = 'https://gateway.pinata.cloud/ipfs/';
+      const baseIpfsUrl = "https://gateway.pinata.cloud/ipfs/";
       return {
         url: ipfsUrl,
         cid: cid,
-        ipfsUrl: baseIpfsUrl
+        ipfsUrl: baseIpfsUrl,
       };
     };
 
@@ -443,40 +466,85 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
     // Mandatory documents
     if (formData.propertyDeed) {
-      documents.propertyDeed = [createDocumentObject(formData.propertyDeed as ExtendedDocumentData, 'propertyDeed')];
+      documents.propertyDeed = [
+        createDocumentObject(
+          formData.propertyDeed as ExtendedDocumentData,
+          "propertyDeed"
+        ),
+      ];
     }
 
     if (formData.governmentId) {
-      documents.governmentIssuedId = [createDocumentObject(formData.governmentId as ExtendedDocumentData, 'governmentId')];
+      documents.governmentIssuedId = [
+        createDocumentObject(
+          formData.governmentId as ExtendedDocumentData,
+          "governmentId"
+        ),
+      ];
     }
 
     if (formData.propertyTaxBill) {
-      documents.propertyTaxBill = [createDocumentObject(formData.propertyTaxBill as ExtendedDocumentData, 'propertyTaxBill')];
+      documents.propertyTaxBill = [
+        createDocumentObject(
+          formData.propertyTaxBill as ExtendedDocumentData,
+          "propertyTaxBill"
+        ),
+      ];
     }
 
     if (formData.proofOfInsurance) {
-      documents.proofOfInsurance = [createDocumentObject(formData.proofOfInsurance as ExtendedDocumentData, 'proofOfInsurance')];
+      documents.proofOfInsurance = [
+        createDocumentObject(
+          formData.proofOfInsurance as ExtendedDocumentData,
+          "proofOfInsurance"
+        ),
+      ];
     }
 
     if (formData.utilityBill) {
-      documents.utilityBill = [createDocumentObject(formData.utilityBill as ExtendedDocumentData, 'utilityBill')];
+      documents.utilityBill = [
+        createDocumentObject(
+          formData.utilityBill as ExtendedDocumentData,
+          "utilityBill"
+        ),
+      ];
     }
 
     if (formData.appraisalReport) {
-      documents.appraisalReport = [createDocumentObject(formData.appraisalReport as ExtendedDocumentData, 'appraisalReport')];
+      documents.appraisalReport = [
+        createDocumentObject(
+          formData.appraisalReport as ExtendedDocumentData,
+          "appraisalReport"
+        ),
+      ];
     }
 
     if (formData.authorizationToSell) {
-      documents.authorizationToTokenize = [createDocumentObject(formData.authorizationToSell as ExtendedDocumentData, 'authorizationToSell')];
+      documents.authorizationToTokenize = [
+        createDocumentObject(
+          formData.authorizationToSell as ExtendedDocumentData,
+          "authorizationToSell"
+        ),
+      ];
     }
 
     // Conditional documents
     if (formData.hasMortgage && formData.mortgageStatement) {
-      documents.mortgageStatement = [createDocumentObject(formData.mortgageStatement as ExtendedDocumentData, 'mortgageStatement')];
+      documents.mortgageStatement = [
+        createDocumentObject(
+          formData.mortgageStatement as ExtendedDocumentData,
+          "mortgageStatement"
+        ),
+      ];
     }
 
     if (formData.hasHOA && formData.hoaDocuments) {
-      documents.hoaDocument = [createDocumentObject(formData.hoaDocuments as ExtendedDocumentData, 'hoaDocuments')];
+      documents.hoaDocument = [
+        createDocumentObject(
+          formData.hoaDocuments as ExtendedDocumentData,
+          "hoaDocuments"
+        ),
+      ];
     }
 
     if (Object.keys(documents).length > 0) {
@@ -501,15 +569,17 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         formData.hasHOA ? formData.hoaDocuments : null,
       ].filter(Boolean) as ExtendedDocumentData[];
 
-      const unuploadedDocuments = allDocuments.filter(doc => !doc.uploadedUrl);
-      
+      const unuploadedDocuments = allDocuments.filter(
+        (doc) => !doc.uploadedUrl
+      );
+
       if (unuploadedDocuments.length > 0) {
         Alert.alert(
           "Unuploaded Documents",
           `${unuploadedDocuments.length} documents are not yet uploaded to the server. You can continue, but the documents may not be saved properly.`,
           [
             { text: "Continue Anyway", onPress: () => proceedWithDraft() },
-            { text: "Upload First", style: "cancel" }
+            { text: "Upload First", style: "cancel" },
           ]
         );
       } else {
@@ -1014,15 +1084,16 @@ const styles = StyleSheet.create({
   uploadStatus: {
     color: colors.status.success,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   retryStatus: {
     color: colors.primary.gold,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   nextButton: {
     marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
   },
   modalContainer: {
     flex: 1,
@@ -1058,16 +1129,16 @@ const styles = StyleSheet.create({
   uploadedText: {
     color: colors.status.success,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   uploadingText: {
     color: colors.primary.gold,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   retryText: {
     color: colors.primary.gold,
     fontSize: 9,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

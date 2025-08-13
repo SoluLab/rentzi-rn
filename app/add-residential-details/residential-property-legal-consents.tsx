@@ -391,5 +391,6 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
   },
 }); 

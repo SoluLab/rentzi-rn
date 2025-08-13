@@ -83,14 +83,22 @@ export const useHomeownerSubmitPropertyForReview = (
   >
 ) => {
   const queryClient = useQueryClient();
-  return useApiMutation(
+  return useMutation<any, ApiError, { propertyId: string }>(
     {
-      method: "post",
-      baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
-      endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.SUBMIT_FOR_REVIEW,
-      auth: true,
-    },
-    {
+      mutationFn: async ({ propertyId }) => {
+        const response = await apiPost({
+          baseURL: BASE_URLS.DEVELOPMENT.AUTH_API_HOMEOWNER,
+          endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.SUBMIT_FOR_REVIEW(propertyId),
+          auth: true,
+        });
+        
+        // Check if the API response indicates an error
+        if (response && response.success === false) {
+          throw new Error(response.message || 'Property submission failed');
+        }
+        
+        return response;
+      },
       onSuccess: (_, { propertyId }) => {
         queryClient.invalidateQueries({
           queryKey: queryKeys.homeownerProperties(),
