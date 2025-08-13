@@ -91,6 +91,7 @@ export const queryKeys = {
   
   // Homeowner Dropdown Query Keys
   amenities: () => [...queryKeys.all, "homeowner", "dropdown", "amenities"] as const,
+  propertyRules: () => [...queryKeys.all, "homeowner", "dropdown", "propertyRules"] as const,
 };
 
 // Main API call function

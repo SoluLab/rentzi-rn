@@ -21,17 +21,13 @@ import { radius } from "@/constants/radius";
 import { ChevronDown, Check, Plus, X } from "lucide-react-native";
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerSavePropertyDraft } from "@/services/homeownerAddProperty";
+import { useHomeownerDropdown } from "@/hooks/useHomeownerDropdown";
 import { AccessType } from "@/types/homeownerProperty";
 
-// Building amenities options
-const BUILDING_AMENITIES = [
-  "Parking",
-  "Elevator",
-  "HVAC",
-  "Security System",
-  "Wi-Fi",
-  "ADA Compliant",
-];
+// Building amenities options - will be populated from API
+let BUILDING_AMENITIES: string[] = [];
+let AMENITIES_MAP: { [key: string]: string } = {}; // name -> id mapping
+let AMENITIES_REVERSE_MAP: { [key: string]: string } = {}; // id -> name mapping
 
 // Smart building systems options
 const SMART_BUILDING_SYSTEMS = [
@@ -119,6 +115,22 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   const [businessServiceInput, setBusinessServiceInput] = useState('');
   const [errors, setErrors] = useState<FeaturesValidationErrors>({});
   const [showAccessTypeModal, setShowAccessTypeModal] = useState(false);
+  const [showAmenitiesDropdown, setShowAmenitiesDropdown] = useState(false);
+
+  // Amenities dropdown hook
+  const { amenities, amenitiesLoading } = useHomeownerDropdown();
+
+  // Populate amenities from API when data loads
+  useEffect(() => {
+    if (amenities && amenities.length > 0) {
+      BUILDING_AMENITIES = amenities.map(amenity => amenity.name);
+      // Create mapping from name to id and id to name
+      amenities.forEach(amenity => {
+        AMENITIES_MAP[amenity.name] = amenity._id;
+        AMENITIES_REVERSE_MAP[amenity._id] = amenity.name;
+      });
+    }
+  }, [amenities]);
 
   // Validation functions
   const validateBuildingAmenities = (
@@ -181,14 +193,17 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
     }
   };
 
-  const toggleAmenity = (amenity: string) => {
+  const toggleAmenity = (amenityName: string) => {
+    const amenityId = AMENITIES_MAP[amenityName];
+    if (!amenityId) return;
+    
     const currentAmenities = [...formData.buildingAmenities];
-    const index = currentAmenities.indexOf(amenity);
+    const index = currentAmenities.indexOf(amenityId);
 
     if (index > -1) {
       currentAmenities.splice(index, 1);
     } else {
-      currentAmenities.push(amenity);
+      currentAmenities.push(amenityId);
     }
 
     updateFormData("buildingAmenities", currentAmenities);
@@ -274,7 +289,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
       smartBuildingSystem: formData.smartBuildingSystems,
       businessServiceProvided: formData.businessServicesProvided,
       accessType: formData.accessType,
-      propertyHighlights: formData.propertyHighlights,
+      localHighlights: formData.propertyHighlights,
     };
   };
 
@@ -340,7 +355,8 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
   );
 
   const renderAmenityItem = ({ item }: { item: string }) => {
-    const isSelected = formData.buildingAmenities.includes(item);
+    const amenityId = AMENITIES_MAP[item];
+    const isSelected = amenityId ? formData.buildingAmenities.includes(amenityId) : false;
 
     return (
       <TouchableOpacity
@@ -420,13 +436,50 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
           >
             Select at least one amenity
           </Typography>
-          <View style={styles.amenitiesContainer}>
-            {BUILDING_AMENITIES.map((amenity) => (
-              <View key={amenity} style={styles.amenityWrapper}>
-                {renderAmenityItem({ item: amenity })}
-              </View>
-            ))}
-          </View>
+          
+          {/* Selected Amenities Chips */}
+          {formData.buildingAmenities.length > 0 && (
+            <View style={styles.selectedChipsContainer}>
+              {formData.buildingAmenities.map((amenityId) => (
+                <View key={amenityId} style={styles.selectedChip}>
+                  <Typography variant="body" style={styles.chipText}>
+                    {AMENITIES_REVERSE_MAP[amenityId] || amenityId}
+                  </Typography>
+                  <TouchableOpacity
+                    onPress={() => toggleAmenity(AMENITIES_REVERSE_MAP[amenityId] || '')}
+                    style={styles.removeChipButton}
+                  >
+                    <X size={16} color={colors.text.secondary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Dropdown Toggle */}
+          <TouchableOpacity
+            style={[
+              styles.amenitiesDropdownToggle,
+              showAmenitiesDropdown && styles.amenitiesDropdownToggleOpen
+            ]}
+            onPress={() => setShowAmenitiesDropdown(!showAmenitiesDropdown)}
+          >
+            <Typography variant="body" style={styles.dropdownToggleText}>
+              {formData.buildingAmenities.length > 0 
+                ? `${formData.buildingAmenities.length} amenity selected`
+                : "Select amenities"
+              }
+            </Typography>
+            <ChevronDown 
+              size={20} 
+              color={colors.text.secondary}
+              style={[
+                styles.dropdownArrow,
+                showAmenitiesDropdown && styles.dropdownArrowUp
+              ]}
+            />
+          </TouchableOpacity>
+          
           {errors.buildingAmenities && (
             <Typography
               variant="caption"
@@ -437,38 +490,7 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
             </Typography>
           )}
         </View>
-
-        {/* Custom Amenities */}
-        <View style={styles.fieldContainer}>
-          <Typography variant="body" style={styles.label}>
-            Custom Amenities
-          </Typography>
-          <Typography variant="caption" color="secondary" style={styles.helperText}>
-            Add any additional amenities not listed above
-          </Typography>
-          
-          {formData.customAmenities.map((amenity, index) => (
-            <View key={index} style={styles.customAmenityItem}>
-              <Typography variant="body" style={styles.customAmenityText}>
-                {amenity}
-              </Typography>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => removeCustomAmenity(index)}
-              >
-                <X size={16} color={colors.status.error} />
-              </TouchableOpacity>
-            </View>
-          ))}
-          
-          <Button
-            title="Add Custom Amenity"
-            onPress={() => setShowCustomAmenityModal(true)}
-            variant="outline"
-            style={styles.addButton}
-          />
-        </View>
-
+ 
         {/* Smart Building Systems */}
         <View style={styles.fieldContainer}>
           <Typography variant="body" style={styles.label}>
@@ -624,6 +646,84 @@ export default function CommercialPropertyFeaturesComplianceScreen() {
           style={styles.nextButton}
         />
       </KeyboardAwareScrollView>
+
+      {/* Amenities Modal */}
+      <Modal
+        visible={showAmenitiesDropdown}
+        animationType="slide"
+        presentationStyle="pageSheet"
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Typography variant="h4">Select Amenities</Typography>
+            <TouchableOpacity onPress={() => setShowAmenitiesDropdown(false)}>
+              <Typography variant="h4">✕</Typography>
+            </TouchableOpacity>
+          </View>
+
+          {/* Selected Count */}
+          <View style={styles.selectedCountContainer}>
+            <Typography variant="caption" color="secondary">
+              {formData.buildingAmenities.length} of {BUILDING_AMENITIES.length} amenities selected
+            </Typography>
+          </View>
+
+          {/* Amenities List */}
+          <FlatList
+            data={BUILDING_AMENITIES}
+            renderItem={({ item }) => {
+              const amenityId = AMENITIES_MAP[item];
+              const isSelected = amenityId ? formData.buildingAmenities.includes(amenityId) : false;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.modalItem,
+                    isSelected && styles.modalItemSelected
+                  ]}
+                  onPress={() => toggleAmenity(item)}
+                >
+                  <View style={[
+                    styles.amenityCheckbox,
+                    isSelected && styles.amenityCheckboxSelected
+                  ]}>
+                    {isSelected && (
+                      <Check size={16} color={colors.neutral.white} />
+                    )}
+                  </View>
+                  <Typography variant="body" style={{
+                    ...styles.amenityText,
+                    ...(isSelected && styles.amenityTextSelected)
+                  }}>
+                    {item}
+                  </Typography>
+
+                </TouchableOpacity>
+              );
+            }}
+            keyExtractor={(item) => item}
+            style={styles.modalList}
+            showsVerticalScrollIndicator={false}
+          />
+
+          {/* Footer Actions */}
+          <View style={styles.modalFooter}>
+            <Button
+              title="Clear All"
+              onPress={() => {
+                updateFormData('buildingAmenities', []);
+              }}
+              variant="outline"
+              style={styles.clearButton}
+            />
+            <Button
+              title="Done"
+              onPress={() => setShowAmenitiesDropdown(false)}
+              variant="primary"
+              style={styles.doneButton}
+            />
+          </View>
+        </View>
+      </Modal>
 
       {/* Access Type Modal */}
       <Modal
@@ -888,5 +988,114 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     minHeight: 48,
     minWidth: 48,
+  },
+  loadingContainer: {
+    padding: spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selectedChipsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  selectedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.neutral.white,
+    borderWidth: 2,
+    borderColor: colors.primary.gold,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    shadowColor: colors.neutral.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  chipText: {
+    fontSize: 14,
+    color: colors.text.primary,
+    marginRight: spacing.xs,
+  },
+  removeChipButton: {
+    padding: spacing.xs,
+  },
+  amenitiesDropdownToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: colors.neutral.white,
+    borderWidth: 1,
+    borderColor: colors.border.light,
+    borderRadius: radius.input,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 48,
+    shadowColor: colors.neutral.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  amenitiesDropdownToggleOpen: {
+    borderColor: colors.primary.gold,
+    borderWidth: 2,
+  },
+  dropdownToggleText: {
+    color: colors.text.primary,
+    fontSize: 16,
+  },
+  dropdownArrow: {
+    transform: [{ rotate: "0deg" }],
+  },
+  dropdownArrowUp: {
+    transform: [{ rotate: "180deg" }],
+  },
+  selectedCountContainer: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.background.secondary,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border.light,
+  },
+  modalItemSelected: {
+    backgroundColor: colors.background.secondary,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary.gold,
+  },
+  amenityCheckbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: colors.border.light,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
+  amenityCheckboxSelected: {
+    backgroundColor: colors.primary.gold,
+    borderColor: colors.primary.gold,
+  },
+  amenityTextSelected: {
+    color: colors.primary.gold,
+    fontWeight: "600",
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border.light,
+    gap: spacing.md,
+  },
+  clearButton: {
+    flex: 1,
+  },
+  doneButton: {
+    flex: 1,
   },
 });

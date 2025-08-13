@@ -41,8 +41,10 @@ let FEATURED_AMENITIES: string[] = [];
 let AMENITIES_MAP: { [key: string]: string } = {}; // name -> id mapping
 let AMENITIES_REVERSE_MAP: { [key: string]: string } = {}; // id -> name mapping
 
-// House rules options
-const HOUSE_RULES = ["No Parties", "No Pets", "No Smoking", "Quiet Hours"];
+// Property rules options - will be populated from API
+let PROPERTY_RULES: string[] = [];
+let RULES_MAP: { [key: string]: string } = {}; // title -> id mapping
+let RULES_REVERSE_MAP: { [key: string]: string } = {}; // id -> title mapping
 
 interface FeaturesComplianceErrors {
   furnishingDescription?: string;
@@ -77,7 +79,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   });
 
   // Amenities dropdown hook
-  const { amenities, amenitiesLoading } = useHomeownerDropdown();
+  const { amenities, amenitiesLoading, propertyRules, propertyRulesLoading } = useHomeownerDropdown();
 
   const [formData, setFormData] = useState<FeaturesComplianceData>(
     data.featuresCompliance || {
@@ -109,6 +111,7 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
   const [smartFeatureInput, setSmartFeatureInput] = useState("");
   const [businessServiceInput, setBusinessServiceInput] = useState("");
   const [showAmenitiesDropdown, setShowAmenitiesDropdown] = useState(false);
+  const [showHouseRulesDropdown, setShowHouseRulesDropdown] = useState(false);
 
   // Populate amenities from API when data loads
   useEffect(() => {
@@ -121,6 +124,18 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
       });
     }
   }, [amenities]);
+
+  // Populate property rules from API when data loads
+  useEffect(() => {
+    if (propertyRules && propertyRules.length > 0) {
+      PROPERTY_RULES = propertyRules.map(rule => rule.title);
+      // Create mapping from title to id and id to title
+      propertyRules.forEach(rule => {
+        RULES_MAP[rule.title] = rule._id;
+        RULES_REVERSE_MAP[rule._id] = rule.title;
+      });
+    }
+  }, [propertyRules]);
 
   // Validation functions
   const validateFurnishingDescription = (
@@ -215,14 +230,14 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
     updateFormData("featuredAmenities", currentAmenities);
   };
 
-  const toggleHouseRule = (rule: string) => {
+  const toggleHouseRule = (ruleId: string) => {
     const currentRules = [...formData.houseRules];
-    const index = currentRules.indexOf(rule);
+    const index = currentRules.indexOf(ruleId);
 
     if (index > -1) {
       currentRules.splice(index, 1);
     } else {
-      currentRules.push(rule);
+      currentRules.push(ruleId);
     }
 
     updateFormData("houseRules", currentRules);
@@ -373,24 +388,6 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
       <TouchableOpacity
         style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
         onPress={() => toggleAmenity(item)}
-      >
-        <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-          {isSelected && <Check size={16} color={colors.neutral.white} />}
-        </View>
-        <Typography variant="body" style={styles.amenityText}>
-          {item}
-        </Typography>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderHouseRuleItem = ({ item }: { item: string }) => {
-    const isSelected = formData.houseRules.includes(item);
-
-    return (
-      <TouchableOpacity
-        style={[styles.amenityItem, isSelected && styles.amenityItemSelected]}
-        onPress={() => toggleHouseRule(item)}
       >
         <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
           {isSelected && <Check size={16} color={colors.neutral.white} />}
@@ -776,13 +773,140 @@ export default function ResidentialPropertyFeaturesComplianceScreen() {
           >
             Select applicable house rules
           </Typography>
-          <View style={styles.amenitiesContainer}>
-            {HOUSE_RULES.map((rule) => (
-              <View key={rule} style={styles.amenityWrapper}>
-                {renderHouseRuleItem({ item: rule })}
+          
+          {/* Selected Rules Chips */}
+          {formData.houseRules.length > 0 && (
+            <View style={styles.selectedChipsContainer}>
+              {formData.houseRules.map((ruleId, index) => (
+                <View key={index} style={styles.selectedChip}>
+                  <Typography variant="body" style={styles.chipText}>
+                    {RULES_REVERSE_MAP[ruleId] || ruleId}
+                  </Typography>
+                  <TouchableOpacity
+                    onPress={() => toggleHouseRule(ruleId)}
+                    style={styles.removeChipButton}
+                  >
+                    <X size={16} color={colors.text.secondary} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+          
+          {/* Dropdown Toggle */}
+          <TouchableOpacity
+            style={[
+              styles.amenitiesDropdownToggle,
+              showHouseRulesDropdown && styles.amenitiesDropdownToggleOpen
+            ]}
+            onPress={() => setShowHouseRulesDropdown(!showHouseRulesDropdown)}
+            disabled={propertyRulesLoading}
+          >
+            <Typography variant="body" style={styles.dropdownToggleText}>
+              {propertyRulesLoading 
+                ? "Loading rules..." 
+                : formData.houseRules.length > 0 
+                  ? `${formData.houseRules.length} rule selected`
+                  : "Select house rules"
+              }
+            </Typography>
+            <ChevronDown 
+              size={20} 
+              color={colors.text.secondary}
+              style={[
+                styles.dropdownArrow,
+                showHouseRulesDropdown && styles.dropdownArrowUp
+              ]}
+            />
+          </TouchableOpacity>
+          
+          {/* House Rules Modal */}
+          <Modal
+            visible={showHouseRulesDropdown}
+            animationType="slide"
+            presentationStyle="pageSheet"
+          >
+            <View style={styles.modalContainer}>
+              <View style={styles.modalHeader}>
+                <Typography variant="h4">Select House Rules</Typography>
+                <TouchableOpacity onPress={() => setShowHouseRulesDropdown(false)}>
+                  <Typography variant="h4">✕</Typography>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
+
+              {/* Selected Count */}
+              <View style={styles.selectedCountContainer}>
+                <Typography variant="caption" color="secondary">
+                  {propertyRulesLoading 
+                    ? "Loading rules..." 
+                    : `${formData.houseRules.length} of ${PROPERTY_RULES.length} rules selected`
+                  }
+                </Typography>
+              </View>
+
+              {/* House Rules List */}
+              {propertyRulesLoading ? (
+                <View style={styles.loadingContainer}>
+                  <Typography variant="body" color="secondary">
+                    Loading house rules...
+                  </Typography>
+                </View>
+              ) : (
+                <FlatList
+                  data={PROPERTY_RULES}
+                  renderItem={({ item }) => {
+                    const isSelected = formData.houseRules.includes(RULES_MAP[item] || '');
+                    return (
+                      <TouchableOpacity
+                        style={[
+                          styles.modalItem,
+                          isSelected && styles.modalItemSelected
+                        ]}
+                        onPress={() => toggleHouseRule(RULES_MAP[item] || '')}
+                      >
+                        <View style={[
+                          styles.amenityCheckbox,
+                          isSelected && styles.amenityCheckboxSelected
+                        ]}>
+                          {isSelected && (
+                            <Check size={16} color={colors.neutral.white} />
+                          )}
+                        </View>
+                        <Typography variant="body" style={{
+                          ...styles.amenityText,
+                          ...(isSelected && styles.amenityTextSelected)
+                        }}>
+                          {item}
+                        </Typography>
+                      </TouchableOpacity>
+                    );
+                  }}
+                  keyExtractor={(item) => item}
+                  style={styles.modalList}
+                  showsVerticalScrollIndicator={false}
+                />
+              )}
+
+              {/* Footer Actions */}
+              <View style={styles.modalFooter}>
+                <Button
+                  title="Clear All"
+                  onPress={() => {
+                    updateFormData('houseRules', []);
+                  }}
+                  variant="outline"
+                  style={styles.clearButton}
+                />
+                <Button
+                  title="Done"
+                  onPress={() => setShowHouseRulesDropdown(false)}
+                  variant="primary"
+                  style={styles.doneButton}
+                />
+              </View>
+            </View>
+          </Modal>
+          
           {errors.houseRules && (
             <Typography
               variant="caption"
@@ -1596,6 +1720,12 @@ const styles = StyleSheet.create({
   amenityDropdownText: {
     fontSize: 16,
     color: colors.text.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
   },
 
 });
