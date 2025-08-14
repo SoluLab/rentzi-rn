@@ -1,5 +1,8 @@
 export interface RenterInvestorLoginRequest {
-  identifier: string;
+  identifier: string | {
+    countryCode: string;
+    mobile: string;
+  };
   password: string;
 }
 

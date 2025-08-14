@@ -136,10 +136,26 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
 
       if (params.type === "login" && userType === "renter_investor") {
         // Use new renter/investor verify login OTP API
+        let identifierForApi: any = email || '';
+        if (params.phone) {
+          const phoneParam = Array.isArray(params.phone) ? params.phone[0] : params.phone;
+          try {
+            const phoneObj = JSON.parse(phoneParam);
+            if (
+              phoneObj &&
+              typeof phoneObj.countryCode === 'string' &&
+              typeof phoneObj.mobile === 'string'
+            ) {
+              identifierForApi = { countryCode: phoneObj.countryCode, mobile: phoneObj.mobile };
+            }
+          } catch (err) {
+            // fallback to email string if parsing fails
+          }
+        }
         response = await renterInvestorVerifyLoginOtpMutation.mutateAsync({
-          identifier: email,
+          identifier: identifierForApi,
           otp,
-        });
+        } as any);
         
         if (response.success) {
           toast.success(TOAST_MESSAGES.AUTH.OTP.VERIFICATION_SUCCESS);
@@ -167,12 +183,12 @@ export const useOTPVerification = (): UseOTPVerificationReturn => {
         
         // Use mobile verification
         response = await verifyLoginOtpMutation.mutateAsync({
-          identifier: {
+          identifier: ({
             countryCode: phoneObj.countryCode,
             mobile: phoneObj.mobile,
-          },
+          } as any),
           otp,
-        });
+        } as any);
       } else {
         // Otherwise use email verification
         response = await verifyOtpMutation.mutateAsync({

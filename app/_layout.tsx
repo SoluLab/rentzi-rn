@@ -10,6 +10,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import 'react-native-get-random-values';
 import { QueryProvider } from '@/providers/QueryProvider';
+import { WalletConnectProvider } from '@/providers/WalletConnectProvider';
+import { WalletConnectModal } from '@walletconnect/modal-react-native';
+import { LogBox } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -24,6 +27,16 @@ export default function RootLayout() {
         }
     }, [loaded]);
 
+    // // Suppress WalletConnect core/pairing noisy errors shown as red console overlays
+    // useEffect(() => {
+    //     try {
+    //         LogBox.ignoreLogs([
+    //             /\{"context":"core"\} \{\"context\":\"core\/pairing\"\}/i as unknown as string,
+    //             /core\/pairing\/pairing.*No matching key/i as unknown as string,
+    //         ] as any);
+    //     } catch {}
+    // }, []);
+
     if (!loaded) {
         return null;
     }
@@ -33,14 +46,29 @@ export default function RootLayout() {
             <Toaster />
             <StatusBar barStyle="dark-content" backgroundColor="#fff" />
             <QueryProvider>
-            <SafeAreaProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                    <Stack.Screen
-                        name="+not-found"
-                        options={{ headerShown: false }}
-                    />
-                </Stack >
-            </SafeAreaProvider>
+                <WalletConnectProvider>
+                    <SafeAreaProvider>
+                        <Stack screenOptions={{ headerShown: false }}>
+                            <Stack.Screen
+                                name="+not-found"
+                                options={{ headerShown: false }}
+                            />
+                        </Stack>
+                        <WalletConnectModal 
+                            projectId="77aa612b54c486a8859edcc7bba0663c" 
+                            providerMetadata={{
+                                name: 'Rentzi',
+                                description: 'Rentzi Wallet Connection',
+                                url: 'https://rentzi.com',
+                                icons: ['https://rentzi.com/logo.png'],
+                                redirect: {
+                                    native: 'rentzi://',
+                                    universal: 'https://rentzi.com'
+                                }
+                            }}
+                        />
+                    </SafeAreaProvider>
+                </WalletConnectProvider>
             </QueryProvider>
         </GestureHandlerRootView>
     );

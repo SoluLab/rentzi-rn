@@ -43,6 +43,7 @@ import {
 } from "lucide-react-native";
 import { useRenterInvestorProfile } from "@/hooks/useRenterInvestorProfile";
 import { KYC_STATUS } from "@/types/kyc";
+import { useWalletConnectActions } from '@/hooks/useWalletConnect';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -50,7 +51,15 @@ export default function ProfileScreen() {
   const { getUserBookings } = useBookingStore();
   const { getUserInvestments, getTotalPortfolioValue } = useInvestmentStore();
   const { unreadCount } = useNotificationStore();
-  const { profile: user, isLoadingProfile: isLoading, profileError, refetchProfile } = useRenterInvestorProfile();
+  const { profile: user, isLoadingProfile, profileError, refetchProfile } = useRenterInvestorProfile();
+  const { 
+    connectWallet, 
+    disconnectWallet, 
+    isConnected, 
+    address, 
+    isLoading: walletConnectionLoading, 
+    error 
+  } = useWalletConnectActions();
 
   // Log when profile data changes to track the data flow
   useEffect(() => {
@@ -318,6 +327,39 @@ export default function ProfileScreen() {
             </Card>
           </View>
         )}
+        {/* Wallet Connect */}
+        <View style={styles.section}>
+          <Typography variant="h4" style={styles.sectionTitle}>
+            Wallet Connect
+          </Typography>
+          {isConnected ? (
+            <View>
+              <Typography variant="body" color="primary">
+                Connected Wallet: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
+              </Typography>
+              <Button
+                title="Disconnect Wallet"
+                onPress={disconnectWallet}
+                variant="outline"
+                style={styles.deleteButton}
+                disabled={walletConnectionLoading}
+              />
+            </View>
+          ) : (
+            <Button
+              title="Connect Wallet"
+              onPress={connectWallet}
+              variant="outline"
+              style={styles.logoutButton}
+              disabled={walletConnectionLoading}
+            />
+          )}
+          {error && (
+            <Typography variant="caption" color="error" style={{ marginTop: spacing.sm }}>
+              {error}
+            </Typography>
+          )}
+        </View>
         {/* Stats */}
         <View style={styles.section}>
           <Typography variant="h4" style={styles.sectionTitle}>
