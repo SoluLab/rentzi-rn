@@ -96,7 +96,8 @@ export default function AddCommercialPropertyScreen() {
 
       // Navigate to financial details step, passing id and title as params
       router.push({
-        pathname: "/add-commercial-details/commercial-property-financial-details",
+        pathname:
+          "/add-commercial-details/commercial-property-financial-details",
         params: { id: propertyId, title: formData.propertyTitle },
       });
     },
@@ -121,7 +122,7 @@ export default function AddCommercialPropertyScreen() {
   // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>({
     ...data.propertyDetails,
-    yearRenovated: data.propertyDetails.yearRenovated || '',
+    yearRenovated: data.propertyDetails.yearRenovated || "",
   });
   useEffect(() => {
     if (id) {
@@ -136,7 +137,8 @@ export default function AddCommercialPropertyScreen() {
           zoningType: property.data?.propertyDetails?.zoningType || "",
           yearBuilt:
             property.data?.propertyDetails?.yearBuilt?.toString() || "",
-          yearRenovated: property.data?.propertyDetails?.yearRenovated?.toString() || "",
+          yearRenovated:
+            property.data?.propertyDetails?.yearRenovated?.toString() || "",
           squareFootage: property.squareFootage?.toString() || "",
         });
       }
@@ -331,7 +333,12 @@ export default function AddCommercialPropertyScreen() {
         "Newport Beach, CA": { latitude: 33.6189, longitude: -117.9289 },
       };
       return (
-        (locationCoordinates as Record<string, { latitude: number; longitude: number }>)[marketLocation] || {
+        (
+          locationCoordinates as Record<
+            string,
+            { latitude: number; longitude: number }
+          >
+        )[marketLocation] || {
           latitude: 25.7907,
           longitude: -80.13,
         }
@@ -343,29 +350,31 @@ export default function AddCommercialPropertyScreen() {
     // Map zoning type to API category
     const getCategoryFromZoningType = (zoningType: string): string => {
       const categoryMapping: { [key: string]: string } = {
-        'Retail': 'apartment',
-        'Office': 'apartment', 
-        'Mixed-Use': 'apartment',
-        'Industrial': 'bungalow',
-        'Hospitality': 'villa',
+        Retail: "apartment",
+        Office: "apartment",
+        "Mixed-Use": "apartment",
+        Industrial: "bungalow",
+        Hospitality: "villa",
       };
-      return categoryMapping[zoningType] || 'apartment'; // Default to apartment
+      return categoryMapping[zoningType] || "apartment"; // Default to apartment
     };
 
     // Create bedrooms array for commercial properties (required by schema)
     const createCommercialBedroomsArray = () => {
       const totalSqft = parseInt(formData.squareFootage);
       const minRoomSize = 50;
-      
+
       // For commercial properties, create a single "office" type bedroom
-      return [{
-        roomType: 'master', // Default room type
-        bedType: 'king', // Default bed type
-        attachedBathroom: true, // Commercial properties typically have bathrooms
-        walkInCloset: false, // Commercial properties don't typically have walk-in closets
-        roomSizeInSqft: Math.max(totalSqft, minRoomSize), // Use full area or minimum 50 sqft
-        hasBalcony: false, // Default no balcony for commercial
-      }];
+      return [
+        {
+          roomType: "master", // Default room type
+          bedType: "king", // Default bed type
+          attachedBathroom: true, // Commercial properties typically have bathrooms
+          walkInCloset: false, // Commercial properties don't typically have walk-in closets
+          roomSizeInSqft: Math.max(totalSqft, minRoomSize), // Use full area or minimum 50 sqft
+          hasBalcony: false, // Default no balcony for commercial
+        },
+      ];
     };
 
     return {
@@ -382,7 +391,9 @@ export default function AddCommercialPropertyScreen() {
         value: parseInt(formData.squareFootage),
       },
       yearOfBuilt: parseInt(formData.yearBuilt),
-      yearOfRenovated: formData.yearRenovated ? parseInt(formData.yearRenovated) : undefined,
+      yearOfRenovated: formData.yearRenovated
+        ? parseInt(formData.yearRenovated)
+        : undefined,
       bedrooms: createCommercialBedroomsArray(),
     };
   };

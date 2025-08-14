@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { Typography } from '@/components/ui/Typography';
-import { Button } from '@/components/ui/Button';
-import { Header } from '@/components/ui/Header';
-import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { colors } from '@/constants/colors';
-import { spacing } from '@/constants/spacing';
-import { radius } from '@/constants/radius';
-import { Check, AlertTriangle } from 'lucide-react-native';
-import { useCommercialPropertyStore } from '@/stores/commercialPropertyStore';
+} from "react-native";
+import { useRouter } from "expo-router";
+import { Typography } from "@/components/ui/Typography";
+import { Button } from "@/components/ui/Button";
+import { Header } from "@/components/ui/Header";
+import { ScreenContainer } from "@/components/ui/ScreenContainer";
+import { colors } from "@/constants/colors";
+import { spacing } from "@/constants/spacing";
+import { radius } from "@/constants/radius";
+import { Check, AlertTriangle } from "lucide-react-native";
+import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 interface ConsentData {
   investmentRisks: boolean;
@@ -39,59 +40,71 @@ interface ConsentValidationErrors {
 
 const CONSENT_ITEMS = [
   {
-    key: 'investmentRisks' as keyof ConsentData,
-    title: 'Investment Risks Understanding',
-    description: 'I understand the risks of investment and market fluctuations',
-    details: 'Commercial real estate investments carry inherent risks including market volatility, economic downturns, and property-specific challenges. I acknowledge that property values and rental income may fluctuate.',
+    key: "investmentRisks" as keyof ConsentData,
+    title: "Investment Risks Understanding",
+    description: "I understand the risks of investment and market fluctuations",
+    details:
+      "Commercial real estate investments carry inherent risks including market volatility, economic downturns, and property-specific challenges. I acknowledge that property values and rental income may fluctuate.",
   },
   {
-    key: 'platformTerms' as keyof ConsentData,
-    title: 'Platform Terms Agreement',
-    description: 'I agree to the use restrictions and platform terms',
-    details: 'I accept and agree to comply with all platform terms of service, usage restrictions, and operational guidelines. This includes adherence to platform policies and procedures.',
+    key: "platformTerms" as keyof ConsentData,
+    title: "Platform Terms Agreement",
+    description: "I agree to the use restrictions and platform terms",
+    details:
+      "I accept and agree to comply with all platform terms of service, usage restrictions, and operational guidelines. This includes adherence to platform policies and procedures.",
   },
   {
-    key: 'variableIncome' as keyof ConsentData,
-    title: 'Variable Income Understanding',
-    description: 'I understand income from rentals is variable',
-    details: 'Rental income is subject to market conditions, tenant turnover, maintenance costs, and other factors. I understand that income may vary and is not guaranteed.',
+    key: "variableIncome" as keyof ConsentData,
+    title: "Variable Income Understanding",
+    description: "I understand income from rentals is variable",
+    details:
+      "Rental income is subject to market conditions, tenant turnover, maintenance costs, and other factors. I understand that income may vary and is not guaranteed.",
   },
   {
-    key: 'tokenizationConsent' as keyof ConsentData,
-    title: 'Tokenization Consent',
-    description: 'I consent to tokenize or fractionalize my property',
-    details: 'I authorize the platform to create digital tokens representing fractional ownership of my property. This process involves legal and technical considerations for digital asset creation.',
+    key: "tokenizationConsent" as keyof ConsentData,
+    title: "Tokenization Consent",
+    description: "I consent to tokenize or fractionalize my property",
+    details:
+      "I authorize the platform to create digital tokens representing fractional ownership of my property. This process involves legal and technical considerations for digital asset creation.",
   },
   {
-    key: 'usageRights' as keyof ConsentData,
-    title: 'Usage Rights Agreement',
-    description: 'I agree to usage rights including nights and revenue share',
-    details: 'I agree to the platform\'s usage rights model, which may include revenue sharing arrangements and operational requirements for property management.',
+    key: "usageRights" as keyof ConsentData,
+    title: "Usage Rights Agreement",
+    description: "I agree to usage rights including nights and revenue share",
+    details:
+      "I agree to the platform's usage rights model, which may include revenue sharing arrangements and operational requirements for property management.",
   },
   {
-    key: 'liquidityLimitations' as keyof ConsentData,
-    title: 'Liquidity Limitations',
-    description: 'I understand liquidity limitations and lock-in restrictions',
-    details: 'I understand that fractional ownership may have limited liquidity and may include lock-in periods. Selling fractional interests may be subject to market conditions and platform restrictions.',
+    key: "liquidityLimitations" as keyof ConsentData,
+    title: "Liquidity Limitations",
+    description: "I understand liquidity limitations and lock-in restrictions",
+    details:
+      "I understand that fractional ownership may have limited liquidity and may include lock-in periods. Selling fractional interests may be subject to market conditions and platform restrictions.",
   },
   {
-    key: 'governanceRights' as keyof ConsentData,
-    title: 'Governance and Voting Rights',
-    description: 'I accept governance and voting rights setup (if applicable)',
-    details: 'I accept the governance structure and voting rights framework that may apply to fractional ownership. This includes participation in decision-making processes related to the property.',
+    key: "governanceRights" as keyof ConsentData,
+    title: "Governance and Voting Rights",
+    description: "I accept governance and voting rights setup (if applicable)",
+    details:
+      "I accept the governance structure and voting rights framework that may apply to fractional ownership. This includes participation in decision-making processes related to the property.",
   },
 ];
 
 export default function CommercialPropertyLegalConsentsScreen() {
   const router = useRouter();
   const { data, updateLegalConsents } = useCommercialPropertyStore();
-  
+
   const [consents, setConsents] = useState<ConsentData>(data.legalConsents);
   const [errors, setErrors] = useState<ConsentValidationErrors>({});
-  const [expandedItem, setExpandedItem] = useState<keyof ConsentData | null>(null);
+  const [expandedItem, setExpandedItem] = useState<keyof ConsentData | null>(
+    null
+  );
 
   // Validation functions
-  const validateConsent = (consent: boolean, fieldName: string): string | undefined => {
+  const validateConsent = (
+    consent: boolean,
+    fieldName: string
+  ): string | undefined => {
     if (!consent) {
       return `${fieldName} consent is required`;
     }
@@ -101,26 +114,47 @@ export default function CommercialPropertyLegalConsentsScreen() {
   const validateForm = (): boolean => {
     const newErrors: ConsentValidationErrors = {};
 
-    newErrors.investmentRisks = validateConsent(consents.investmentRisks, 'Investment Risks Understanding');
-    newErrors.platformTerms = validateConsent(consents.platformTerms, 'Platform Terms Agreement');
-    newErrors.variableIncome = validateConsent(consents.variableIncome, 'Variable Income Understanding');
-    newErrors.tokenizationConsent = validateConsent(consents.tokenizationConsent, 'Tokenization Consent');
-    newErrors.usageRights = validateConsent(consents.usageRights, 'Usage Rights Agreement');
-    newErrors.liquidityLimitations = validateConsent(consents.liquidityLimitations, 'Liquidity Limitations');
-    newErrors.governanceRights = validateConsent(consents.governanceRights, 'Governance and Voting Rights');
+    newErrors.investmentRisks = validateConsent(
+      consents.investmentRisks,
+      "Investment Risks Understanding"
+    );
+    newErrors.platformTerms = validateConsent(
+      consents.platformTerms,
+      "Platform Terms Agreement"
+    );
+    newErrors.variableIncome = validateConsent(
+      consents.variableIncome,
+      "Variable Income Understanding"
+    );
+    newErrors.tokenizationConsent = validateConsent(
+      consents.tokenizationConsent,
+      "Tokenization Consent"
+    );
+    newErrors.usageRights = validateConsent(
+      consents.usageRights,
+      "Usage Rights Agreement"
+    );
+    newErrors.liquidityLimitations = validateConsent(
+      consents.liquidityLimitations,
+      "Liquidity Limitations"
+    );
+    newErrors.governanceRights = validateConsent(
+      consents.governanceRights,
+      "Governance and Voting Rights"
+    );
 
     setErrors(newErrors);
-    return Object.values(newErrors).every(error => !error);
+    return Object.values(newErrors).every((error) => !error);
   };
 
   const updateConsent = (field: keyof ConsentData, value: boolean) => {
     const newConsents = { ...consents, [field]: value };
     setConsents(newConsents);
     updateLegalConsents(newConsents);
-    
+
     // Clear error when user checks the consent
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: undefined }));
+      setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -132,11 +166,11 @@ export default function CommercialPropertyLegalConsentsScreen() {
     if (validateForm()) {
       // Update store with legal consents
       updateLegalConsents(consents);
-      
+
       // Navigate to next screen with title and property ID
       const propertyTitle = data.propertyDetails?.propertyTitle || "";
       const propertyId = data.propertyId;
-      
+
       if (!propertyId) {
         Alert.alert(
           "Error",
@@ -144,23 +178,23 @@ export default function CommercialPropertyLegalConsentsScreen() {
         );
         return;
       }
-      
+
       router.push({
-        pathname: '/add-commercial-details/commercial-property-listing-type',
+        pathname: "/add-commercial-details/commercial-property-listing-type",
         params: {
           propertyTitle,
           propertyId: propertyId.toString(),
-        }
+        },
       });
     }
   };
 
   const isFormValid = () => {
     // Check if all consents are checked
-    return Object.values(consents).every(consent => consent === true);
+    return Object.values(consents).every((consent) => consent === true);
   };
 
-  const renderConsentItem = (item: typeof CONSENT_ITEMS[0]) => {
+  const renderConsentItem = (item: (typeof CONSENT_ITEMS)[0]) => {
     const isChecked = consents[item.key];
     const error = errors[item.key];
     const isExpanded = expandedItem === item.key;
@@ -179,26 +213,34 @@ export default function CommercialPropertyLegalConsentsScreen() {
               {isChecked && <Check size={16} color={colors.neutral.white} />}
             </TouchableOpacity>
           </View>
-          
+
           <View style={styles.consentContent}>
             <Typography variant="h6" style={styles.consentTitle}>
               {item.title}
             </Typography>
-            <Typography variant="body" color="secondary" style={styles.consentDescription}>
+            <Typography
+              variant="body"
+              color="secondary"
+              style={styles.consentDescription}
+            >
               {item.description}
             </Typography>
           </View>
-          
+
           <View style={styles.expandIcon}>
             <Typography variant="body" color="secondary">
-              {isExpanded ? '−' : '+'}
+              {isExpanded ? "−" : "+"}
             </Typography>
           </View>
         </TouchableOpacity>
 
         {isExpanded && (
           <View style={styles.consentDetails}>
-            <Typography variant="body" color="secondary" style={styles.detailsText}>
+            <Typography
+              variant="body"
+              color="secondary"
+              style={styles.detailsText}
+            >
               {item.details}
             </Typography>
           </View>
@@ -207,7 +249,11 @@ export default function CommercialPropertyLegalConsentsScreen() {
         {error && (
           <View style={styles.errorContainer}>
             <AlertTriangle size={16} color={colors.status.error} />
-            <Typography variant="caption" color="error" style={styles.errorText}>
+            <Typography
+              variant="caption"
+              color="error"
+              style={styles.errorText}
+            >
               {error}
             </Typography>
           </View>
@@ -218,9 +264,9 @@ export default function CommercialPropertyLegalConsentsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-      <ScreenContainer>
+      
         <Header title="Legal Consents & Terms" />
-        <ScrollView 
+        <KeyboardAwareScrollView
           style={styles.container}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
@@ -231,13 +277,24 @@ export default function CommercialPropertyLegalConsentsScreen() {
 
           <View style={styles.warningBanner}>
             <AlertTriangle size={20} color={colors.status.warning} />
-            <Typography variant="body" color="secondary" style={styles.warningText}>
-              Please read and understand all terms before proceeding. All consents are mandatory for property tokenization.
+            <Typography
+              variant="body"
+              color="secondary"
+              style={styles.warningText}
+            >
+              Please read and understand all terms before proceeding. All
+              consents are mandatory for property tokenization.
             </Typography>
           </View>
 
-          <Typography variant="body" color="secondary" style={styles.sectionDescription}>
-            By checking each box below, you acknowledge that you have read, understood, and agree to the terms and conditions associated with tokenizing your commercial property.
+          <Typography
+            variant="body"
+            color="secondary"
+            style={styles.sectionDescription}
+          >
+            By checking each box below, you acknowledge that you have read,
+            understood, and agree to the terms and conditions associated with
+            tokenizing your commercial property.
           </Typography>
 
           {/* Consent Items */}
@@ -250,8 +307,14 @@ export default function CommercialPropertyLegalConsentsScreen() {
             <Typography variant="h6" style={styles.summaryTitle}>
               Summary
             </Typography>
-            <Typography variant="body" color="secondary" style={styles.summaryText}>
-              You have agreed to {Object.values(consents).filter(Boolean).length} of {CONSENT_ITEMS.length} required consents.
+            <Typography
+              variant="body"
+              color="secondary"
+              style={styles.summaryText}
+            >
+              You have agreed to{" "}
+              {Object.values(consents).filter(Boolean).length} of{" "}
+              {CONSENT_ITEMS.length} required consents.
             </Typography>
           </View>
 
@@ -262,8 +325,8 @@ export default function CommercialPropertyLegalConsentsScreen() {
             disabled={!isFormValid()}
             style={styles.nextButton}
           />
-        </ScrollView>
-      </ScreenContainer>
+        </KeyboardAwareScrollView>
+      
     </View>
   );
 }
@@ -278,12 +341,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     marginBottom: spacing.md,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   warningBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: colors.status.warning + '20',
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: colors.status.warning + "20",
     padding: spacing.md,
     borderRadius: radius.input,
     marginBottom: spacing.lg,
@@ -304,8 +367,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   consentHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    alignItems: "flex-start",
     padding: spacing.md,
     backgroundColor: colors.neutral.white,
     borderRadius: radius.input,
@@ -314,7 +377,7 @@ const styles = StyleSheet.create({
   },
   consentHeaderError: {
     borderColor: colors.status.error,
-    backgroundColor: colors.status.error + '10',
+    backgroundColor: colors.status.error + "10",
   },
   consentCheckboxContainer: {
     marginRight: spacing.md,
@@ -326,8 +389,8 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 2,
     borderColor: colors.border.light,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   checkboxChecked: {
     backgroundColor: colors.primary.gold,
@@ -337,7 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   consentTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.xs,
     color: colors.text.primary,
   },
@@ -348,7 +411,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
     marginTop: spacing.xs,
     width: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   consentDetails: {
     padding: spacing.md,
@@ -364,8 +427,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
     gap: spacing.xs,
@@ -382,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   summaryTitle: {
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: spacing.sm,
     color: colors.text.primary,
   },
@@ -391,5 +454,6 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     marginTop: spacing.xl,
+    marginBottom: spacing.xxl,
   },
-}); 
+});

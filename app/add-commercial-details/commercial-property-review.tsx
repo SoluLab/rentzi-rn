@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   View,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
   Linking,
@@ -35,6 +34,7 @@ import {
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerSubmitPropertyForReview } from "@/services/homeownerAddProperty";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 interface ReviewSection {
   id: string;
@@ -657,9 +657,9 @@ export default function CommercialPropertyReviewScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Review & Submit" />
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -749,7 +749,7 @@ export default function CommercialPropertyReviewScreen() {
             </View>
           )}
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       {/* Success Popup */}
       <SuccessPopup
@@ -759,7 +759,7 @@ export default function CommercialPropertyReviewScreen() {
         message="Thank you for submitting your commercial property. Our compliance team is reviewing your documents. You will receive email, SMS, and in-app notifications with updates."
         buttonText="Go to Dashboard"
       />
-    </ScreenContainer>
+    </View>
   );
 }
 
@@ -959,6 +959,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     backgroundColor: colors.background.secondary,
     borderRadius: radius.input,
+    marginBottom: spacing.xxl,
   },
   submissionInfo: {
     marginBottom: spacing.lg,

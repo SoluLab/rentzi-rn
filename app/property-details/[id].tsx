@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   ScrollView,
@@ -10,6 +10,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -99,6 +100,8 @@ export default function PropertyDetailsScreen() {
   const [showAllDocuments, setShowAllDocuments] = useState(false);
   const [deleteSheetVisible, setDeleteSheetVisible] = useState(false);
   const [deleteConfirmChecked, setDeleteConfirmChecked] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [visibleImageIndex, setVisibleImageIndex] = useState(0);
 
   // Use the new API hook
   const {
@@ -126,24 +129,26 @@ export default function PropertyDetailsScreen() {
       // Extract documents from API response
       const apiDocuments = (propertyData as any).documents || {};
       const allDocuments: Document[] = [];
-      
+
       // Process each document category and add non-empty ones
-      Object.entries(apiDocuments).forEach(([category, docs]: [string, any]) => {
-        if (Array.isArray(docs) && docs.length > 0) {
-          docs.forEach((doc: any) => {
-            if (doc.url && doc.key) {
-              allDocuments.push({
-                id: doc._id || Math.random().toString(),
-                name: doc.key,
-                type: "PDF",
-                size: "Document",
-                url: doc.url,
-                category: category
-              });
-            }
-          });
+      Object.entries(apiDocuments).forEach(
+        ([category, docs]: [string, any]) => {
+          if (Array.isArray(docs) && docs.length > 0) {
+            docs.forEach((doc: any) => {
+              if (doc.url && doc.key) {
+                allDocuments.push({
+                  id: doc._id || Math.random().toString(),
+                  name: doc.key,
+                  type: "PDF",
+                  size: "Document",
+                  url: doc.url,
+                  category: category,
+                });
+              }
+            });
+          }
         }
-      });
+      );
 
       setProperty({
         id: (propertyData as any)._id,
@@ -161,7 +166,10 @@ export default function PropertyDetailsScreen() {
           (typeof (propertyData as any).area === "number"
             ? (propertyData as any).area
             : (propertyData as any).area?.value) || 0,
-        type: (propertyData as any).category ? (propertyData as any).category.charAt(0).toUpperCase() + (propertyData as any).category.slice(1) : "Property",
+        type: (propertyData as any).category
+          ? (propertyData as any).category.charAt(0).toUpperCase() +
+            (propertyData as any).category.slice(1)
+          : "Property",
         status:
           (propertyData as any).status === "active"
             ? "Available"
@@ -253,21 +261,110 @@ export default function PropertyDetailsScreen() {
     ]);
   };
 
+  const handleImageLoad = useCallback((imageUrl: string) => {
+    setLoadedImages((prev) => new Set(prev).add(imageUrl));
+  }, []);
+
+  const handleImageError = useCallback((imageUrl: string) => {
+    console.warn("Failed to load image:", imageUrl);
+  }, []);
+
+  const onViewableItemsChanged = useCallback(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      setVisibleImageIndex(viewableItems[0].index);
+    }
+  }, []);
+
+  // Preload images when they become visible
+  useEffect(() => {
+    if (property?.images && property.images.length > 0) {
+      const currentIndex = visibleImageIndex;
+      const imagesToPreload = [];
+
+      // Preload current, next, and previous images
+      if (currentIndex > 0) {
+        imagesToPreload.push(property.images[currentIndex - 1]);
+      }
+      imagesToPreload.push(property.images[currentIndex]);
+      if (currentIndex < property.images.length - 1) {
+        imagesToPreload.push(property.images[currentIndex + 1]);
+      }
+
+      // Preload images
+      imagesToPreload.forEach((imageUrl) => {
+        if (imageUrl && !loadedImages.has(imageUrl)) {
+          Image.prefetch(imageUrl).catch(() => {
+            // Silently handle prefetch errors
+          });
+        }
+      });
+    }
+  }, [visibleImageIndex, property?.images, loadedImages]);
+
+  // Memory optimization: clear old loaded images if too many
+  useEffect(() => {
+    if (loadedImages.size > 20) {
+      setLoadedImages(new Set());
+    }
+  }, [loadedImages.size]);
+
   const renderImageItem = ({
     item,
     index,
   }: {
     item: string;
     index: number;
-  }) => (
-    <View style={styles.imageSlide}>
-      <Image
-        source={{ uri: item }}
-        style={styles.carouselImage}
-        resizeMode="cover"
-      />
-    </View>
-  );
+  }) => {
+    const isImageLoaded = loadedImages.has(item);
+    const isVisible = Math.abs(index - visibleImageIndex) <= 1; // Load current, previous, and next images
+
+    return (
+      <View style={styles.imageSlide}>
+        {isVisible ? (
+          <Image
+            source={{
+              uri: item,
+              cache: "force-cache", // Enable aggressive caching
+              headers: {
+                "Cache-Control": "max-age=31536000", // Cache for 1 year
+              },
+            }}
+            style={styles.carouselImage}
+            resizeMode="cover"
+            onLoad={() => handleImageLoad(item)}
+            onError={() => handleImageError(item)}
+            loadingIndicatorSource={require("@/assets/images/placeholder.png")}
+            progressiveRenderingEnabled={true}
+            fadeDuration={300}
+          />
+        ) : (
+          <View style={[styles.carouselImage, styles.placeholderContainer]}>
+            {isImageLoaded ? (
+              <Image
+                source={{
+                  uri: item,
+                  cache: "force-cache",
+                }}
+                style={styles.carouselImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.placeholderContent}>
+                <ActivityIndicator size="large" color={colors.primary.gold} />
+                <Typography
+                  variant="caption"
+                  color="secondary"
+                  style={styles.loadingText}
+                >
+                  Loading...
+                </Typography>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const renderImageIndicator = () => (
     <View style={styles.imageIndicators}>
@@ -299,43 +396,52 @@ export default function PropertyDetailsScreen() {
   };
 
   const getAmenityIcon = (amenity: string) => {
-    switch (amenity.toLowerCase()) {
-      case "lift":
-        return <ArrowUpDown size={20} color={colors.text.secondary} />;
-      case "gym":
-        return <Dumbbell size={20} color={colors.text.secondary} />;
-      case "power backup":
-        return <Zap size={20} color={colors.text.secondary} />;
-      case "security":
-        return <Shield size={20} color={colors.text.secondary} />;
-      case "park":
-        return <TreePine size={20} color={colors.text.secondary} />;
-      case "wifi":
-        return <Wifi size={20} color={colors.text.secondary} />;
-      case "parking":
-        return <Car size={20} color={colors.text.secondary} />;
-      case "coffee":
-        return <Coffee size={20} color={colors.text.secondary} />;
-      case "pool":
-        return <CheckCircle size={20} color={colors.text.secondary} />;
-      case "kitchen":
-        return <CheckCircle size={20} color={colors.text.secondary} />;
-      case "oceanview":
-        return <CheckCircle size={20} color={colors.text.secondary} />;
-      case "balcony":
-        return <CheckCircle size={20} color={colors.text.secondary} />;
-      case "airconditioning":
-        return <Zap size={20} color={colors.text.secondary} />;
-      default:
-        return <CheckCircle size={20} color={colors.text.secondary} />;
+    if (!amenity || typeof amenity !== "string") {
+      return <CheckCircle size={20} color={colors.text.secondary} />;
+    }
+
+    try {
+      switch (amenity.toLowerCase()) {
+        case "lift":
+          return <ArrowUpDown size={20} color={colors.text.secondary} />;
+        case "gym":
+          return <Dumbbell size={20} color={colors.text.secondary} />;
+        case "power backup":
+          return <Zap size={20} color={colors.text.secondary} />;
+        case "security":
+          return <Shield size={20} color={colors.text.secondary} />;
+        case "park":
+          return <TreePine size={20} color={colors.text.secondary} />;
+        case "wifi":
+          return <Wifi size={20} color={colors.text.secondary} />;
+        case "parking":
+          return <Car size={20} color={colors.text.secondary} />;
+        case "coffee":
+          return <Coffee size={20} color={colors.text.secondary} />;
+        case "pool":
+          return <CheckCircle size={20} color={colors.text.secondary} />;
+        case "kitchen":
+          return <CheckCircle size={20} color={colors.text.secondary} />;
+        case "oceanview":
+          return <CheckCircle size={20} color={colors.text.secondary} />;
+        case "balcony":
+          return <CheckCircle size={20} color={colors.text.secondary} />;
+        case "airconditioning":
+          return <Zap size={20} color={colors.text.secondary} />;
+        default:
+          return <CheckCircle size={20} color={colors.text.secondary} />;
+      }
+    } catch (error) {
+      console.warn("Error processing amenity:", amenity, error);
+      return <CheckCircle size={20} color={colors.text.secondary} />;
     }
   };
 
   const formatDocumentCategory = (category: string) => {
     // Convert camelCase to Title Case with spaces
     return category
-      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-      .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+      .replace(/([A-Z])/g, " $1") // Add space before capital letters
+      .replace(/^./, (str) => str.toUpperCase()) // Capitalize first letter
       .trim();
   };
 
@@ -344,7 +450,9 @@ export default function PropertyDetailsScreen() {
 
   const amenitiesList =
     property?.amenities && property.amenities.length > 0
-      ? property.amenities
+      ? property.amenities.filter(
+          (amenity) => amenity && typeof amenity === "string"
+        )
       : [
           "Lift",
           "Gym",
@@ -415,23 +523,7 @@ export default function PropertyDetailsScreen() {
         <View style={styles.carouselContainer}>
           <FlatList
             data={imagesForCarousel}
-            renderItem={({ item }) => (
-              <View style={styles.imageSlide}>
-                {typeof item === "string" ? (
-                  <Image
-                    source={{ uri: item }}
-                    style={styles.carouselImage}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Image
-                    source={item}
-                    style={styles.carouselImage}
-                    resizeMode="contain"
-                  />
-                )}
-              </View>
-            )}
+            renderItem={renderImageItem}
             keyExtractor={(_, index) => index.toString()}
             horizontal
             pagingEnabled
@@ -442,6 +534,15 @@ export default function PropertyDetailsScreen() {
               );
               setCurrentImageIndex(index);
             }}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={{
+              itemVisiblePercentThreshold: 50,
+              minimumViewTime: 100,
+            }}
+            removeClippedSubviews={true}
+            maxToRenderPerBatch={3}
+            windowSize={3}
+            initialNumToRender={1}
           />
           {/* Show indicators only if more than one image */}
           {imagesForCarousel.length > 1 && renderImageIndicator()}
@@ -610,7 +711,7 @@ export default function PropertyDetailsScreen() {
                   {property.yearBuilt}
                 </Typography>
               </View>
-              
+
               {property.yearRenovated && (
                 <View style={styles.detailRow}>
                   <Calendar size={18} color={colors.text.secondary} />
@@ -674,33 +775,35 @@ export default function PropertyDetailsScreen() {
               <View style={styles.accordionContent}>
                 {documents.length > 0 ? (
                   <>
-                                         {/* Show first 5 documents or all if expanded */}
-                     {(showAllDocuments ? documents : documents.slice(0, 5)).map((doc) => (
-                       <View key={doc.id} style={styles.documentItem}>
-                         <View style={styles.documentInfo}>
-                           <FileText size={16} color={colors.text.secondary} />
-                           <View style={styles.documentDetails}>
-                             <Typography
-                               variant="body"
-                               color="primary"
-                               weight="medium"
-                             >
-                               {formatDocumentCategory(doc.category)}
-                             </Typography>
-                             <Typography variant="caption" color="secondary">
-                               {doc.name} • {doc.type}
-                             </Typography>
-                           </View>
-                         </View>
-                         <TouchableOpacity
-                           style={styles.downloadButton}
-                           onPress={() => handleDownloadDocument(doc)}
-                         >
-                           <Download size={16} color={colors.primary.gold} />
-                         </TouchableOpacity>
-                       </View>
-                     ))}
-                    
+                    {/* Show first 5 documents or all if expanded */}
+                    {(showAllDocuments ? documents : documents.slice(0, 5)).map(
+                      (doc) => (
+                        <View key={doc.id} style={styles.documentItem}>
+                          <View style={styles.documentInfo}>
+                            <FileText size={16} color={colors.text.secondary} />
+                            <View style={styles.documentDetails}>
+                              <Typography
+                                variant="body"
+                                color="primary"
+                                weight="medium"
+                              >
+                                {formatDocumentCategory(doc.category)}
+                              </Typography>
+                              <Typography variant="caption" color="secondary">
+                                {doc.name} • {doc.type}
+                              </Typography>
+                            </View>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.downloadButton}
+                            onPress={() => handleDownloadDocument(doc)}
+                          >
+                            <Download size={16} color={colors.primary.gold} />
+                          </TouchableOpacity>
+                        </View>
+                      )
+                    )}
+
                     {/* Show expand/collapse button if more than 5 documents */}
                     {documents.length > 5 && (
                       <TouchableOpacity
@@ -708,13 +811,22 @@ export default function PropertyDetailsScreen() {
                         onPress={() => setShowAllDocuments(!showAllDocuments)}
                       >
                         <View style={styles.expandButtonContent}>
-                          <Typography variant="body" color="primary" weight="medium">
-                            {showAllDocuments ? "Show Less" : `Show ${documents.length - 5} More`}
+                          <Typography
+                            variant="body"
+                            color="primary"
+                            weight="medium"
+                          >
+                            {showAllDocuments
+                              ? "Show Less"
+                              : `Show ${documents.length - 5} More`}
                           </Typography>
                           {showAllDocuments ? (
                             <ChevronUp size={16} color={colors.primary.gold} />
                           ) : (
-                            <ChevronDown size={16} color={colors.primary.gold} />
+                            <ChevronDown
+                              size={16}
+                              color={colors.primary.gold}
+                            />
                           )}
                         </View>
                       </TouchableOpacity>
@@ -776,15 +888,7 @@ export default function PropertyDetailsScreen() {
         </View>
       </ScrollView>
       {/* Bottom Action Buttons */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          gap: spacing.md,
-          padding: spacing.md,
-          backgroundColor: colors.background.primary,
-        }}
-      >
+      <View style={styles.bottomLayout}>
         <Button
           title="Edit"
           onPress={handleEdit}
@@ -875,7 +979,7 @@ export default function PropertyDetailsScreen() {
               I understand this action cannot be undone
             </Typography>
           </Pressable>
-          <View style={{ flexDirection: "row", gap: spacing.md }}>
+          <View style={styles.bottomActionButtons}>
             <Button
               title="Cancel"
               onPress={handleCancelDelete}
@@ -1126,5 +1230,30 @@ const styles = StyleSheet.create({
   emptyDocuments: {
     paddingVertical: spacing.lg,
     alignItems: "center",
+  },
+  placeholderContainer: {
+    backgroundColor: colors.background.secondary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  placeholderContent: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    marginTop: spacing.sm,
+  },
+
+  bottomActionButtons: {
+    flexDirection: "row",
+    gap: spacing.md,
+  },
+  bottomLayout: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: spacing.md,
+    padding: spacing.md,
+    backgroundColor: colors.background.primary,
+    marginBottom: spacing.xl,
   },
 });
