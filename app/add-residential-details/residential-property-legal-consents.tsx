@@ -218,7 +218,7 @@ export default function ResidentialPropertyLegalConsentsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-      <ScreenContainer>
+  
         <Header title="Legal Consents & Terms" />
         <ScrollView 
           style={styles.container}
@@ -263,7 +263,7 @@ export default function ResidentialPropertyLegalConsentsScreen() {
             style={styles.nextButton}
           />
         </ScrollView>
-      </ScreenContainer>
+       
     </View>
   );
 }

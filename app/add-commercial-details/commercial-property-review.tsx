@@ -34,6 +34,7 @@ import {
 import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerSubmitPropertyForReview } from "@/services/homeownerAddProperty";
+import { usePropertyDocumentsList } from "@/services/homeownerPropertyDocuments";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 interface ReviewSection {
@@ -101,6 +102,9 @@ export default function CommercialPropertyReviewScreen() {
   const { data, submitProperty, isAllSectionsComplete, getCompletionStatus } =
     useCommercialPropertyStore();
   const { syncFromCommercialStore } = useHomeownerPropertyStore();
+
+  // Fetch documents from API
+  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList("commercial");
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
   );
@@ -399,66 +403,31 @@ export default function CommercialPropertyReviewScreen() {
 
   const renderDocuments = () => {
     const { documents } = data;
-    const mandatoryDocuments = [
-      {
-        key: "propertyDeed",
-        name: "Property Deed",
-        doc: documents.propertyDeed,
-      },
-      {
-        key: "zoningCertificate",
-        name: "Zoning Certificate",
-        doc: documents.zoningCertificate,
-      },
-      { key: "titleReport", name: "Title Report", doc: documents.titleReport },
-      {
-        key: "governmentId",
-        name: "Government ID",
-        doc: documents.governmentId,
-      },
-      {
-        key: "certificateOfOccupancy",
-        name: "Certificate of Occupancy",
-        doc: documents.certificateOfOccupancy,
-      },
-      { key: "rentRoll", name: "Rent Roll", doc: documents.rentRoll },
-      {
-        key: "incomeExpenseStatements",
-        name: "Income Statements",
-        doc: documents.incomeExpenseStatements,
-      },
-      {
-        key: "camAgreement",
-        name: "CAM Agreement",
-        doc: documents.camAgreement,
-      },
-      {
-        key: "environmentalReport",
-        name: "Environmental Report",
-        doc: documents.environmentalReport,
-      },
-      {
-        key: "propertyConditionAssessment",
-        name: "Property Assessment",
-        doc: documents.propertyConditionAssessment,
-      },
-      {
-        key: "proofOfInsurance",
-        name: "Proof of Insurance",
-        doc: documents.proofOfInsurance,
-      },
-      { key: "utilityBill", name: "Utility Bill", doc: documents.utilityBill },
-      {
-        key: "propertyAppraisal",
-        name: "Property Appraisal",
-        doc: documents.propertyAppraisal,
-      },
-      {
-        key: "authorizationToTokenize",
-        name: "Tokenization Authorization",
-        doc: documents.authorizationToTokenize,
-      },
-    ];
+    
+    if (!apiDocuments?.data?.documents) {
+      return (
+        <View style={styles.sectionContent}>
+          <Typography variant="body" style={styles.helperText}>
+            Loading documents...
+          </Typography>
+        </View>
+      );
+    }
+
+    // Create documents array dynamically from API response
+    const allDocuments = apiDocuments.data.documents.map((apiDoc) => {
+      const fieldKey = apiDoc.fieldName || apiDoc.fileName.toLowerCase().replace(/\s+/g, "");
+      return {
+        key: fieldKey,
+        name: apiDoc.fileName,
+        doc: documents[fieldKey],
+        isRequired: apiDoc.isRequired,
+        description: apiDoc.description,
+      };
+    });
+
+    const mandatoryDocuments = allDocuments.filter(doc => doc.isRequired);
+    const optionalDocuments = allDocuments.filter(doc => !doc.isRequired);
 
     return (
       <View style={styles.sectionContent}>
@@ -892,6 +861,11 @@ const styles = StyleSheet.create({
   documentName: {
     marginLeft: spacing.sm,
     flex: 1,
+  },
+  helperText: {
+    color: colors.text.secondary,
+    textAlign: "center",
+    fontStyle: "italic",
   },
   documentStatus: {
     marginLeft: spacing.sm,

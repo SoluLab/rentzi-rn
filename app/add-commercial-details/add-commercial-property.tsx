@@ -381,7 +381,8 @@ export default function AddCommercialPropertyScreen() {
       title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.zoningType} commercial property`,
       type: "commercial",
-      category: getCategoryFromZoningType(formData.zoningType),
+      ownerType: "propertyOwner",
+   //category: getCategoryFromZoningType(formData.zoningType),
       address: {
         street: formData.fullAddress,
         zipCode: formData.pincode,

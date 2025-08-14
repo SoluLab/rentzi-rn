@@ -10,7 +10,7 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useRouter } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
 import { Input } from "@/components/ui/Input";
@@ -351,7 +351,8 @@ export default function ResidentialPropertyPricingValuationScreen() {
           color="secondary"
           style={styles.helperText}
         >
-          Enter the estimated market value of your property (minimum: $1,500,000)
+          Enter the estimated market value of your property (minimum:
+          $1,500,000)
         </Typography>
 
         {/* Nightly Rate */}
@@ -620,5 +621,4 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     fontWeight: "600",
   },
-  
 });

@@ -96,7 +96,7 @@ export interface MediaUploads {
 
 // Documents interface
 export interface Documents {
-  [key: string]: DocumentFile | null; // Dynamic key-value pairs for documents
+  [key: string]: DocumentFile | null | undefined; // Dynamic key-value pairs for documents
 }
 
 // Legal consents interface
@@ -279,9 +279,7 @@ export const useCommercialPropertyStore = create<CommercialPropertyStore>()(
             ...state.data,
             documents: { 
               ...state.data.documents, 
-              ...Object.fromEntries(
-                Object.entries(documents).filter(([_, value]) => value !== undefined)
-              )
+              ...documents,
             },
           },
         })),
@@ -367,10 +365,18 @@ export const useCommercialPropertyStore = create<CommercialPropertyStore>()(
 
       isDocumentsComplete: () => {
         const { documents } = get().data;
-        // With dynamic documents, we can't determine completeness without API context
-        // For now, return true if there are any documents, or implement logic based on API requirements
-        const documentKeys = Object.keys(documents);
-        return documentKeys.length > 0; // Basic check - can be enhanced based on API requirements
+        
+        // Check if documents is not empty and has at least one uploaded document
+        if (!documents || Object.keys(documents).length === 0) {
+          return false;
+        }
+        
+        // Check if at least one document has been uploaded with uploadedUrl
+        const hasUploadedDocuments = Object.values(documents).some(doc => 
+          doc && doc.uploadedUrl && doc.uploadedUrl.trim() !== ''
+        );
+        
+        return hasUploadedDocuments;
       },
 
       isLegalConsentsComplete: () => {

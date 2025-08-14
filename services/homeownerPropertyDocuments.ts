@@ -8,23 +8,25 @@ import { apiGet, queryKeys } from "./apiClient";
 
 // Property documents list API
 export const usePropertyDocumentsList = (
+  propertyType?: string,
   options?: Omit<
     UseQueryOptions<PropertyDocumentsResponse, PropertyDocumentsApiError>,
     "queryKey" | "queryFn"
   >
 ) => {
   return useQuery<PropertyDocumentsResponse, PropertyDocumentsApiError>({
-    queryKey: queryKeys.propertyDocuments(),
+    queryKey: queryKeys.propertyDocuments(propertyType),
     queryFn: async () => {
       const baseURL = getHomeownerAuthBaseURL();
+      const endpoint = ENDPOINTS.HOMEOWNER_PROPERTY.DOCUMENTS_LIST(propertyType);
       console.log(
         "[API Client] Property documents list URL:",
-        `${baseURL}${ENDPOINTS.HOMEOWNER_PROPERTY.DOCUMENTS_LIST}`
+        `${baseURL}${endpoint}`
       );
 
       const response = await apiGet<PropertyDocumentsResponse>({
         baseURL,
-        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.DOCUMENTS_LIST,
+        endpoint,
         auth: true,  
       });
 

@@ -63,7 +63,8 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     useResidentialPropertyStore();
 
   // Fetch documents from API
-  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList();
+  const { data: apiDocuments, isLoading: isLoadingDocuments } =
+    usePropertyDocumentsList("residential");
 
   // API mutation hook for updating property draft
   const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
@@ -111,27 +112,34 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const [previewDocumentData, setPreviewDocumentData] =
     useState<DocumentFile | null>(null);
   // Track upload status for each document field individually
-  const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set());
+  const [uploadingFields, setUploadingFields] = useState<Set<string>>(
+    new Set()
+  );
 
   // Initialize form data when API documents are loaded
   useEffect(() => {
     if (apiDocuments?.data?.documents) {
       const initialFormData: DocumentsFormData = {};
       apiDocuments.data.documents.forEach((doc) => {
-        const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+        // Use fieldName from API response instead of generating from fileName
+        const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, "");
         initialFormData[key] = null;
       });
-      
+
       // Merge with existing data from store if it exists
       if (data.documentsUpload) {
         const storeDocuments = data.documentsUpload as any;
-        Object.keys(storeDocuments).forEach(key => {
-          if (storeDocuments[key] && typeof storeDocuments[key] === 'object' && storeDocuments[key].uri) {
+        Object.keys(storeDocuments).forEach((key) => {
+          if (
+            storeDocuments[key] &&
+            typeof storeDocuments[key] === "object" &&
+            storeDocuments[key].uri
+          ) {
             initialFormData[key] = storeDocuments[key];
           }
         });
       }
-      
+
       setFormData(initialFormData);
     }
   }, [apiDocuments, data.documentsUpload]);
@@ -165,7 +173,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     if (apiDocuments?.data?.documents) {
       apiDocuments.data.documents.forEach((doc) => {
         if (doc.isRequired) {
-          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, "");
           newErrors[key] = validateDocument(formData[key], doc.fileName);
         }
       });
@@ -175,13 +183,10 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     return Object.values(newErrors).every((error) => !error);
   };
 
-  const updateFormData = (
-    field: string,
-    value: DocumentFile | null
-  ) => {
+  const updateFormData = (field: string, value: DocumentFile | null) => {
     const newFormData = { ...formData, [field]: value };
     setFormData(newFormData);
-    
+
     // Update store with new data
     const storeData = { ...data.documentsUpload, [field]: value };
     updateDocumentsUpload(storeData);
@@ -232,10 +237,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   };
 
-  const pickDocument = async (
-    fieldName: string,
-    displayName: string
-  ) => {
+  const pickDocument = async (fieldName: string, displayName: string) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
@@ -298,6 +300,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const transformFormDataToApiFormat = () => {
     const apiData: any = {
       title: data.propertyDetails?.propertyTitle || "",
+      description: "Draft property description",
       type: "residential",
     };
 
@@ -312,13 +315,14 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     // Helper function to create document object with new structure
     const createDocumentObject = (
       document: DocumentFile,
-      defaultKey: string
+      apiDoc: any
     ) => {
       const ipfsUrl = document.uploadedUrl || "";
       const cid = extractCidFromUrl(ipfsUrl);
       const baseIpfsUrl = "https://gateway.pinata.cloud/ipfs/";
 
       return {
+        _propertyDocument: apiDoc._id,
         url: ipfsUrl,
         cid: cid,
         ipfsUrl: baseIpfsUrl,
@@ -328,28 +332,19 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     // Transform documents to match new schema format
     const documents: any = {};
 
-    // Process all documents from form data
-    Object.entries(formData).forEach(([key, document]) => {
-      if (document && document.uploadedUrl) {
-        // Find the corresponding API document to get the proper field name
-        const apiDoc = apiDocuments?.data?.documents.find(doc => 
-          doc.fileName.toLowerCase().replace(/\s+/g, '') === key
-        );
+    // Process only documents that match the API response structure
+    if (apiDocuments?.data?.documents) {
+      apiDocuments.data.documents.forEach((apiDoc) => {
+        const fieldKey = apiDoc.fieldName || apiDoc.fileName.toLowerCase().replace(/\s+/g, "");
+        const document = formData[fieldKey];
         
-        if (apiDoc) {
-          // Use the API document's fileName as the key
-          const fieldKey = apiDoc.fileName.toLowerCase().replace(/\s+/g, '');
+      if (document && document.uploadedUrl) {
           documents[fieldKey] = [
-            createDocumentObject(document, fieldKey),
-          ];
-        } else {
-          // Custom document
-          documents[key] = [
-            createDocumentObject(document, key),
+            createDocumentObject(document, apiDoc),
           ];
         }
-      }
-    });
+      });
+    }
 
     if (Object.keys(documents).length > 0) {
       apiData.documents = documents;
@@ -361,7 +356,9 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const handleNext = async () => {
     if (validateForm()) {
       // Check if there are unuploaded documents
-      const allDocuments = Object.values(formData).filter(Boolean) as DocumentFile[];
+      const allDocuments = Object.values(formData).filter(
+        Boolean
+      ) as DocumentFile[];
       const unuploadedDocuments = allDocuments.filter(
         (doc) => !doc.uploadedUrl
       );
@@ -386,7 +383,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
       // Update store with current form data
       const storeData = { ...data.documentsUpload, ...formData };
       updateDocumentsUpload(storeData);
-      
+
       const apiData = transformFormDataToApiFormat();
       const propertyId = data.propertyId;
       console.log(
@@ -404,6 +401,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
         propertyId,
         ...apiData,
       });
+      console.log("Transformed documents structure:", apiData.documents);
       await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
     } catch (error) {
       console.error("Error in proceedWithDraft:", error);
@@ -418,7 +416,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     if (apiDocuments?.data?.documents) {
       apiDocuments.data.documents.forEach((doc) => {
         if (doc.isRequired) {
-          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, "");
           newErrors[key] = validateDocument(formData[key], doc.fileName);
         }
       });
@@ -541,14 +539,14 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
-      <ScreenContainer>
+     
         <Header title="Required Documents" />
 
         <ScrollView
           style={styles.container}
           contentContainerStyle={styles.content}
         >
-          <Typography variant="h3" style={styles.sectionTitle}>
+          <Typography variant="h4" style={styles.sectionTitle}>
             Upload Required Documents
           </Typography>
 
@@ -560,14 +558,14 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           {/* API Documents Section */}
           {apiDocuments?.data?.documents && (
             <View style={styles.sectionContainer}>
-              <Typography variant="h4" style={styles.sectionSubtitle}>
+              <Typography variant="h5" style={styles.sectionSubtitle}>
                 Required Documents *
               </Typography>
 
               {apiDocuments.data.documents
-                .filter(doc => doc.isRequired)
+                .filter((doc) => doc.isRequired)
                 .map((doc) => {
-                  const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+                  const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, "");
                   return renderDocumentField(
                     key,
                     doc.fileName,
@@ -576,21 +574,29 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                   );
                 })}
 
-              <Typography variant="h4" style={styles.sectionSubtitle}>
-                Optional Documents
-              </Typography>
+              {/* Only show Optional Documents section if there are optional documents */}
+              {apiDocuments.data.documents.filter((doc) => !doc.isRequired)
+                .length > 0 && (
+                <>
+                  <Typography variant="h4" style={styles.sectionSubtitle}>
+                    Optional Documents
+                  </Typography>
 
-              {apiDocuments.data.documents
-                .filter(doc => !doc.isRequired)
-                .map((doc) => {
-                  const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
-                  return renderDocumentField(
-                    key,
-                    doc.fileName,
-                    doc.description,
-                    false
-                  );
-                })}
+                  {apiDocuments.data.documents
+                    .filter((doc) => !doc.isRequired)
+                    .map((doc) => {
+                      const key = doc.fieldName || doc.fileName
+                        .toLowerCase()
+                        .replace(/\s+/g, "");
+                      return renderDocumentField(
+                        key,
+                        doc.fileName,
+                        doc.description,
+                        false
+                      );
+                    })}
+                </>
+              )}
             </View>
           )}
 
@@ -637,8 +643,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               )}
             </View>
           </View>
-        </Modal>
-      </ScreenContainer>
+        </Modal> 
     </View>
   );
 }

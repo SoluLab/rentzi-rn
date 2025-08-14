@@ -467,25 +467,16 @@ export default function ResidentialPropertyMediaUploadScreen() {
           console.log("Updated photo with uploaded URL:", uploadedFile.url);
           console.log("Remaining unuploaded images:", stillUnuploaded.length);
           
+          // Update the store (deferred to avoid setState during render)
+          setTimeout(() => {
+            // Only update store if data actually changed
+            if (JSON.stringify(data.mediaUpload) !== JSON.stringify(newFormData)) {
+              updateMediaUpload(newFormData);
+            }
+          }, 0);
+          
           return newFormData;
         });
-
-        // Update the store AFTER state update to avoid render conflicts
-        const updatedPhotos = [...formData.photos];
-        updatedPhotos[photoIndex] = {
-          ...updatedPhotos[photoIndex],
-          uploadedUrl: uploadedFile.url,
-          uploadedKey: uploadedFile.key,
-          originalName: uploadedFile.originalName,
-          fileName: uploadedFile.fileName,
-          size: uploadedFile.size,
-          type: uploadedFile.type,
-          mimetype: uploadedFile.mimetype,
-          expiresAt: uploadedFile.expiresAt,
-        };
-        
-        const newFormData = { ...formData, photos: updatedPhotos };
-        updateMediaUpload(newFormData);
       } else {
         console.warn("No uploaded files in response:", response);
       }
@@ -564,25 +555,17 @@ export default function ResidentialPropertyMediaUploadScreen() {
           
           console.log("Updated video with uploaded URL:", uploadedFile.url);
           
+          // Update the store (deferred to avoid setState during render)
+          setTimeout(() => {
+            // Only update store if data actually changed
+            const currentStoreData = data.mediaUpload;
+            if (JSON.stringify(currentStoreData) !== JSON.stringify(newFormData)) {
+              updateMediaUpload(newFormData);
+            }
+          }, 0);
+          
           return newFormData;
         });
-
-        // Update the store AFTER state update to avoid render conflicts
-        const updatedVirtualTour: VideoFile = {
-          ...videoFile,
-          uploadedUrl: uploadedFile.url,
-          uploadedKey: uploadedFile.key,
-          originalName: uploadedFile.originalName,
-          fileName: uploadedFile.fileName,
-          size: uploadedFile.size,
-          type: uploadedFile.type,
-          mimetype: uploadedFile.mimetype,
-          expiresAt: uploadedFile.expiresAt,
-        };
-        
-        const newFormData = { ...formData, virtualTour: updatedVirtualTour };
-        console.log("💾 Updating store with uploaded virtual tour video:", updatedVirtualTour);
-        updateMediaUpload(newFormData);
         
         return videoFile;
       } else {
@@ -873,25 +856,17 @@ export default function ResidentialPropertyMediaUploadScreen() {
           
           console.log("Updated 360° video with uploaded URL:", uploadedFile.url);
           
+          // Update the store (deferred to avoid setState during render)
+          setTimeout(() => {
+            // Only update store if data actually changed
+            const currentStoreData = data.mediaUpload;
+            if (JSON.stringify(currentStoreData) !== JSON.stringify(newFormData)) {
+              updateMediaUpload(newFormData);
+            }
+          }, 0);
+          
           return newFormData;
         });
-
-        // Update the store AFTER state update to avoid render conflicts
-        const updatedVideo360: VideoFile = {
-          ...videoFile,
-          uploadedUrl: uploadedFile.url,
-          uploadedKey: uploadedFile.key,
-          originalName: uploadedFile.originalName,
-          fileName: uploadedFile.fileName,
-          size: uploadedFile.size,
-          type: uploadedFile.type,
-          mimetype: uploadedFile.mimetype,
-          expiresAt: uploadedFile.expiresAt,
-        };
-        
-        const newFormData = { ...formData, video360: updatedVideo360 };
-        console.log("💾 Updating store with uploaded 360° video:", updatedVideo360);
-        updateMediaUpload(newFormData);
         
         return videoFile;
       } else {

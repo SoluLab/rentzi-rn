@@ -17,7 +17,8 @@ export const PropertyRuleSchema = z.object({
 export const PropertyTypeSchema = z.object({
   _id: z.string(),
   name: z.string(),
-  description: z.string(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
 });
 
 // Property feature item schema
@@ -52,7 +53,7 @@ export const PropertyTypesResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
   data: z.object({
-    types: z.array(PropertyTypeSchema),
+    categories: z.array(PropertyTypeSchema),
     total: z.number(),
   }),
 });

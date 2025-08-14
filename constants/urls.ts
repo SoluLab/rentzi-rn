@@ -80,8 +80,9 @@ export const ENDPOINTS = {
     // Property dropdowns
     AMENITIES_DROPDOWN: "/property/dropdowns/amenities",
     RULES_DROPDOWN: "/property/dropdowns/rules",
-    DOCUMENTS_LIST: "/property/dropdowns/documents",
-    TYPES_DROPDOWN: "/property/dropdowns/types",
+    DOCUMENTS_LIST: (propertyType?: string) => 
+      propertyType ? `/property/dropdowns/documents?propertyType=${propertyType}` : "/property/dropdowns/documents",
+    TYPES_DROPDOWN: "/property/dropdowns/categories",
     FEATURES_DROPDOWN: "/property/dropdowns/features",
   },
 

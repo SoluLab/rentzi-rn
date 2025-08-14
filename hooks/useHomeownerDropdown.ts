@@ -49,7 +49,7 @@ export const useHomeownerDropdown = (): UseHomeownerDropdownReturn => {
   const amenitiesTotal = amenitiesData?.data?.total || 0;
   const propertyRules = propertyRulesData?.data?.rules || [];
   const propertyRulesTotal = propertyRulesData?.data?.total || 0;
-  const propertyTypes = propertyTypesData?.data?.types || [];
+  const propertyTypes = propertyTypesData?.data?.categories || [];
   const propertyTypesTotal = propertyTypesData?.data?.total || 0;
   const propertyFeatures = propertyFeaturesData?.data?.features || [];
   const propertyFeaturesTotal = propertyFeaturesData?.data?.total || 0;

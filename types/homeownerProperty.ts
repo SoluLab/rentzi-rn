@@ -20,7 +20,8 @@ export interface IHomeownerProperty {
   title: string;
   description: string;
   type: string;
-  category: string;
+  _propertyCategory: string;
+  ownerType: "propertyOwner";
   address: {
     coordinates: {
       latitude: number;

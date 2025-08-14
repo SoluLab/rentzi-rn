@@ -8,12 +8,12 @@ interface UseHomeownerPropertyDocumentsReturn {
   propertyDocumentsTotal: number;
 }
 
-export const useHomeownerPropertyDocuments = (): UseHomeownerPropertyDocumentsReturn => {
+export const useHomeownerPropertyDocuments = (propertyType?: string): UseHomeownerPropertyDocumentsReturn => {
   const {
     data: propertyDocumentsData,
     isLoading: propertyDocumentsLoading,
     error: propertyDocumentsError,
-  } = usePropertyDocumentsList();
+  } = usePropertyDocumentsList(propertyType);
 
   const propertyDocuments = propertyDocumentsData?.data?.documents || [];
   const propertyDocumentsTotal = propertyDocumentsData?.data?.total || 0;

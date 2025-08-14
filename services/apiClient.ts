@@ -92,7 +92,10 @@ export const queryKeys = {
   // Homeowner Dropdown Query Keys
   amenities: () => [...queryKeys.all, "homeowner", "dropdown", "amenities"] as const,
   propertyRules: () => [...queryKeys.all, "homeowner", "dropdown", "propertyRules"] as const,
-  propertyDocuments: () => [...queryKeys.all, "homeowner", "dropdown", "propertyDocuments"] as const,
+  propertyDocuments: (propertyType?: string) => 
+    propertyType 
+      ? [...queryKeys.all, "homeowner", "dropdown", "propertyDocuments", propertyType] as const
+      : [...queryKeys.all, "homeowner", "dropdown", "propertyDocuments"] as const,
   propertyTypes: () => [...queryKeys.all, "homeowner", "dropdown", "propertyTypes"] as const,
   propertyFeatures: () => [...queryKeys.all, "homeowner", "dropdown", "propertyFeatures"] as const,
 };

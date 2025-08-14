@@ -66,7 +66,7 @@ export const usePropertyTypesDropdown = (
     queryKey: queryKeys.propertyTypes(),
     queryFn: async () => {
       const baseURL = getHomeownerAuthBaseURL();
-      console.log("[API Client] Property types dropdown URL:", `${baseURL}/property/dropdowns/types`);
+      console.log("[API Client] Property types dropdown URL:", `${baseURL}${ENDPOINTS.HOMEOWNER_PROPERTY.TYPES_DROPDOWN}`);
       
       const response = await apiGet<PropertyTypesResponse>({
         baseURL,

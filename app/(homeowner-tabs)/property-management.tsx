@@ -8,6 +8,7 @@ import {
   FlatList,
   TextInput,
   Alert,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Typography } from "@/components/ui/Typography";
@@ -27,7 +28,7 @@ import {
   useHomeownerPropertyStore,
   HomeownerProperty,
 } from "@/stores/homeownerPropertyStore";
-import { useMarketplaceGetProperties } from "@/services/renterMarketplace";
+import { useHomeownerDashboard } from "@/hooks/useHomeownerDashboard";
 import {
   Plus,
   Building2,
@@ -62,35 +63,43 @@ export default function PropertyManagementScreen() {
     syncFromResidentialStore,
   } = useHomeownerPropertyStore();
 
-  // Use the marketplace API to fetch properties
-  const { data: marketplaceData, isLoading, refetch } = useMarketplaceGetProperties();
+  // Use the same API as the index screen
+  const {
+    properties: apiProperties,
+    isPropertiesLoading: isLoading,
+    propertiesError,
+    refetchProperties: refetch,
+    pagination,
+    loadMore,
+    page,
+  } = useHomeownerDashboard();
 
   // Transform API data to match the expected format
   const properties: HomeownerProperty[] = React.useMemo(() => {
-    if (!marketplaceData?.data) return [];
+    if (!apiProperties || apiProperties.length === 0) return [];
     
-    return marketplaceData.data.map((property: any) => ({
+    return apiProperties.map((property: any) => ({
       id: property._id,
-      title: property.name,
+      title: property.title,
       description: property.description,
-      location: `${property.location?.address}, ${property.location?.city}, ${property.location?.state}`,
-      price: property.pricing?.basePrice?.toString() || "0",
-      type: property.category === "villa" ? "residential" : "commercial",
-      status: property.status === "active" ? "approved" : "pending",
-      enabled: property.isActive,
-      image: "https://via.placeholder.com/300x200?text=Property", // Default placeholder
-      bedrooms: property.capacity?.bedrooms,
-      bathrooms: property.capacity?.bathrooms,
-      squareFootage: property.capacity?.maxGuests ? `${property.capacity.maxGuests * 100}` : undefined,
+      location: `${property.address?.street || ''}, ${property.address?.city || ''}`,
+      price: property.rentAmount?.basePrice?.toString() || "0",
+      type: property.type === "villa" || property.type === "penthouse" || property.type === "mansion" || property.type === "estate" || property.type === "apartment" ? "residential" : "commercial",
+      status: property.status === "active" ? "approved" : property.status === "draft" ? "draft" : property.status === "rejected" ? "rejected" : "pending",
+      enabled: property.status === "active",
+      image: property.images?.[0]?.url || property.images?.[0] || "https://via.placeholder.com/300x200?text=Property",
+      bedrooms: property.bedrooms?.length?.toString() || "0",
+      bathrooms: property.bathrooms?.toString() || "0",
+      squareFootage: property.area?.value ? `${property.area.value} sq ft` : undefined,
       createdAt: new Date(property.createdAt),
-      rejectionReason: null,
-      tokenSymbol: null,
-      tokenStatus: null,
-      totalTokensIssued: null,
-      investorsCount: null,
-      totalInvestmentRaised: null,
+      rejectionReason: undefined,
+      tokenSymbol: undefined,
+      tokenStatus: undefined,
+      totalTokensIssued: undefined,
+      investorsCount: undefined,
+      totalInvestmentRaised: undefined,
     }));
-  }, [marketplaceData]);
+  }, [apiProperties]);
 
   const [propertyListFilter, setPropertyListFilter] = useState<
     "all" | "pending" | "approved" | "rejected"
@@ -120,6 +129,13 @@ export default function PropertyManagementScreen() {
     syncFromCommercialStore();
     syncFromResidentialStore();
   }, []);
+
+  // Error handling: show toast if propertiesError
+  useEffect(() => {
+    if (propertiesError) {
+      console.error('Properties error:', propertiesError);
+    }
+  }, [propertiesError]);
 
   // Reset filters when tab changes
   useEffect(() => {
@@ -541,6 +557,14 @@ export default function PropertyManagementScreen() {
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refetch}
+            colors={[colors.primary.gold]}
+            tintColor={colors.primary.gold}
+          />
+        }
       >
         {/* Main Tab Navigation */}
         <View style={styles.section}>
@@ -669,9 +693,33 @@ export default function PropertyManagementScreen() {
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
+                  onEndReached={loadMore}
+                  onEndReachedThreshold={0.1}
                   ItemSeparatorComponent={() => (
                     <View style={styles.separator} />
                   )}
+                  ListFooterComponent={
+                    pagination?.hasNext ? (
+                      <View style={styles.loadMoreContainer}>
+                        {isLoading ? (
+                          <View style={styles.loadingContainer}>
+                            <Typography variant="body" color="secondary" style={styles.loadingText}>
+                              Loading more properties...
+                            </Typography>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.loadMoreButton}
+                            onPress={loadMore}
+                          >
+                            <Typography variant="body" color="gold">
+                              Load More Properties
+                            </Typography>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ) : null
+                  }
                 />
               ) : (
                 <Card style={styles.emptyState}>
@@ -737,9 +785,33 @@ export default function PropertyManagementScreen() {
                   keyExtractor={(item) => item.id}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
+                  onEndReached={loadMore}
+                  onEndReachedThreshold={0.1}
                   ItemSeparatorComponent={() => (
                     <View style={styles.separator} />
                   )}
+                  ListFooterComponent={
+                    pagination?.hasNext ? (
+                      <View style={styles.loadMoreContainer}>
+                        {isLoading ? (
+                          <View style={styles.loadingContainer}>
+                            <Typography variant="body" color="secondary" style={styles.loadingText}>
+                              Loading more properties...
+                            </Typography>
+                          </View>
+                        ) : (
+                          <TouchableOpacity
+                            style={styles.loadMoreButton}
+                            onPress={loadMore}
+                          >
+                            <Typography variant="body" color="gold">
+                              Load More Properties
+                            </Typography>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ) : null
+                  }
                 />
               ) : (
                 <Card style={styles.emptyState}>
@@ -1363,5 +1435,24 @@ const styles = StyleSheet.create({
     ...shadow.large,
     elevation: 8,
     zIndex: 1000,
+  },
+  loadMoreContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.lg,
+  },
+  loadingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+  },
+  loadingText: {
+    marginTop: spacing.sm,
+  },
+  loadMoreButton: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background.secondary,
   },
 });

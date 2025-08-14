@@ -60,7 +60,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
   const { data, updateDocuments } = useCommercialPropertyStore();
 
   // Fetch documents from API
-  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList();
+  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList("commercial");
 
   // API mutation hook for updating property draft
   const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
@@ -95,7 +95,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
 
   const [formData, setFormData] = useState<DocumentsFormData>({});
   const [errors, setErrors] = useState<DocumentsValidationErrors>({});
-  const [customDocuments, setCustomDocuments] = useState<Array<{id: string, name: string, description: string}>>([]);
+
   // Track upload status for each document field individually
   const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set());
 
@@ -104,7 +104,8 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     if (apiDocuments?.data?.documents) {
       const initialFormData: DocumentsFormData = {};
       apiDocuments.data.documents.forEach((doc) => {
-        const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+        // Use fieldName from API response instead of generating from fileName
+        const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, '');
         initialFormData[key] = null;
       });
       
@@ -151,19 +152,11 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     if (apiDocuments?.data?.documents) {
       apiDocuments.data.documents.forEach((doc) => {
         if (doc.isRequired) {
-          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, '');
           newErrors[key] = validateDocument(formData[key], doc.fileName);
         }
       });
     }
-
-    // Validate custom documents
-    customDocuments.forEach((customDoc) => {
-      const key = customDoc.id;
-      if (formData[key]) {
-        newErrors[key] = validateDocument(formData[key], customDoc.name);
-      }
-    });
 
     setErrors(newErrors);
     return Object.values(newErrors).every((error) => !error);
@@ -281,34 +274,12 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     }
   };
 
-  const addCustomDocument = () => {
-    const customId = `custom_${Date.now()}`;
-    const newCustomDoc = {
-      id: customId,
-      name: "Custom Document",
-      description: "Additional document for your property"
-    };
-    setCustomDocuments(prev => [...prev, newCustomDoc]);
-    setFormData(prev => ({ ...prev, [customId]: null }));
-  };
 
-  const removeCustomDocument = (customId: string) => {
-    setCustomDocuments(prev => prev.filter(doc => doc.id !== customId));
-    setFormData(prev => {
-      const newFormData = { ...prev };
-      delete newFormData[customId];
-      return newFormData;
-    });
-    setErrors(prev => {
-      const newErrors = { ...prev };
-      delete newErrors[customId];
-      return newErrors;
-    });
-  };
 
   const transformFormDataToApiFormat = () => {
     const apiData: any = {
       title: data.propertyDetails?.propertyTitle || "",
+      description: "Draft property description",
       type: "commercial",
     };
 
@@ -323,13 +294,14 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     // Helper function to create document object with new structure
     const createDocumentObject = (
       document: DocumentFile,
-      defaultKey: string
+      apiDoc: any
     ) => {
       const ipfsUrl = document.uploadedUrl || "";
       const cid = extractCidFromUrl(ipfsUrl);
       const baseIpfsUrl = "https://gateway.pinata.cloud/ipfs/";
 
       return {
+        _propertyDocument: apiDoc._id,
         url: ipfsUrl,
         cid: cid,
         ipfsUrl: baseIpfsUrl,
@@ -339,28 +311,19 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     // Transform documents to match new schema format
     const documents: any = {};
 
-    // Process all documents from form data
-    Object.entries(formData).forEach(([key, document]) => {
-      if (document && document.uploadedUrl) {
-        // Find the corresponding API document to get the proper field name
-        const apiDoc = apiDocuments?.data?.documents.find(doc => 
-          doc.fileName.toLowerCase().replace(/\s+/g, '') === key
-        );
+    // Process only documents that match the API response structure
+    if (apiDocuments?.data?.documents) {
+      apiDocuments.data.documents.forEach((apiDoc) => {
+        const fieldKey = apiDoc.fieldName || apiDoc.fileName.toLowerCase().replace(/\s+/g, '');
+        const document = formData[fieldKey];
         
-        if (apiDoc) {
-          // Use the API document's fileName as the key
-          const fieldKey = apiDoc.fileName.toLowerCase().replace(/\s+/g, '');
+        if (document && document.uploadedUrl) {
           documents[fieldKey] = [
-            createDocumentObject(document, fieldKey),
-          ];
-        } else {
-          // Custom document
-          documents[key] = [
-            createDocumentObject(document, key),
+            createDocumentObject(document, apiDoc),
           ];
         }
-      }
-    });
+      });
+    }
 
     if (Object.keys(documents).length > 0) {
       apiData.documents = documents;
@@ -412,6 +375,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
         propertyId,
         ...apiData,
       });
+      console.log("Transformed documents structure:", apiData.documents);
       await saveDraftPropertyMutation.mutateAsync({ propertyId, ...apiData });
     } catch (error) {
       console.error("Error in proceedWithDraft:", error);
@@ -426,19 +390,13 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     if (apiDocuments?.data?.documents) {
       apiDocuments.data.documents.forEach((doc) => {
         if (doc.isRequired) {
-          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, '');
           newErrors[key] = validateDocument(formData[key], doc.fileName);
         }
       });
     }
 
-    // Validate custom documents
-    customDocuments.forEach((customDoc) => {
-      const key = customDoc.id;
-      if (formData[key]) {
-        newErrors[key] = validateDocument(formData[key], customDoc.name);
-      }
-    });
+
 
     // Check if all required documents are uploaded and no validation errors
     return Object.values(newErrors).every((error) => !error);
@@ -456,8 +414,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
     fieldName: string,
     displayName: string,
     description: string,
-    isMandatory: boolean = true,
-    isCustom: boolean = false
+    isMandatory: boolean = true
   ) => {
     const document = formData[fieldName];
     const error = errors[fieldName];
@@ -469,7 +426,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
           <Typography variant="h6" style={styles.fieldTitle}>
             {displayName} {isMandatory && "*"}
           </Typography>
-          {!isMandatory && !isCustom && (
+          {!isMandatory && (
             <Typography
               variant="caption"
               color="secondary"
@@ -478,7 +435,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
               (Optional)
             </Typography>
           )}
-          {isCustom && (
+
             <TouchableOpacity
               style={styles.removeCustomButton}
               onPress={() => removeCustomDocument(fieldName)}
@@ -608,7 +565,7 @@ export default function CommercialPropertyDocumentsUploadScreen() {
             {apiDocuments.data.documents
               .filter(doc => doc.isRequired)
               .map((doc) => {
-                const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+                const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, '');
                 return renderDocumentField(
                   key,
                   doc.fileName,
@@ -617,41 +574,31 @@ export default function CommercialPropertyDocumentsUploadScreen() {
                 );
               })}
 
-            <Typography variant="h5" style={styles.sectionSubtitle}>
-              Optional Documents
-            </Typography>
+            {/* Only show Optional Documents section if there are optional documents */}
+            {apiDocuments.data.documents.filter(doc => !doc.isRequired).length > 0 && (
+              <>
+                <Typography variant="h5" style={styles.sectionSubtitle}>
+                  Optional Documents
+                </Typography>
 
-            {apiDocuments.data.documents
-              .filter(doc => !doc.isRequired)
-              .map((doc) => {
-                const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
-                return renderDocumentField(
-                  key,
-                  doc.fileName,
-                  doc.description,
-                  false
-                );
-              })}
-          </View>
-        )}
-
-        {/* Custom Documents Section */}
-        {customDocuments.length > 0 && (
-          <View style={styles.documentsSection}>
-            <Typography variant="h5" style={styles.sectionSubtitle}>
-              Additional Documents
-            </Typography>
-            {customDocuments.map((customDoc) => 
-              renderDocumentField(
-                customDoc.id,
-                customDoc.name,
-                customDoc.description,
-                false,
-                true
-              )
+                {apiDocuments.data.documents
+                  .filter(doc => !doc.isRequired)
+                  .map((doc) => {
+                    const key = doc.fieldName || doc.fileName.toLowerCase().replace(/\s+/g, '');
+                    return renderDocumentField(
+                      key,
+                      doc.fileName,
+                      doc.description,
+                      false
+                    );
+                  })}
+              </>
             )}
           </View>
         )}
+
+
+
 
         {/* Next Button */}
         <Button

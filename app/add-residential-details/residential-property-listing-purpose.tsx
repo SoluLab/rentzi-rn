@@ -274,7 +274,7 @@ export default function ResidentialPropertyListingPurposeScreen() {
   };
 
   return (
-    <ScreenContainer>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Select Listing Purpose" />
       <ScrollView 
         style={styles.container}
@@ -323,7 +323,7 @@ export default function ResidentialPropertyListingPurposeScreen() {
           style={styles.nextButton}
         />
       </ScrollView>
-    </ScreenContainer>
+    </View>
   );
 }
 

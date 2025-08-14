@@ -6,6 +6,9 @@ export const PropertyDocumentSchema = z.object({
   fileName: z.string(),
   isRequired: z.boolean(),
   description: z.string(),
+  documentFor: z.array(z.string()), // Array of property types this document applies to
+  isActive: z.boolean(), // Whether this document type is currently active
+  fieldName: z.string(), // Field name to use in the form
 });
 
 // Property documents response schema

@@ -27,6 +27,7 @@ import {
 import { useResidentialPropertyStore } from "@/stores/residentialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerSubmitPropertyForReview } from "@/services/homeownerAddProperty";
+import { usePropertyDocumentsList } from "@/services/homeownerPropertyDocuments";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 interface ReviewSection {
@@ -87,6 +88,9 @@ export default function ResidentialPropertyReviewScreen() {
   const { data, submitProperty, isAllSectionsComplete, getCompletionStatus } =
     useResidentialPropertyStore();
   const { syncFromResidentialStore } = useHomeownerPropertyStore();
+
+  // Fetch documents from API
+  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList("residential");
 
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
@@ -372,59 +376,32 @@ export default function ResidentialPropertyReviewScreen() {
 
   const renderDocumentsUpload = () => {
     const { documentsUpload } = data;
-    const mandatoryDocuments = [
-      {
-        key: "propertyDeed",
-        name: "Property Deed",
-        doc: documentsUpload.propertyDeed,
-      },
-      {
-        key: "governmentId",
-        name: "Government ID",
-        doc: documentsUpload.governmentId,
-      },
-      {
-        key: "propertyTaxBill",
-        name: "Property Tax Bill",
-        doc: documentsUpload.propertyTaxBill,
-      },
-      {
-        key: "proofOfInsurance",
-        name: "Proof of Insurance",
-        doc: documentsUpload.proofOfInsurance,
-      },
-      {
-        key: "utilityBill",
-        name: "Utility Bill",
-        doc: documentsUpload.utilityBill,
-      },
-      {
-        key: "appraisalReport",
-        name: "Appraisal Report",
-        doc: documentsUpload.appraisalReport,
-      },
-      {
-        key: "authorizationToSell",
-        name: "Authorization to Sell",
-        doc: documentsUpload.authorizationToSell,
-      },
-    ];
+    if (!apiDocuments?.data?.documents) {
+      return (
+        <View style={styles.sectionContent}>
+          <Typography variant="body" style={styles.helperText}>
+            Loading documents...
+          </Typography>
+        </View>
+      );
+    }
 
-    const conditionalDocuments = [];
-    if (documentsUpload.hasMortgage) {
-      conditionalDocuments.push({
-        key: "mortgageStatement",
-        name: "Mortgage Statement",
-        doc: documentsUpload.mortgageStatement,
-      });
-    }
-    if (documentsUpload.hasHOA) {
-      conditionalDocuments.push({
-        key: "hoaDocuments",
-        name: "HOA Documents",
-        doc: documentsUpload.hoaDocuments,
-      });
-    }
+    // Create documents array dynamically from API response
+    const allDocuments = apiDocuments.data.documents.map((apiDoc) => {
+      const fieldKey = apiDoc.fieldName || apiDoc.fileName.toLowerCase().replace(/\s+/g, "");
+      return {
+        key: fieldKey,
+        name: apiDoc.fileName,
+        doc: documentsUpload[fieldKey],
+        isRequired: apiDoc.isRequired,
+        description: apiDoc.description,
+      };
+    });
+
+    const mandatoryDocuments = allDocuments.filter(doc => doc.isRequired);
+    const optionalDocuments = allDocuments.filter(doc => !doc.isRequired);
+
+
 
     return (
       <View style={styles.sectionContent}>
@@ -462,12 +439,12 @@ export default function ResidentialPropertyReviewScreen() {
           </View>
         ))}
 
-        {conditionalDocuments.length > 0 && (
+        {optionalDocuments.length > 0 && (
           <>
             <Typography variant="h6" style={styles.subsectionTitle}>
-              Conditional Documents
+              Optional Documents
             </Typography>
-            {conditionalDocuments.map(({ key, name, doc }) => (
+            {optionalDocuments.map(({ key, name, doc }) => (
               <View key={key} style={styles.documentRow}>
                 <View style={styles.documentInfo}>
                   <FileText
@@ -488,7 +465,7 @@ export default function ResidentialPropertyReviewScreen() {
                     </View>
                   ) : (
                     <View style={styles.statusBadgeError}>
-                      <X size={12} color={colors.neutral.white} />
+                      <X size={16} color={colors.status.error} />
                       <Typography variant="caption" style={styles.statusText}>
                         Missing
                       </Typography>
@@ -660,7 +637,7 @@ export default function ResidentialPropertyReviewScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
       <Header title="Review & Submit" />
 
       <KeyboardAwareScrollView
@@ -896,6 +873,11 @@ const styles = StyleSheet.create({
   documentName: {
     marginLeft: spacing.sm,
     flex: 1,
+  },
+  helperText: {
+    color: colors.text.secondary,
+    textAlign: "center",
+    fontStyle: "italic",
   },
   documentStatus: {
     marginLeft: spacing.sm,

@@ -10,6 +10,7 @@ export interface PropertyDetails {
   pincode: string;
   fullAddress: string;
   propertyType: string;
+  propertyTypeId: string;
   yearBuilt: string;
   yearRenovated: string;
   bedrooms: string;
@@ -97,7 +98,7 @@ export interface DocumentData {
 }
 
 export interface DocumentsUploadData {
-  [key: string]: DocumentData | null; // Dynamic key-value pairs for documents
+  [key: string]: DocumentData | null | undefined; // Dynamic key-value pairs for documents
 }
 
 // Legal consents interface
@@ -172,6 +173,7 @@ const initialData: ResidentialPropertyData = {
     pincode: '',
     fullAddress: '',
     propertyType: '',
+    propertyTypeId: '',
     yearBuilt: '',
     yearRenovated: '',
     bedrooms: '',
@@ -287,9 +289,7 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             ...state.data,
             documentsUpload: {
               ...state.data.documentsUpload,
-              ...Object.fromEntries(
-                Object.entries(documentsUpload).filter(([_, value]) => value !== undefined)
-              )
+              ...documentsUpload,
             },
           },
         }));
@@ -387,22 +387,18 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
 
       isDocumentsUploadComplete: () => {
         const { documentsUpload } = get().data;
-        const mandatoryDocuments = [
-          documentsUpload.propertyDeed,
-          documentsUpload.governmentId,
-          documentsUpload.propertyTaxBill,
-          documentsUpload.proofOfInsurance,
-          documentsUpload.utilityBill,
-          documentsUpload.appraisalReport,
-          documentsUpload.authorizationToSell,
-        ];
         
-        const mandatoryComplete = mandatoryDocuments.every(doc => doc !== null);
-        const conditionalComplete = 
-          (!documentsUpload.hasMortgage || documentsUpload.mortgageStatement !== null) &&
-          (!documentsUpload.hasHOA || documentsUpload.hoaDocuments !== null);
+        // Check if documentsUpload is not empty and has at least one uploaded document
+        if (!documentsUpload || Object.keys(documentsUpload).length === 0) {
+          return false;
+        }
         
-        return mandatoryComplete && conditionalComplete;
+        // Check if at least one document has been uploaded with uploadedUrl
+        const hasUploadedDocuments = Object.values(documentsUpload).some(doc => 
+          doc && doc.uploadedUrl && doc.uploadedUrl.trim() !== ''
+        );
+        
+        return hasUploadedDocuments;
       },
 
       isLegalConsentsComplete: () => {

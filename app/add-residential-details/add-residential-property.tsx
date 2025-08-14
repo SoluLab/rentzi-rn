@@ -41,9 +41,7 @@ const APPROVED_LOCATIONS = [
 ];
 
 // Property types options - will be populated from API
-let PROPERTY_TYPES: string[] = [];
-let PROPERTY_TYPES_MAP: { [key: string]: string } = {}; // name -> id mapping
-let PROPERTY_TYPES_REVERSE_MAP: { [key: string]: string } = {}; // id -> name mapping
+// These will be moved to local state for better reactivity
 
 interface FormData {
   propertyTitle: string;
@@ -52,6 +50,7 @@ interface FormData {
   pincode: string;
   fullAddress: string;
   propertyType: string;
+  propertyTypeId: string;
   yearBuilt: string;
   yearRenovated: string;
   bedrooms: string;
@@ -67,6 +66,7 @@ interface ValidationErrors {
   pincode?: string;
   fullAddress?: string;
   propertyType?: string;
+  propertyTypeId?: string;
   yearBuilt?: string;
   yearRenovated?: string;
   bedrooms?: string;
@@ -82,7 +82,12 @@ export default function AddResidentialPropertyScreen() {
   const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
   
   // Property types dropdown hook
-  const { propertyTypes, propertyTypesLoading } = useHomeownerDropdown();
+  const { propertyTypes, propertyTypesLoading, propertyTypesError } = useHomeownerDropdown();
+  
+  // Local state for property types
+  const [propertyTypesList, setPropertyTypesList] = useState<string[]>([]);
+  const [propertyTypesMap, setPropertyTypesMap] = useState<{ [key: string]: string }>({});
+  const [propertyTypesReverseMap, setPropertyTypesReverseMap] = useState<{ [key: string]: string }>({});
   
   // API mutation hook
   const createPropertyMutation = useHomeownerCreateProperty({
@@ -121,18 +126,29 @@ export default function AddResidentialPropertyScreen() {
   // Populate property types from API when data loads
   useEffect(() => {
     if (propertyTypes && propertyTypes.length > 0) {
-      PROPERTY_TYPES = propertyTypes.map(type => type.name);
+      // Filter out invalid property types (empty objects or missing required fields)
+      const validPropertyTypes = propertyTypes.filter(type => type && type._id && type.name);
+      
+      const typesList = validPropertyTypes.map(type => type.name);
+      const typesMap: { [key: string]: string } = {};
+      const typesReverseMap: { [key: string]: string } = {};
+      
       // Create mapping from name to id and id to name
-      propertyTypes.forEach(type => {
-        PROPERTY_TYPES_MAP[type.name] = type._id;
-        PROPERTY_TYPES_REVERSE_MAP[type._id] = type.name;
+      validPropertyTypes.forEach(type => {
+        typesMap[type.name] = type._id;
+        typesReverseMap[type._id] = type.name;
       });
+      
+      setPropertyTypesList(typesList);
+      setPropertyTypesMap(typesMap);
+      setPropertyTypesReverseMap(typesReverseMap);
     }
-  }, [propertyTypes]);
+  }, [propertyTypes, propertyTypesLoading, propertyTypesError]);
 
   // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>({
     ...data.propertyDetails,
+    propertyTypeId: data.propertyDetails.propertyTypeId || '',
     yearRenovated: data.propertyDetails.yearRenovated || '',
   });
   useEffect(() => {
@@ -144,8 +160,10 @@ export default function AddResidentialPropertyScreen() {
           market: property.location || '',
           otherMarket: '',
           pincode: '',
+          
           fullAddress: property.location || '',
           propertyType: property.data?.propertyDetails?.propertyType || '',
+          propertyTypeId: property.data?.propertyDetails?.propertyTypeId || '',
           yearBuilt: property.data?.propertyDetails?.yearBuilt?.toString() || '',
           yearRenovated: property.data?.propertyDetails?.yearRenovated?.toString() || '',
           bedrooms: property.bedrooms?.toString() || '',
@@ -398,33 +416,7 @@ export default function AddResidentialPropertyScreen() {
 
     const coordinates = getDummyCoordinates();
 
-    // Map property type to API category
-    const getCategoryFromPropertyType = (propertyType: string): string => {
-      // Convert to lowercase for comparison
-      const type = propertyType.toLowerCase();
-      
-      // Map common property types to categories
-      if (type.includes('apartment') || type.includes('condo')) {
-        return 'apartment';
-      } else if (type.includes('villa')) {
-        return 'villa';
-      } else if (type.includes('bungalow')) {
-        return 'bungalow';
-      } else if (type.includes('house') || type.includes('home')) {
-        return 'house';
-      } else if (type.includes('townhouse')) {
-        return 'townhouse';
-      } else if (type.includes('penthouse')) {
-        return 'penthouse';
-      } else if (type.includes('studio')) {
-        return 'studio';
-      } else if (type.includes('loft')) {
-        return 'loft';
-      } else {
-        // If no match found, use the property type as is or default to apartment
-        return type || 'apartment';
-      }
-    };
+
 
     // Create bedrooms array based on the number of bedrooms
     const createBedroomsArray = () => {
@@ -472,7 +464,8 @@ export default function AddResidentialPropertyScreen() {
       title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.propertyType} with ${formData.bedrooms} bedrooms and ${formData.bathrooms} bathrooms`,
       type: "residential",
-      category: getCategoryFromPropertyType(formData.propertyType),
+      ownerType: "propertyOwner",
+      // category: formData.propertyTypeId, // Commented out temporarily
       address: {
         street: formData.fullAddress,
         zipCode: formData.pincode,
@@ -505,7 +498,21 @@ export default function AddResidentialPropertyScreen() {
     <TouchableOpacity
       style={styles.modalItem}
       onPress={() => {
-        updateFormData('propertyType', item);
+        const propertyTypeId = propertyTypesMap[item];
+        console.log('Selected property type:', item);
+        console.log('Property type ID:', propertyTypeId);
+        console.log('Current formData before update:', formData.propertyType);
+        
+        // Update form data
+        setFormData(prev => {
+          const newData = { ...prev, propertyType: item, propertyTypeId };
+          console.log('New form data:', newData);
+          return newData;
+        });
+        
+        // Also update the store
+        updatePropertyDetails({ ...formData, propertyType: item, propertyTypeId });
+        
         setShowPropertyTypeModal(false);
       }}
     >
@@ -518,7 +525,7 @@ export default function AddResidentialPropertyScreen() {
       try {
         const apiData = transformFormDataToApiFormat();
         console.log('Property type selected:', formData.propertyType);
-        console.log('Category being sent:', apiData.category);
+        console.log('Property type ID being sent:', formData.propertyTypeId);
         console.log('Submitting property data:', apiData);
         
         // Call the API
@@ -648,6 +655,8 @@ export default function AddResidentialPropertyScreen() {
               {errors.propertyType}
             </Typography>
           )}
+          
+
         </View>
 
         {/* Year Built */}
@@ -777,10 +786,17 @@ export default function AddResidentialPropertyScreen() {
           </View>
           
           <FlatList
-            data={PROPERTY_TYPES}
+            data={propertyTypesList}
             renderItem={renderPropertyTypeItem}
             keyExtractor={(item) => item}
             style={styles.modalList}
+            ListEmptyComponent={() => (
+              <View style={{ padding: spacing.lg, alignItems: 'center' }}>
+                <Typography variant="body" color="secondary">
+                  {propertyTypesLoading ? 'Loading property types...' : 'No property types available'}
+                </Typography>
+              </View>
+            )}
           />
         </View>
       </Modal>

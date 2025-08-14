@@ -165,12 +165,7 @@ export default function SuccessPopup({
             </View>
           </View>
 
-          {/* Button */}
-          <Button
-            title={buttonText}
-            onPress={handleClose}
-            style={styles.button}
-          />
+          
         </Animated.View>
       </View>
     </Modal>
