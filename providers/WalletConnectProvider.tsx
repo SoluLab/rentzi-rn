@@ -15,6 +15,7 @@ interface WalletConnectContextType {
   disconnect: () => Promise<void>;
   client?: SignClient;
   session?: SessionTypes.Struct;
+  provider?: any;
 }
 
 // Create the context
@@ -29,52 +30,33 @@ export function WalletConnectProvider({ children }: { children: React.ReactNode 
   const [session, setSession] = useState<SessionTypes.Struct | undefined>(undefined);
 
   // Modal opener hook from WalletConnect RN modal
-  const { open } = useWalletConnectModal();
+  const { open, isConnected: modalConnected, address: modalAddress, provider } = useWalletConnectModal();
 
-  // Initialize WalletConnect
+  // Sync state from modal provider
   useEffect(() => {
-    const initWalletConnect = async () => {
+    if (provider && modalConnected) {
+      setIsConnected(true);
+      setAddress(modalAddress);
+      // Best-effort attempt to read chainId from provider session
       try {
-        console.log('Initializing WalletConnect client...');
-        const signClient = await SignClient.init({
-          projectId: PROJECT_ID,
-          metadata: {
-            name: 'Rentzi',
-            description: 'Rentzi Wallet Connection',
-            url: 'https://rentzi.com',
-            icons: ['https://rentzi.com/logo.png']
-          }
-        });
-
-        console.log('WalletConnect client initialized successfully');
-        setClient(signClient);
-
-        // Check for existing sessions
-        const activeSessions = signClient.session.getAll();
-        console.log('Active sessions:', activeSessions.length);
-        if (activeSessions.length > 0) {
-          const latestSession = activeSessions[0];
-          handleSessionUpdate(latestSession);
+        // @ts-ignore - provider internals are not typed for chainId access
+        const ns = provider?.session?.namespaces?.eip155;
+        if (ns?.chains && ns.chains[0]) {
+          const parts = String(ns.chains[0]).split(":");
+          const cid = parts[1];
+          const parsed = /^0x/i.test(cid) ? parseInt(cid, 16) : Number(cid);
+          if (!Number.isNaN(parsed)) setChainId(parsed);
         }
-
-        // Listen for session events
-        signClient.on('session_update', ({ topic }) => {
-          console.log('Session update event received');
-          const updatedSession = signClient.session.get(topic);
-          handleSessionUpdate(updatedSession);
-        });
-
-        signClient.on('session_delete', () => {
-          console.log('Session deleted event received');
-          resetConnection();
-        });
-      } catch (error) {
-        console.error('WalletConnect initialization error:', error);
+        // Attempt to cleanup any pending pairings to avoid core/pairing noise
+        // @ts-ignore
+        provider?.cleanupPendingPairings?.();
+      } catch {
+        // ignore
       }
-    };
-
-    initWalletConnect();
-  }, []);
+    } else if (!modalConnected) {
+      resetConnection();
+    }
+  }, [provider, modalConnected, modalAddress]);
 
   // Handle session update
   const handleSessionUpdate = (activeSession: SessionTypes.Struct) => {
@@ -110,42 +92,14 @@ export function WalletConnectProvider({ children }: { children: React.ReactNode 
   const connect = async () => {
     console.log('Connect method called');
     try {
-      if (!client) {
-        console.warn('SignClient not yet initialized; proceeding with modal provider connect');
-      }
-      const namespaces = {
-        eip155: {
-          methods: ['eth_sendTransaction', 'eth_signTransaction', 'eth_sign', 'personal_sign'],
-          chains: ['eip155:1'],
-          events: ['chainChanged', 'accountsChanged']
-        }
-      } as const;
-
+      // Clear any stale sessions/pairings before opening
+      try {
+        // @ts-ignore
+        await provider?.disconnect?.();
+        // @ts-ignore
+        await provider?.cleanupPendingPairings?.();
+      } catch {}
       await open();
-
-      // Use the underlying SignClient to read the approved session once connection completes
-      // Poll briefly for a new active session
-      const getLatestSession = async (): Promise<SessionTypes.Struct | undefined> => {
-        if (!client) return undefined;
-        const sessions = client.session.getAll();
-        return sessions[0];
-      };
-
-      // Wait a short time for the session to be established
-      let attempts = 0;
-      let latest: SessionTypes.Struct | undefined = undefined;
-      while (attempts < 20) {
-        latest = await getLatestSession();
-        if (latest) break;
-        await new Promise(r => setTimeout(r, 250));
-        attempts += 1;
-      }
-
-      if (!latest) {
-        throw new Error('Wallet connection not approved');
-      }
-
-      handleSessionUpdate(latest);
     } catch (error) {
       console.error('WalletConnect connection error:', error);
       throw error;
@@ -155,19 +109,14 @@ export function WalletConnectProvider({ children }: { children: React.ReactNode 
   // Disconnect wallet
   const disconnect = async () => {
     console.log('Disconnect method called');
-    if (!client || !session) {
-      console.warn('No active session to disconnect');
-      return;
-    }
-
     try {
-      await client.disconnect({
-        topic: session.topic,
-        reason: { code: 6000, message: 'User disconnected' }
-      });
-      resetConnection();
+      if (provider?.disconnect) {
+        await provider.disconnect();
+      }
     } catch (error) {
       console.error('WalletConnect disconnection error:', error);
+    } finally {
+      resetConnection();
     }
   };
 
@@ -187,7 +136,8 @@ export function WalletConnectProvider({ children }: { children: React.ReactNode 
     connect,
     disconnect,
     client,
-    session
+    session,
+    provider
   };
 
   return (

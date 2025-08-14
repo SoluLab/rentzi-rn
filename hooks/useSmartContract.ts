@@ -1,8 +1,5 @@
 import { useState } from 'react';
-import type Client from '@walletconnect/sign-client';
-import type { SessionTypes } from '@walletconnect/types';
 import { createSmartContractService } from '../services/smartContractService';
-import { useWalletConnect } from '../providers/WalletConnectProvider';
 
 // Example contract ABI (you'll replace this with your actual contract ABI)
 const EXAMPLE_CONTRACT_ABI = [
@@ -17,32 +14,26 @@ const EXAMPLE_CONTRACT_ABI = [
 ];
 
 export const useSmartContract = (
-  contractAddress: string
+  contractAddress: string,
+  options?: {
+    rpcUrl?: string;
+    privateKeyHex?: string; // optional signer for write operations
+    abi?: any[];
+  }
 ) => {
-  const { client, session, address } = useWalletConnect();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [data, setData] = useState<any>(null);
 
-  // Validate WalletConnect connection
-  const validateConnection = () => {
-    if (!client || !session) {
-      throw new Error('No active WalletConnect session');
-    }
-    if (!address) {
-      throw new Error('No wallet address connected');
-    }
-  };
-
   // Create service instance
   const getContractService = () => {
-    validateConnection();
-    return createSmartContractService(
-      client!, 
-      session!, 
-      contractAddress, 
-      EXAMPLE_CONTRACT_ABI
-    );
+    const rpcUrl = options?.rpcUrl || 'https://mainnet.infura.io/v3/your_key_here';
+    return createSmartContractService({
+      rpcUrl,
+      contractAddress,
+      contractABI: options?.abi || EXAMPLE_CONTRACT_ABI,
+      privateKeyHex: options?.privateKeyHex,
+    });
   };
 
   // Example read method
@@ -66,7 +57,7 @@ export const useSmartContract = (
 
   // Example write method 
   const executeContractTransaction = async (
-    methodName: string, 
+    methodName: string,
     args: any[] = []
   ) => {
     setLoading(true);
@@ -74,11 +65,7 @@ export const useSmartContract = (
 
     try {
       const contractService = getContractService();
-      const receipt = await contractService.writeContractData(
-        methodName, 
-        args,
-        address!
-      );
+      const receipt = await contractService.writeContractData(methodName, args);
       setData(receipt);
       return receipt;
     } catch (err) {

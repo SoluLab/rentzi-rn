@@ -1,116 +1,79 @@
-import type Client from '@walletconnect/sign-client';
-import type { SessionTypes } from '@walletconnect/types';
+import { Contract, JsonRpcProvider, Wallet, type Signer } from 'ethers';
 
-// Example contract interaction service using WalletConnect
+type TransactionOverrides = {
+  value?: bigint;
+  gasLimit?: bigint;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
+  maxPriorityFeePerGas?: bigint;
+};
+
+// Ethers-based smart contract interaction service (no WalletConnect)
 export class SmartContractService {
-  private client: Client;
-  private session: SessionTypes.Struct;
-  private contractAddress: string;
-  private contractABI: any[];
+  private readonly provider: JsonRpcProvider;
+  private readonly signer?: Signer;
+  private readonly contract: Contract;
 
-  constructor(
-    client: Client,
-    session: SessionTypes.Struct,
-    contractAddress: string,
-    contractABI: any[]
-  ) {
-    this.client = client;
-    this.session = session;
-    this.contractAddress = contractAddress;
-    this.contractABI = contractABI;
+  constructor(params: {
+    rpcUrl: string;
+    contractAddress: string;
+    contractABI: any[];
+    privateKeyHex?: string; // optional; if provided enables write calls
+    signer?: Signer; // optional external signer
+  }) {
+    const { rpcUrl, contractAddress, contractABI, privateKeyHex, signer } = params;
+
+    this.provider = new JsonRpcProvider(rpcUrl);
+    this.signer = signer ?? (privateKeyHex ? new Wallet(privateKeyHex, this.provider) : undefined);
+
+    this.contract = new Contract(
+      contractAddress,
+      contractABI,
+      this.signer ?? this.provider
+    );
   }
 
-  private getFirstChainId(): string {
-    const [namespace] = Object.keys(this.session.namespaces);
-    const chains = this.session.namespaces[namespace]?.chains ?? [];
-    const chainId = chains[0];
-    if (!chainId) {
-      throw new Error('No chainId available in WalletConnect session');
-    }
-    return chainId;
-  }
-
-  // Method to read from a contract
-  async readContractData(methodName: string, args: any[] = []) {
+  // Read-only call
+  async readContractData(methodName: string, args: unknown[] = []) {
     try {
-      const chainId = this.getFirstChainId();
-      const result = await this.client.request({
-        topic: this.session.topic,
-        chainId,
-        request: {
-          method: 'eth_call',
-          params: [{
-            to: this.contractAddress,
-            data: this.encodeMethodCall(methodName, args)
-          }, 'latest']
-        }
-      });
-
-      return this.decodeMethodResult(methodName, result as string);
+      // @ts-ignore - dynamic method index
+      const result = await this.contract[methodName](...args);
+      return result;
     } catch (error) {
-      console.error(`Error calling ${methodName}:`, error);
+      console.error(`Error calling read method ${methodName}:`, error);
       throw error;
     }
   }
 
-  // Method to write to a contract (send transaction)
+  // State-changing transaction; requires signer
   async writeContractData(
     methodName: string,
-    args: any[] = [],
-    fromAddress: string
+    args: unknown[] = [],
+    overrides: TransactionOverrides = {}
   ) {
-    try {
-      const chainId = this.getFirstChainId();
-      const tx = await this.client.request({
-        topic: this.session.topic,
-        chainId,
-        request: {
-          method: 'eth_sendTransaction',
-          params: [{
-            from: fromAddress,
-            to: this.contractAddress,
-            data: this.encodeMethodCall(methodName, args)
-          }]
-        }
-      });
+    if (!this.signer) {
+      throw new Error('No signer configured. Provide a private key to enable write transactions.');
+    }
 
-      return tx;
+    try {
+      // @ts-ignore - dynamic method index
+      const txResponse = await this.contract[methodName](...args, overrides);
+      const receipt = await txResponse.wait();
+      return receipt;
     } catch (error) {
-      console.error(`Error calling ${methodName}:`, error);
+      console.error(`Error sending tx for method ${methodName}:`, error);
       throw error;
     }
-  }
-
-  // Helper method to encode method call (simplified)
-  private encodeMethodCall(methodName: string, args: any[]): string {
-    const method = this.contractABI.find(m => m.name === methodName);
-    if (!method) {
-      throw new Error(`Method ${methodName} not found in ABI`);
-    }
-
-    const methodSignature = `${methodName}(${method.inputs.map((i: { type: string }) => i.type).join(',')})`;
-    console.warn('Method encoding is simplified and may not work correctly');
-    return methodSignature;
-  }
-
-  // Helper method to decode method result (simplified)
-  private decodeMethodResult(methodName: string, result: string): any {
-    console.warn('Method result decoding is simplified and may not work correctly');
-    return result;
   }
 }
 
-// Factory method to create SmartContractService
-export const createSmartContractService = (
-  client: Client,
-  session: SessionTypes.Struct,
-  contractAddress: string,
-  contractABI: any[]
-) => {
-  return new SmartContractService(
-    client,
-    session,
-    contractAddress,
-    contractABI
-  );
+// Factory method to create SmartContractService (ethers-powered)
+export const createSmartContractService = (params: {
+  rpcUrl: string;
+  contractAddress: string;
+  contractABI: any[];
+  privateKeyHex?: string;
+  signer?: Signer;
+}) => {
+  return new SmartContractService(params);
 };

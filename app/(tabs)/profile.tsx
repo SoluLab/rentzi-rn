@@ -334,14 +334,14 @@ export default function ProfileScreen() {
           </Typography>
           {isConnected ? (
             <View>
-              <Typography variant="body" color="secondary">
+              <Typography variant="body" color="primary">
                 Connected Wallet: {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown'}
               </Typography>
               <Button
                 title="Disconnect Wallet"
                 onPress={disconnectWallet}
                 variant="outline"
-                style={styles.logoutButton}
+                style={styles.deleteButton}
                 disabled={walletConnectionLoading}
               />
             </View>

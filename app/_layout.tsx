@@ -12,6 +12,7 @@ import 'react-native-get-random-values';
 import { QueryProvider } from '@/providers/QueryProvider';
 import { WalletConnectProvider } from '@/providers/WalletConnectProvider';
 import { WalletConnectModal } from '@walletconnect/modal-react-native';
+import { LogBox } from 'react-native';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +26,16 @@ export default function RootLayout() {
             SplashScreen.hideAsync();
         }
     }, [loaded]);
+
+    // // Suppress WalletConnect core/pairing noisy errors shown as red console overlays
+    // useEffect(() => {
+    //     try {
+    //         LogBox.ignoreLogs([
+    //             /\{"context":"core"\} \{\"context\":\"core\/pairing\"\}/i as unknown as string,
+    //             /core\/pairing\/pairing.*No matching key/i as unknown as string,
+    //         ] as any);
+    //     } catch {}
+    // }, []);
 
     if (!loaded) {
         return null;
