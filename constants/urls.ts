@@ -84,6 +84,7 @@ export const ENDPOINTS = {
       propertyType ? `/property/dropdowns/documents?propertyType=${propertyType}` : "/property/dropdowns/documents",
     TYPES_DROPDOWN: "/property/dropdowns/categories",
     FEATURES_DROPDOWN: "/property/dropdowns/features",
+    ZONING_CLASSIFICATIONS_DROPDOWN: "/property/dropdowns/zoning-classifications",
   },
 
   HOMEOWNER_DASHBOARD: {

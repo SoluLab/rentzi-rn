@@ -24,6 +24,7 @@ import { useCommercialPropertyStore } from "@/stores/commercialPropertyStore";
 import { useHomeownerPropertyStore } from "@/stores/homeownerPropertyStore";
 import { useHomeownerCreateProperty } from "@/services/homeownerAddProperty";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+import { useHomeownerDropdown } from "@/hooks/useHomeownerDropdown";
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -40,14 +41,7 @@ const APPROVED_LOCATIONS = [
   "Other",
 ];
 
-// Zoning types
-const ZONING_TYPES = [
-  "Retail",
-  "Office",
-  "Mixed-Use",
-  "Industrial",
-  "Hospitality",
-];
+// Zoning types will be populated from API
 
 interface FormData {
   propertyTitle: string;
@@ -149,6 +143,13 @@ export default function AddCommercialPropertyScreen() {
   const [showMarketModal, setShowMarketModal] = useState(false);
   const [showZoningModal, setShowZoningModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Dropdowns hook
+  const { zoningClassifications, zoningClassificationsLoading } =
+    useHomeownerDropdown();
+  const zoningTypesFromApi = (zoningClassifications || [])
+    .filter((z) => z && z.name)
+    .map((z) => z.name);
 
   const currentYear = new Date().getFullYear();
 
@@ -377,12 +378,18 @@ export default function AddCommercialPropertyScreen() {
       ];
     };
 
+    // Map selected zoning name to its id from dropdown
+    const selectedZoning = (zoningClassifications || []).find(
+      (z) => z && z.name === formData.zoningType
+    );
+    const zoningClassificationId = selectedZoning?._id;
+
     return {
       title: formData.propertyTitle,
       description: `${formData.propertyTitle} - ${formData.zoningType} commercial property`,
       type: "commercial",
       ownerType: "propertyOwner",
-   //category: getCategoryFromZoningType(formData.zoningType),
+      _zoningClassification: zoningClassificationId,
       address: {
         street: formData.fullAddress,
         zipCode: formData.pincode,
@@ -675,10 +682,19 @@ export default function AddCommercialPropertyScreen() {
           </View>
 
           <FlatList
-            data={ZONING_TYPES}
+            data={zoningTypesFromApi}
             renderItem={renderZoningItem}
             keyExtractor={(item) => item}
             style={styles.modalList}
+            ListEmptyComponent={() => (
+              <View style={{ padding: spacing.lg, alignItems: "center" }}>
+                <Typography variant="body" color="secondary">
+                  {zoningClassificationsLoading
+                    ? "Loading zoning types..."
+                    : "No zoning types available"}
+                </Typography>
+              </View>
+            )}
           />
         </View>
       </Modal>

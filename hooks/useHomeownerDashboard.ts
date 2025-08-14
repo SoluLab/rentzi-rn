@@ -8,10 +8,12 @@ export const useHomeownerDashboard = (options?: {
   onStatsError?: (error: any) => void;
   onPropertiesSuccess?: (data: PaginatedPropertyListResponse) => void;
   onPropertiesError?: (error: any) => void;
+  status?: string | null;
 }) => {
   // Pagination state
   const [page, setPage] = useState(1);
   const [allProperties, setAllProperties] = useState<any[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Dashboard stats
   const {
@@ -35,13 +37,19 @@ export const useHomeownerDashboard = (options?: {
     error: propertiesError,
     refetch: refetchProperties,
   } = useHomeownerGetAllProperties(
-    { page, limit: 10, status: 'draft' },
+    { 
+      page, 
+      limit: 10, 
+      ...(options?.status && { status: options.status })
+    },
     {
       onSuccess: (data) => {
         options?.onPropertiesSuccess?.(data);
+        setIsLoadingMore(false);
       },
       onError: (error) => {
         options?.onPropertiesError?.(error);
+        setIsLoadingMore(false);
       },
     }
   );
@@ -57,17 +65,19 @@ export const useHomeownerDashboard = (options?: {
     }
   }, [propertiesData, page]);
 
-  // Load more function
+  // Load more function - automatically called when user scrolls
   const loadMore = useCallback(() => {
-    if (propertiesData?.pagination?.hasNext && !isPropertiesLoading) {
+    if (propertiesData?.pagination?.hasNext && !isPropertiesLoading && !isLoadingMore) {
+      setIsLoadingMore(true);
       setPage((prev) => prev + 1);
     }
-  }, [propertiesData, isPropertiesLoading]);
+  }, [propertiesData, isPropertiesLoading, isLoadingMore]);
 
   // Reset properties and page on refresh
   const refreshProperties = useCallback(() => {
     setPage(1);
     setAllProperties([]);
+    setIsLoadingMore(false);
     refetchProperties();
   }, [refetchProperties]);
 
@@ -84,5 +94,9 @@ export const useHomeownerDashboard = (options?: {
     loadMore,
     setPage,
     page,
+    isLoadingMore,
+    hasMore: propertiesData?.pagination?.hasNext || false,
+    totalProperties: propertiesData?.pagination?.total || 0,
+    currentPage: page,
   };
 }; 

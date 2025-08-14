@@ -435,14 +435,6 @@ export default function CommercialPropertyDocumentsUploadScreen() {
               (Optional)
             </Typography>
           )}
-
-            <TouchableOpacity
-              style={styles.removeCustomButton}
-              onPress={() => removeCustomDocument(fieldName)}
-            >
-              <X size={16} color={colors.status.error} />
-            </TouchableOpacity>
-          )}
         </View>
 
         <Typography

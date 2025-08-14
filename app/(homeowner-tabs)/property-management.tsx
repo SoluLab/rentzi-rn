@@ -40,7 +40,6 @@ import {
   Search,
   Filter,
   AlertCircle,
-  RefreshCw,
   X,
   Home,
   Building,
@@ -63,49 +62,13 @@ export default function PropertyManagementScreen() {
     syncFromResidentialStore,
   } = useHomeownerPropertyStore();
 
-  // Use the same API as the index screen
-  const {
-    properties: apiProperties,
-    isPropertiesLoading: isLoading,
-    propertiesError,
-    refetchProperties: refetch,
-    pagination,
-    loadMore,
-    page,
-  } = useHomeownerDashboard();
 
-  // Transform API data to match the expected format
-  const properties: HomeownerProperty[] = React.useMemo(() => {
-    if (!apiProperties || apiProperties.length === 0) return [];
-    
-    return apiProperties.map((property: any) => ({
-      id: property._id,
-      title: property.title,
-      description: property.description,
-      location: `${property.address?.street || ''}, ${property.address?.city || ''}`,
-      price: property.rentAmount?.basePrice?.toString() || "0",
-      type: property.type === "villa" || property.type === "penthouse" || property.type === "mansion" || property.type === "estate" || property.type === "apartment" ? "residential" : "commercial",
-      status: property.status === "active" ? "approved" : property.status === "draft" ? "draft" : property.status === "rejected" ? "rejected" : "pending",
-      enabled: property.status === "active",
-      image: property.images?.[0]?.url || property.images?.[0] || "https://via.placeholder.com/300x200?text=Property",
-      bedrooms: property.bedrooms?.length?.toString() || "0",
-      bathrooms: property.bathrooms?.toString() || "0",
-      squareFootage: property.area?.value ? `${property.area.value} sq ft` : undefined,
-      createdAt: new Date(property.createdAt),
-      rejectionReason: undefined,
-      tokenSymbol: undefined,
-      tokenStatus: undefined,
-      totalTokensIssued: undefined,
-      investorsCount: undefined,
-      totalInvestmentRaised: undefined,
-    }));
-  }, [apiProperties]);
 
   const [propertyListFilter, setPropertyListFilter] = useState<
-    "all" | "pending" | "approved" | "rejected"
+    "all" | "pending" | "approved" | "rejected" | "resubmit"
   >("all");
   const [tokenizedFilter, setTokenizedFilter] = useState<
-    "all" | "pending" | "approved" | "rejected"
+    "all" | "pending" | "approved" | "rejected" | "resubmit"
   >("approved");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -124,11 +87,71 @@ export default function PropertyManagementScreen() {
   const [propertyToToggle, setPropertyToToggle] =
     useState<HomeownerProperty | null>(null);
 
+  // Use the same API as the index screen with status filtering
+  const hookOptions = React.useMemo(() => ({
+    status: activeTab === "property-list" 
+      ? (propertyListFilter === "all" ? undefined : 
+         propertyListFilter === "pending" ? "approval_waiting" :
+         propertyListFilter === "resubmit" ? "resubmit" :
+         propertyListFilter)
+      : (tokenizedFilter === "all" ? undefined : 
+         tokenizedFilter === "pending" ? "approval_waiting" :
+         tokenizedFilter === "resubmit" ? "resubmit" :
+         tokenizedFilter)
+  }), [activeTab, propertyListFilter, tokenizedFilter]);
+
+  const {
+    properties: apiProperties,
+    isPropertiesLoading: isLoading,
+    propertiesError,
+    refetchProperties: refetch,
+    pagination,
+    loadMore,
+    page,
+  } = useHomeownerDashboard(hookOptions);
+
+
+
+  // Transform API data to match the expected format
+  const properties: HomeownerProperty[] = React.useMemo(() => {
+    if (!apiProperties || apiProperties.length === 0) return [];
+    
+    return apiProperties.map((property: any) => ({
+      id: property._id,
+      title: property.title,
+      description: property.description,
+      location: `${property.address?.street || ''}, ${property.address?.city || ''}`,
+      price: property.rentAmount?.basePrice?.toString() || "0",
+      type: property.type === "villa" || property.type === "penthouse" || property.type === "mansion" || property.type === "estate" || property.type === "apartment" ? "residential" : "commercial",
+      status: property.status === "active" ? "approved" : 
+              property.status === "draft" ? "draft" : 
+              property.status === "rejected" ? "rejected" : 
+              property.status === "pending" ? "pending" : 
+              property.status === "resubmit" ? "pending" : 
+              property.status === "awaiting_approval" ? "pending" : 
+              property.status === "approval_waiting" ? "pending" : "pending",
+      enabled: property.status === "active",
+      image: property.images?.[0]?.url || property.images?.[0] || "https://via.placeholder.com/300x200?text=Property",
+      bedrooms: property.bedrooms?.length?.toString() || "0",
+      bathrooms: property.bathrooms?.toString() || "0",
+      squareFootage: property.area?.value ? `${property.area.value} sq ft` : undefined,
+      createdAt: new Date(property.createdAt),
+      rejectionReason: undefined,
+      tokenSymbol: undefined,
+      tokenStatus: undefined,
+      totalTokensIssued: undefined,
+      investorsCount: undefined,
+      totalInvestmentRaised: undefined,
+    }));
+  }, [apiProperties]);
+
   // Sync with property stores on component mount
   useEffect(() => {
     syncFromCommercialStore();
     syncFromResidentialStore();
   }, []);
+
+
 
   // Error handling: show toast if propertiesError
   useEffect(() => {
@@ -136,6 +159,8 @@ export default function PropertyManagementScreen() {
       console.error('Properties error:', propertiesError);
     }
   }, [propertiesError]);
+
+
 
   // Reset filters when tab changes
   useEffect(() => {
@@ -145,6 +170,12 @@ export default function PropertyManagementScreen() {
       setPropertyListFilter("all");
     }
   }, [activeTab]);
+
+  // Ensure initial data loading
+  useEffect(() => {
+    // The hook will automatically load data on mount
+    // No need to manually call refetch
+  }, []);
 
   const handleAddProperty = () => {
     setShowPropertyModal(true);
@@ -264,6 +295,8 @@ export default function PropertyManagementScreen() {
         return colors.status.error;
       case "draft":
         return colors.text.secondary;
+      case "resubmit":
+        return colors.primary.gold;
       default:
         return colors.text.secondary;
     }
@@ -279,6 +312,8 @@ export default function PropertyManagementScreen() {
         return XCircle;
       case "draft":
         return AlertCircle;
+      case "resubmit":
+        return Clock;
       default:
         return AlertCircle;
     }
@@ -294,6 +329,8 @@ export default function PropertyManagementScreen() {
         return "Reassigned with Reason";
       case "draft":
         return "Draft";
+      case "resubmit":
+        return "Resubmit";
       default:
         return status;
     }
@@ -306,15 +343,27 @@ export default function PropertyManagementScreen() {
       property.location.toLowerCase().includes(searchQuery.toLowerCase());
     const currentFilter =
       activeTab === "property-list" ? propertyListFilter : tokenizedFilter;
-    const matchesFilter =
-      currentFilter === "all" || property.status === currentFilter;
+    
+    // Handle resubmit filter - show properties with pending status when resubmit filter is selected
+    let matchesFilter = currentFilter === "all";
+    if (currentFilter === "resubmit") {
+      matchesFilter = property.status === "pending";
+    } else if (currentFilter !== "all") {
+      matchesFilter = property.status === currentFilter;
+    }
+    
     return matchesSearch && matchesFilter;
   });
 
   const getFilterCount = (filter: string) => {
     if (filter === "all") return properties.length;
+    if (filter === "resubmit") {
+      return properties.filter((property) => property.status === "pending").length;
+    }
     return properties.filter((property) => property.status === filter).length;
   };
+
+
 
   const renderPropertyCard = ({
     item: property,
@@ -657,6 +706,7 @@ export default function PropertyManagementScreen() {
                     { key: "pending", label: "Awaiting Approval" },
                     { key: "approved", label: "Approved" },
                     { key: "rejected", label: "Reassigned with Reason" },
+                    { key: "resubmit", label: "Resubmit" },
                   ].map((filter) => (
                     <TouchableOpacity
                       key={filter.key}
@@ -686,11 +736,22 @@ export default function PropertyManagementScreen() {
 
             {/* Properties List */}
             <View style={styles.section}>
-              {filteredProperties.length > 0 ? (
+              {isLoading ? (
+                <Card style={styles.emptyState}>
+                  <View style={styles.loadingContainer}>
+                    <Typography variant="h4" color="secondary" align="center">
+                      Loading properties...
+                    </Typography>
+                    <Typography variant="body" color="secondary" align="center">
+                      Please wait while we fetch your properties
+                    </Typography>
+                  </View>
+                </Card>
+              ) : filteredProperties.length > 0 ? (
                 <FlatList
                   data={filteredProperties}
                   renderItem={renderPropertyCard}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
                   onEndReached={loadMore}
@@ -778,11 +839,22 @@ export default function PropertyManagementScreen() {
 
             {/* Tokenized Properties List */}
             <View style={styles.section}>
-              {filteredProperties.length > 0 ? (
+              {isLoading ? (
+                <Card style={styles.emptyState}>
+                  <View style={styles.loadingContainer}>
+                    <Typography variant="h4" color="secondary" align="center">
+                      Loading tokenized properties...
+                    </Typography>
+                    <Typography variant="body" color="secondary" align="center">
+                      Please wait while we fetch your tokenized properties
+                    </Typography>
+                  </View>
+                </Card>
+              ) : filteredProperties.length > 0 ? (
                 <FlatList
                   data={filteredProperties}
                   renderItem={renderPropertyCard}
-                  keyExtractor={(item) => item.id}
+                  keyExtractor={(item, index) => `${item.id}-${index}`}
                   showsVerticalScrollIndicator={false}
                   scrollEnabled={false}
                   onEndReached={loadMore}

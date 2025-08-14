@@ -1,5 +1,5 @@
-import { useAmenitiesDropdown, usePropertyRulesDropdown, usePropertyTypesDropdown, usePropertyFeaturesDropdown } from "@/services/homeownerDropdown";
-import { Amenity, PropertyRule, PropertyType, PropertyFeature } from "@/types/homeownerDropdown";
+import { useAmenitiesDropdown, usePropertyRulesDropdown, usePropertyTypesDropdown, usePropertyFeaturesDropdown, useZoningClassificationsDropdown } from "@/services/homeownerDropdown";
+import { Amenity, PropertyRule, PropertyType, PropertyFeature, ZoningClassification } from "@/types/homeownerDropdown";
 
 interface UseHomeownerDropdownReturn {
   amenities: Amenity[];
@@ -18,6 +18,10 @@ interface UseHomeownerDropdownReturn {
   propertyFeaturesLoading: boolean;
   propertyFeaturesError: any;
   propertyFeaturesTotal: number;
+  zoningClassifications: ZoningClassification[];
+  zoningClassificationsLoading: boolean;
+  zoningClassificationsError: any;
+  zoningClassificationsTotal: number;
 }
 
 export const useHomeownerDropdown = (): UseHomeownerDropdownReturn => {
@@ -45,6 +49,12 @@ export const useHomeownerDropdown = (): UseHomeownerDropdownReturn => {
     error: propertyFeaturesError,
   } = usePropertyFeaturesDropdown();
 
+  const {
+    data: zoningClassificationsData,
+    isLoading: zoningClassificationsLoading,
+    error: zoningClassificationsError,
+  } = useZoningClassificationsDropdown();
+
   const amenities = amenitiesData?.data?.amenities || [];
   const amenitiesTotal = amenitiesData?.data?.total || 0;
   const propertyRules = propertyRulesData?.data?.rules || [];
@@ -53,6 +63,8 @@ export const useHomeownerDropdown = (): UseHomeownerDropdownReturn => {
   const propertyTypesTotal = propertyTypesData?.data?.total || 0;
   const propertyFeatures = propertyFeaturesData?.data?.features || [];
   const propertyFeaturesTotal = propertyFeaturesData?.data?.total || 0;
+  const zoningClassifications = zoningClassificationsData?.data?.classifications || [];
+  const zoningClassificationsTotal = zoningClassificationsData?.data?.total || 0;
 
   return {
     amenities,
@@ -71,5 +83,9 @@ export const useHomeownerDropdown = (): UseHomeownerDropdownReturn => {
     propertyFeaturesLoading,
     propertyFeaturesError,
     propertyFeaturesTotal,
+    zoningClassifications,
+    zoningClassificationsLoading,
+    zoningClassificationsError,
+    zoningClassificationsTotal,
   };
 };

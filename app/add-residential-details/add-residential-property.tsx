@@ -81,13 +81,15 @@ export default function AddResidentialPropertyScreen() {
   const { getPropertyById } = useHomeownerPropertyStore();
   const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
   
-  // Property types dropdown hook
-  const { propertyTypes, propertyTypesLoading, propertyTypesError } = useHomeownerDropdown();
+  // Property types and zoning dropdown hook
+  const { propertyTypes, propertyTypesLoading, propertyTypesError, zoningClassifications } = useHomeownerDropdown();
   
   // Local state for property types
   const [propertyTypesList, setPropertyTypesList] = useState<string[]>([]);
   const [propertyTypesMap, setPropertyTypesMap] = useState<{ [key: string]: string }>({});
   const [propertyTypesReverseMap, setPropertyTypesReverseMap] = useState<{ [key: string]: string }>({});
+  // Optional: zoning list for residential use in future steps if needed
+  const [zoningList, setZoningList] = useState<string[]>([]);
   
   // API mutation hook
   const createPropertyMutation = useHomeownerCreateProperty({
@@ -143,7 +145,11 @@ export default function AddResidentialPropertyScreen() {
       setPropertyTypesMap(typesMap);
       setPropertyTypesReverseMap(typesReverseMap);
     }
-  }, [propertyTypes, propertyTypesLoading, propertyTypesError]);
+    // Prepare zoning classifications names if needed elsewhere
+    if (zoningClassifications && zoningClassifications.length > 0) {
+      setZoningList(zoningClassifications.map(z => z.name));
+    }
+  }, [propertyTypes, propertyTypesLoading, propertyTypesError, zoningClassifications]);
 
   // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>({
@@ -422,42 +428,19 @@ export default function AddResidentialPropertyScreen() {
     const createBedroomsArray = () => {
       const numBedrooms = parseInt(formData.bedrooms);
       const totalSqft = parseInt(formData.squareFootage);
-      const bedrooms = [];
       
-      // Calculate minimum room size (50 sqft per bedroom)
-      const minRoomSize = 50;
-      const totalMinSize = numBedrooms * minRoomSize;
+      // Calculate average room size
+      const avgRoomSize = Math.floor(totalSqft / numBedrooms);
       
-      // If total square footage is less than minimum required, use minimum size
-      if (totalSqft < totalMinSize) {
-        for (let i = 0; i < numBedrooms; i++) {
-          bedrooms.push({
-            roomType: 'master', // Default room type
-            bedType: 'king', // Default bed type
-            attachedBathroom: i === 0, // First bedroom has attached bathroom
-            walkInCloset: i === 0, // First bedroom has walk-in closet
-            roomSizeInSqft: minRoomSize, // Use minimum size
-            hasBalcony: false, // Default no balcony
-          });
-        }
-      } else {
-        // Distribute remaining area after minimum allocation
-        const remainingSqft = totalSqft - totalMinSize;
-        const extraPerRoom = Math.floor(remainingSqft / numBedrooms);
-        
-        for (let i = 0; i < numBedrooms; i++) {
-          bedrooms.push({
-            roomType: 'master', // Default room type
-            bedType: 'king', // Default bed type
-            attachedBathroom: i === 0, // First bedroom has attached bathroom
-            walkInCloset: i === 0, // First bedroom has walk-in closet
-            roomSizeInSqft: minRoomSize + extraPerRoom, // Minimum + extra
-            hasBalcony: false, // Default no balcony
-          });
-        }
-      }
-      
-      return bedrooms;
+      // Return array with only one bedroom object
+      return [{
+        roomType: 'master',
+        bedType: 'king',
+        attachedBathroom: true,
+        walkInCloset: true,
+        roomSizeInSqft: avgRoomSize,
+        hasBalcony: false
+      }];
     };
 
     return {

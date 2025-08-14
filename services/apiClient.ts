@@ -98,6 +98,7 @@ export const queryKeys = {
       : [...queryKeys.all, "homeowner", "dropdown", "propertyDocuments"] as const,
   propertyTypes: () => [...queryKeys.all, "homeowner", "dropdown", "propertyTypes"] as const,
   propertyFeatures: () => [...queryKeys.all, "homeowner", "dropdown", "propertyFeatures"] as const,
+  zoningClassifications: () => [...queryKeys.all, "homeowner", "dropdown", "zoningClassifications"] as const,
 };
 
 // Main API call function

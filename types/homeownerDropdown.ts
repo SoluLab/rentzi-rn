@@ -28,6 +28,15 @@ export const PropertyFeatureSchema = z.object({
   description: z.string(),
 });
 
+// Zoning classification item schema
+export const ZoningClassificationSchema = z.object({
+  _id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
+  type: z.array(z.enum(["residential", "commercial"]))
+});
+
 // Amenities response schema
 export const AmenitiesResponseSchema = z.object({
   success: z.boolean(),
@@ -68,15 +77,27 @@ export const PropertyFeaturesResponseSchema = z.object({
   }),
 });
 
+// Zoning classifications response schema
+export const ZoningClassificationsResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  data: z.object({
+    classifications: z.array(ZoningClassificationSchema),
+    total: z.number(),
+  }),
+});
+
 // Type definitions
 export type Amenity = z.infer<typeof AmenitySchema>;
 export type PropertyRule = z.infer<typeof PropertyRuleSchema>;
 export type PropertyType = z.infer<typeof PropertyTypeSchema>;
 export type PropertyFeature = z.infer<typeof PropertyFeatureSchema>;
+export type ZoningClassification = z.infer<typeof ZoningClassificationSchema>;
 export type AmenitiesResponse = z.infer<typeof AmenitiesResponseSchema>;
 export type PropertyRulesResponse = z.infer<typeof PropertyRulesResponseSchema>;
 export type PropertyTypesResponse = z.infer<typeof PropertyTypesResponseSchema>;
 export type PropertyFeaturesResponse = z.infer<typeof PropertyFeaturesResponseSchema>;
+export type ZoningClassificationsResponse = z.infer<typeof ZoningClassificationsResponseSchema>;
 
 // API error types
 export interface DropdownApiError {

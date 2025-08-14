@@ -174,4 +174,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    
+    // Sumsub SDK dependencies
+    implementation 'com.sumsub.sns:idensic-mobile-sdk:1.35.1'
 }

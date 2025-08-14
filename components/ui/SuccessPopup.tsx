@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { colors } from '@/constants/colors';
 import { spacing } from '@/constants/spacing';
 import { radius } from '@/constants/radius';
-import { Check, Mail, Phone, Bell } from 'lucide-react-native';
+import { Check, Mail, Phone, Bell, ArrowRight } from 'lucide-react-native';
 
 interface SuccessPopupProps {
   visible: boolean;
@@ -165,7 +165,13 @@ export default function SuccessPopup({
             </View>
           </View>
 
-          
+          {/* Button */}
+          <Button
+            title={buttonText}
+            onPress={handleClose}
+            style={styles.button}
+            leftIcon={<ArrowRight size={20} color={colors.neutral.white} />}
+          />
         </Animated.View>
       </View>
     </Modal>

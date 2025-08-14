@@ -50,7 +50,7 @@ export default function HomeownerDashboardScreen() {
   const { user } = useAuthStore();
   const { unreadCount } = useNotificationStore();
 
-  // Use the new loadMore from the hook
+  // Use the new loadMore from the hook - no status filter for dashboard (shows all properties)
   const {
     dashboardStats,
     isStatsLoading,
@@ -63,7 +63,9 @@ export default function HomeownerDashboardScreen() {
     pagination,
     loadMore,
     page,
-  } = useHomeownerDashboard();
+    totalProperties,
+    hasMore,
+  } = useHomeownerDashboard({}); // Empty object means no status filter - shows all properties
 
   const [showPropertyModal, setShowPropertyModal] = React.useState(false);
 
@@ -88,6 +90,13 @@ export default function HomeownerDashboardScreen() {
       handleRefresh();
     }, [])
   );
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Cleanup when component unmounts
+    };
+  }, []);
 
   const handleNotifications = () => {
     router.push("/notifications");
@@ -187,6 +196,49 @@ export default function HomeownerDashboardScreen() {
 
   const renderPropertyCard = ({ item: property }: { item: any }) => {
     const StatusIcon = getStatusIcon(property.status || "active");
+    
+    // Get first image from images array with debugging and fallback
+    let propertyImage = "https://via.placeholder.com/300x200";
+    
+    if (property.images && property.images.length > 0) {
+      const firstImage = property.images[0];
+      if (firstImage && firstImage.url) {
+        // Validate URL format
+        try {
+          const url = new URL(firstImage.url);
+          propertyImage = url.toString();
+        } catch (error) {
+          console.log('Invalid URL format:', firstImage.url);
+          propertyImage = "https://via.placeholder.com/300x200";
+        }
+      }
+    }
+    
+    // Debug: Log image data
+    console.log('Property Image Debug:', {
+      propertyId: property._id,
+      imagesArray: property.images,
+      firstImage: property.images?.[0],
+      imageUrl: propertyImage,
+      hasImages: property.images && property.images.length > 0
+    });
+    
+    // Get property type from API response
+    const propertyType = property.type === "villa" ? "Residential" : 
+                        property.type === "residential" ? "Residential" : "Commercial";
+    
+    // Get address from API response
+    const propertyAddress = property.address?.street || "Address not available";
+    
+    // Get rent amount from API response
+    const rentAmount = property.rentAmount?.basePrice || 0;
+    
+    // Get bedroom count from API response
+    const bedroomCount = property.bedrooms?.length || 0;
+    
+    // Get bathroom count from API response
+    const bathroomCount = property.bathrooms || 0;
+    
     return (
       <TouchableOpacity
         onPress={() => handlePropertyPress(property._id)}
@@ -195,14 +247,27 @@ export default function HomeownerDashboardScreen() {
         <Card style={styles.propertyCard}>
           <View style={styles.cardHeader}>
             <Image
-              source={{ uri: property.image || "https://via.placeholder.com/300x200" }}
+              source={{
+                uri: propertyImage,
+              }}
               style={styles.propertyImage}
+              resizeMode="cover"
+              onError={(error) => {
+                console.log('Image loading error:', error);
+              }}
+              onLoad={() => {
+                console.log('Image loaded successfully:', propertyImage);
+              }}
             />
             <View style={styles.statusContainer}>
               <View
                 style={[
                   styles.statusBadge,
-                  { backgroundColor: getStatusColor(property.status || "active") },
+                  {
+                    backgroundColor: getStatusColor(
+                      property.status || "active"
+                    ),
+                  },
                 ]}
               >
                 <StatusIcon size={12} color={colors.neutral.white} />
@@ -224,39 +289,39 @@ export default function HomeownerDashboardScreen() {
                 numberOfLines={1}
                 style={styles.propertyTitle}
               >
-                {property.name}
+                {property.title || "Untitled Property"}
               </Typography>
               <View style={styles.propertyTypeBadge}>
                 <Typography variant="caption" color="secondary">
-                  {property.category === "villa" ? "Residential" : "Commercial"}
+                  {propertyType}
                 </Typography>
               </View>
             </View>
 
             <Typography variant="caption" color="secondary" numberOfLines={1}>
-              {property.location?.address}, {property.location?.city}
+              {propertyAddress}
             </Typography>
 
             <View style={styles.propertyDetails}>
-              {property.pricing?.basePrice && (
+              {rentAmount > 0 && (
                 <Typography variant="body" color="gold">
-                  ${property.pricing.basePrice.toLocaleString()}
+                  ${rentAmount.toLocaleString()}
                 </Typography>
               )}
               <View style={styles.propertySpecs}>
-                {property.capacity?.bedrooms && (
+                {bedroomCount > 0 && (
                   <Typography variant="caption" color="secondary">
-                    {property.capacity.bedrooms} bed
+                    {bedroomCount} bed
                   </Typography>
                 )}
-                {property.capacity?.bathrooms && (
+                {bathroomCount > 0 && (
                   <Typography variant="caption" color="secondary">
-                    • {property.capacity.bathrooms} bath
+                    • {bathroomCount} bath
                   </Typography>
                 )}
-                {property.capacity?.maxGuests && (
+                {property.area?.value && (
                   <Typography variant="caption" color="secondary">
-                    • {property.capacity.maxGuests} guests
+                    • {property.area.value.toLocaleString()} sqft
                   </Typography>
                 )}
               </View>
@@ -347,13 +412,23 @@ export default function HomeownerDashboardScreen() {
     </Modal>
   );
 
-  // Remove duplicate properties by _id
-  const uniqueProperties = properties.filter((prop, idx, arr) =>
-    arr.findIndex(p => p._id === prop._id) === idx
-  );
+  // Remove duplicate properties by _id and ensure unique keys
+  const uniqueProperties = React.useMemo(() => {
+    const seen = new Set();
+    return properties.filter((prop) => {
+      if (prop._id && !seen.has(prop._id)) {
+        seen.add(prop._id);
+        return true;
+      }
+      return false;
+    });
+  }, [properties]);
+
+
 
   // Show loading state when both stats and properties are loading for the first time
-  const isInitialLoading = isStatsLoading && isPropertiesLoading && properties.length === 0;
+  const isInitialLoading =
+    isStatsLoading && isPropertiesLoading && properties.length === 0;
 
   return (
     <View style={styles.container}>
@@ -363,16 +438,20 @@ export default function HomeownerDashboardScreen() {
         showBackButton={false}
         rightComponent={headerRightComponent}
       />
-            {/* Loading indicator for refresh */}
+      {/* Loading indicator for refresh */}
       {(isStatsLoading || isPropertiesLoading) && properties.length > 0 && (
         <View style={styles.refreshLoading}>
           <ActivityIndicator size="small" color={colors.primary.gold} />
-          <Typography variant="caption" color="secondary" style={styles.refreshLoadingText}>
+          <Typography
+            variant="caption"
+            color="secondary"
+            style={styles.refreshLoadingText}
+          >
             Refreshing...
           </Typography>
         </View>
       )}
-      
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -419,7 +498,9 @@ export default function HomeownerDashboardScreen() {
                 <DollarSign size={24} color={colors.primary.gold} />
                 <View style={styles.metricText}>
                   <Typography variant="h3" color="primary">
-                    ${dashboardStats?.totalEarnings?.amount?.toLocaleString() || '0'}
+                    $
+                    {dashboardStats?.totalEarnings?.amount?.toLocaleString() ||
+                      "0"}
                   </Typography>
                   <Typography variant="caption" color="secondary">
                     Total Revenue
@@ -442,7 +523,7 @@ export default function HomeownerDashboardScreen() {
             </Card>
           </View>
         </View>
-        
+
         {/* Add Property Button */}
         <View style={styles.section}>
           <Button
@@ -470,7 +551,11 @@ export default function HomeownerDashboardScreen() {
           {isPropertiesLoading && page === 1 ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color={colors.primary.gold} />
-              <Typography variant="body" color="secondary" style={styles.loadingText}>
+              <Typography
+                variant="body"
+                color="secondary"
+                style={styles.loadingText}
+              >
                 Loading properties...
               </Typography>
             </View>
@@ -479,51 +564,54 @@ export default function HomeownerDashboardScreen() {
               <FlatList
                 data={uniqueProperties}
                 renderItem={renderPropertyCard}
-                keyExtractor={(item) => item._id}
+                keyExtractor={(item, index) => `${item._id || 'property'}-${index}`}
                 showsVerticalScrollIndicator={false}
                 scrollEnabled={false}
                 onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.1}
                 ListFooterComponent={
-                  pagination?.hasNext ? (
+                  hasMore && uniqueProperties.length >= 10 && uniqueProperties.length < totalProperties ? (
                     <View style={styles.loadMoreContainer}>
                       {isPropertiesLoading ? (
-                        <ActivityIndicator size="small" color={colors.primary.gold} />
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.loadMoreButton}
-                          onPress={handleLoadMore}
-                        >
-                          <Typography variant="body" color="gold">
-                            Load More Properties
+                        <View style={styles.progressContainer}>
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary.gold}
+                          />
+                          <Typography
+                            variant="body"
+                            color="secondary"
+                            style={styles.progressText}
+                          >
+                            Loading more properties...
                           </Typography>
-                        </TouchableOpacity>
-                      )}
+                        </View>
+                      ) : null}
                     </View>
                   ) : null
                 }
               />
               {/* TODO: Add pagination info for error handling */}
             </>
-                      ) : (
-              <Card style={styles.emptyState}>
-                <Building2 size={48} color={colors.text.secondary} />
-                <Typography variant="h4" color="secondary" align="center">
-                  No properties found
-                </Typography>
-                <Typography variant="body" color="secondary" align="center">
-                  Start by adding your first property to get started
-                </Typography>
-                <Button
-                  title="Add Property"
-                  onPress={handleAddProperty}
-                  style={styles.emptyStateButton}
-                />
-              </Card>
-            )}
+          ) : (
+            <Card style={styles.emptyState}>
+              <Building2 size={48} color={colors.text.secondary} />
+              <Typography variant="h4" color="secondary" align="center">
+                No properties found
+              </Typography>
+              <Typography variant="body" color="secondary" align="center">
+                Start by adding your first property to get started
+              </Typography>
+              <Button
+                title="Add Property"
+                onPress={handleAddProperty}
+                style={styles.emptyStateButton}
+              />
+            </Card>
+          )}
         </View>
       </ScrollView>
- 
+
       <PropertyTypeModal />
     </View>
   );
@@ -763,6 +851,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
     backgroundColor: colors.background.secondary,
+  },
+  progressContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+  },
+  progressText: {
+    color: colors.text.secondary,
+    fontSize: 14,
   },
   paginationInfo: {
     alignItems: "center",

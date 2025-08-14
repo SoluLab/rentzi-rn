@@ -1,6 +1,6 @@
 import { useQuery, UseQueryOptions } from "@tanstack/react-query";
 import { getHomeownerAuthBaseURL, ENDPOINTS } from "@/constants/urls";
-import { AmenitiesResponse, PropertyRulesResponse, PropertyTypesResponse, PropertyFeaturesResponse, DropdownApiError } from "@/types/homeownerDropdown";
+import { AmenitiesResponse, PropertyRulesResponse, PropertyTypesResponse, PropertyFeaturesResponse, DropdownApiError, ZoningClassificationsResponse } from "@/types/homeownerDropdown";
 import { apiGet, queryKeys } from "./apiClient";
 
 // Amenities dropdown API
@@ -101,6 +101,32 @@ export const usePropertyFeaturesDropdown = (
       });
       
       console.log("[API Client] Property features dropdown response:", response);
+      return response;
+    },
+    ...options,
+  });
+};
+
+// Zoning classifications dropdown API
+export const useZoningClassificationsDropdown = (
+  options?: Omit<
+    UseQueryOptions<ZoningClassificationsResponse, DropdownApiError>,
+    "queryKey" | "queryFn"
+  >
+) => {
+  return useQuery<ZoningClassificationsResponse, DropdownApiError>({
+    queryKey: queryKeys.zoningClassifications(),
+    queryFn: async () => {
+      const baseURL = getHomeownerAuthBaseURL();
+      console.log("[API Client] Zoning classifications dropdown URL:", `${baseURL}${ENDPOINTS.HOMEOWNER_PROPERTY.ZONING_CLASSIFICATIONS_DROPDOWN}`);
+
+      const response = await apiGet<ZoningClassificationsResponse>({
+        baseURL,
+        endpoint: ENDPOINTS.HOMEOWNER_PROPERTY.ZONING_CLASSIFICATIONS_DROPDOWN,
+        auth: true,
+      });
+
+      console.log("[API Client] Zoning classifications dropdown response:", response);
       return response;
     },
     ...options,
