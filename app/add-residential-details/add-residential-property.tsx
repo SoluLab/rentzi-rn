@@ -23,6 +23,7 @@ import { useResidentialPropertyStore } from '@/stores/residentialPropertyStore';
 import { useHomeownerPropertyStore } from '@/stores/homeownerPropertyStore';
 import { useHomeownerCreateProperty } from '@/services/homeownerAddProperty';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import { useHomeownerDropdown } from '@/hooks/useHomeownerDropdown';
 
 // Pre-approved Rentzy locations
 const APPROVED_LOCATIONS = [
@@ -39,12 +40,10 @@ const APPROVED_LOCATIONS = [
   'Other',
 ];
 
-// Property types
-const PROPERTY_TYPES = [
-  'Apartment',
-  'Villa',
-  'Bungalow',
-];
+// Property types options - will be populated from API
+let PROPERTY_TYPES: string[] = [];
+let PROPERTY_TYPES_MAP: { [key: string]: string } = {}; // name -> id mapping
+let PROPERTY_TYPES_REVERSE_MAP: { [key: string]: string } = {}; // id -> name mapping
 
 interface FormData {
   propertyTitle: string;
@@ -82,6 +81,9 @@ export default function AddResidentialPropertyScreen() {
   const { getPropertyById } = useHomeownerPropertyStore();
   const { data, updatePropertyDetails, resetStore, setPropertyId } = useResidentialPropertyStore();
   
+  // Property types dropdown hook
+  const { propertyTypes, propertyTypesLoading } = useHomeownerDropdown();
+  
   // API mutation hook
   const createPropertyMutation = useHomeownerCreateProperty({
     onSuccess: (response) => {
@@ -104,7 +106,7 @@ export default function AddResidentialPropertyScreen() {
       Alert.alert(
         'Error',
         error.message || 'Failed to create property. Please try again.',
-        [{ text: 'OK' }]
+        [{ text: 'OK' }],
       );
     },
   });
@@ -115,6 +117,18 @@ export default function AddResidentialPropertyScreen() {
       resetStore();
     }
   }, []);
+
+  // Populate property types from API when data loads
+  useEffect(() => {
+    if (propertyTypes && propertyTypes.length > 0) {
+      PROPERTY_TYPES = propertyTypes.map(type => type.name);
+      // Create mapping from name to id and id to name
+      propertyTypes.forEach(type => {
+        PROPERTY_TYPES_MAP[type.name] = type._id;
+        PROPERTY_TYPES_REVERSE_MAP[type._id] = type.name;
+      });
+    }
+  }, [propertyTypes]);
 
   // If editing, fetch property by id and pre-fill form
   const [formData, setFormData] = useState<FormData>({
@@ -386,15 +400,29 @@ export default function AddResidentialPropertyScreen() {
 
     // Map property type to API category
     const getCategoryFromPropertyType = (propertyType: string): string => {
-      switch (propertyType.toLowerCase()) {
-        case 'apartment':
-          return 'apartment';
-        case 'villa':
-          return 'villa';
-        case 'bungalow':
-          return 'bungalow';
-        default:
-          return 'apartment'; // fallback
+      // Convert to lowercase for comparison
+      const type = propertyType.toLowerCase();
+      
+      // Map common property types to categories
+      if (type.includes('apartment') || type.includes('condo')) {
+        return 'apartment';
+      } else if (type.includes('villa')) {
+        return 'villa';
+      } else if (type.includes('bungalow')) {
+        return 'bungalow';
+      } else if (type.includes('house') || type.includes('home')) {
+        return 'house';
+      } else if (type.includes('townhouse')) {
+        return 'townhouse';
+      } else if (type.includes('penthouse')) {
+        return 'penthouse';
+      } else if (type.includes('studio')) {
+        return 'studio';
+      } else if (type.includes('loft')) {
+        return 'loft';
+      } else {
+        // If no match found, use the property type as is or default to apartment
+        return type || 'apartment';
       }
     };
 

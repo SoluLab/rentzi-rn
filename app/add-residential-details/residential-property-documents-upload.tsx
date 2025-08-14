@@ -26,62 +26,44 @@ import {
   useHomeownerSavePropertyDraft,
   useHomeownerUploadPropertyFiles,
 } from "@/services/homeownerAddProperty";
+import { usePropertyDocumentsList } from "@/services/homeownerPropertyDocuments";
 import { BASE_URLS, ENDPOINTS } from "@/constants/urls";
 import { uploadToPinata } from "@/utils/ipfsUpload";
+import { PropertyDocument } from "@/types/homeownerPropertyDocuments";
 
-interface DocumentsUploadData {
-  // Mandatory documents
-  propertyDeed: DocumentData | null;
-  governmentId: DocumentData | null;
-  propertyTaxBill: DocumentData | null;
-  proofOfInsurance: DocumentData | null;
-  utilityBill: DocumentData | null;
-  appraisalReport: DocumentData | null;
-  authorizationToSell: DocumentData | null;
-
-  // Conditional documents
-  mortgageStatement: DocumentData | null;
-  hoaDocuments: DocumentData | null;
-
-  // Conditional flags
-  hasMortgage: boolean;
-  hasHOA: boolean;
+interface DocumentFile {
+  uri: string;
+  name: string;
+  size: number;
+  type: string;
+  uploadedUrl?: string; // Add uploaded URL field
+  uploadedKey?: string; // Add uploaded key field
+  apiDocumentId?: string; // Link to API document if it exists
 }
 
-// Extend DocumentData to include upload status
-interface ExtendedDocumentData extends DocumentData {
-  uploadedUrl?: string;
-  uploadedKey?: string;
+interface DocumentsFormData {
+  [key: string]: DocumentFile | null; // Dynamic key-value pairs
 }
 
-interface DocumentsUploadErrors {
-  propertyDeed?: string;
-  governmentId?: string;
-  propertyTaxBill?: string;
-  proofOfInsurance?: string;
-  utilityBill?: string;
-  appraisalReport?: string;
-  authorizationToSell?: string;
-  mortgageStatement?: string;
-  hoaDocuments?: string;
+interface DocumentsValidationErrors {
+  [key: string]: string | undefined; // Dynamic key-value pairs
 }
 
-const MANDATORY_DOCUMENTS = [
-  "propertyDeed",
-  "governmentId",
-  "propertyTaxBill",
-  "proofOfInsurance",
-  "utilityBill",
-  "appraisalReport",
-  "authorizationToSell",
-] as const;
-
-const CONDITIONAL_DOCUMENTS = ["mortgageStatement", "hoaDocuments"] as const;
+const MAX_FILE_SIZE_MB = 50;
+const ALLOWED_FILE_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/jpg",
+];
 
 export default function ResidentialPropertyDocumentsUploadScreen() {
   const router = useRouter();
   const { data, updateDocumentsUpload, resetStore } =
     useResidentialPropertyStore();
+
+  // Fetch documents from API
+  const { data: apiDocuments, isLoading: isLoadingDocuments } = usePropertyDocumentsList();
 
   // API mutation hook for updating property draft
   const saveDraftPropertyMutation = useHomeownerSavePropertyDraft({
@@ -123,229 +105,182 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   }, []);
 
-  // Sync local state with store data
-  React.useEffect(() => {
-    if (data.documentsUpload) {
-      setFormData(data.documentsUpload);
-    }
-  }, [data.documentsUpload]);
-
-  const [formData, setFormData] = useState<DocumentsUploadData>(
-    data.documentsUpload || {
-      propertyDeed: null,
-      governmentId: null,
-      propertyTaxBill: null,
-      proofOfInsurance: null,
-      utilityBill: null,
-      appraisalReport: null,
-      authorizationToSell: null,
-      mortgageStatement: null,
-      hoaDocuments: null,
-      hasMortgage: false,
-      hasHOA: false,
-    }
-  );
-  const [errors, setErrors] = useState<DocumentsUploadErrors>({});
+  const [formData, setFormData] = useState<DocumentsFormData>({});
+  const [errors, setErrors] = useState<DocumentsValidationErrors>({});
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const [previewDocumentData, setPreviewDocumentData] =
-    useState<DocumentData | null>(null);
+    useState<DocumentFile | null>(null);
   // Track upload status for each document field individually
-  const [uploadingFields, setUploadingFields] = useState<
-    Set<keyof DocumentsUploadData>
-  >(new Set());
+  const [uploadingFields, setUploadingFields] = useState<Set<string>>(new Set());
+
+  // Initialize form data when API documents are loaded
+  useEffect(() => {
+    if (apiDocuments?.data?.documents) {
+      const initialFormData: DocumentsFormData = {};
+      apiDocuments.data.documents.forEach((doc) => {
+        const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+        initialFormData[key] = null;
+      });
+      
+      // Merge with existing data from store if it exists
+      if (data.documentsUpload) {
+        const storeDocuments = data.documentsUpload as any;
+        Object.keys(storeDocuments).forEach(key => {
+          if (storeDocuments[key] && typeof storeDocuments[key] === 'object' && storeDocuments[key].uri) {
+            initialFormData[key] = storeDocuments[key];
+          }
+        });
+      }
+      
+      setFormData(initialFormData);
+    }
+  }, [apiDocuments, data.documentsUpload]);
 
   // Validation functions
   const validateDocument = (
-    document: DocumentData | null,
-    documentName: string
+    document: DocumentFile | null,
+    fieldName: string
   ): string | undefined => {
     if (!document) {
-      return `${documentName} is required`;
+      return `${fieldName} is required`;
     }
 
-    if (document.size > 10 * 1024 * 1024) {
-      // 10MB limit
-      return `${documentName} must be less than 10MB`;
+    if (document.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      return `${fieldName} file size (${formatFileSize(
+        document.size
+      )}) exceeds ${MAX_FILE_SIZE_MB}MB limit`;
     }
 
-    if (!document.name.toLowerCase().endsWith(".pdf")) {
-      return `${documentName} must be a PDF file`;
+    if (!ALLOWED_FILE_TYPES.includes(document.type.toLowerCase())) {
+      return `${fieldName} must be a PDF, JPG, or PNG file`;
     }
 
     return undefined;
   };
 
-  const validateConditionalDocument = (
-    document: DocumentData | null,
-    documentName: string,
-    isRequired: boolean
-  ): string | undefined => {
-    if (!isRequired) {
-      return undefined; // Not required
+  const validateForm = (): boolean => {
+    const newErrors: DocumentsValidationErrors = {};
+
+    // Validate all required documents from API
+    if (apiDocuments?.data?.documents) {
+      apiDocuments.data.documents.forEach((doc) => {
+        if (doc.isRequired) {
+          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          newErrors[key] = validateDocument(formData[key], doc.fileName);
+        }
+      });
     }
 
-    return validateDocument(document, documentName);
-  };
-
-  const validateForm = (): boolean => {
-    const newErrors: DocumentsUploadErrors = {};
-
-    // Validate mandatory documents
-    newErrors.propertyDeed = validateDocument(
-      formData.propertyDeed,
-      "Property Deed"
-    );
-    newErrors.governmentId = validateDocument(
-      formData.governmentId,
-      "Government-issued ID"
-    );
-    newErrors.propertyTaxBill = validateDocument(
-      formData.propertyTaxBill,
-      "Property Tax Bill"
-    );
-    newErrors.proofOfInsurance = validateDocument(
-      formData.proofOfInsurance,
-      "Proof of Insurance"
-    );
-    newErrors.utilityBill = validateDocument(
-      formData.utilityBill,
-      "Utility Bill"
-    );
-    newErrors.appraisalReport = validateDocument(
-      formData.appraisalReport,
-      "Appraisal Report"
-    );
-    newErrors.authorizationToSell = validateDocument(
-      formData.authorizationToSell,
-      "Authorization to Sell"
-    );
-
-    // Validate conditional documents
-    newErrors.mortgageStatement = validateConditionalDocument(
-      formData.mortgageStatement,
-      "Mortgage Statement",
-      formData.hasMortgage
-    );
-    newErrors.hoaDocuments = validateConditionalDocument(
-      formData.hoaDocuments,
-      "HOA Documents",
-      formData.hasHOA
-    );
-
     setErrors(newErrors);
-    return !Object.values(newErrors).some((error) => error !== undefined);
+    return Object.values(newErrors).every((error) => !error);
   };
 
-  const updateFormData = (field: keyof DocumentsUploadData, value: any) => {
-    console.log(`updateFormData called: ${field} = ${value}`);
-
+  const updateFormData = (
+    field: string,
+    value: DocumentFile | null
+  ) => {
     const newFormData = { ...formData, [field]: value };
-    console.log("New form data:", newFormData);
-
     setFormData(newFormData);
-    updateDocumentsUpload(newFormData);
+    
+    // Update store with new data
+    const storeData = { ...data.documentsUpload, [field]: value };
+    updateDocumentsUpload(storeData);
 
-    // Clear error for this field if it's a document field
-    if (field !== "hasMortgage" && field !== "hasHOA") {
+    // Clear error when user uploads a document
+    if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }));
     }
   };
 
-  const isFormValid = () => {
-    // Re-validate the form to check if it's actually valid
-    const newErrors: DocumentsUploadErrors = {};
-
-    // Validate mandatory documents
-    newErrors.propertyDeed = validateDocument(
-      formData.propertyDeed,
-      "Property Deed"
-    );
-    newErrors.governmentId = validateDocument(
-      formData.governmentId,
-      "Government-issued ID"
-    );
-    newErrors.propertyTaxBill = validateDocument(
-      formData.propertyTaxBill,
-      "Property Tax Bill"
-    );
-    newErrors.proofOfInsurance = validateDocument(
-      formData.proofOfInsurance,
-      "Proof of Insurance"
-    );
-    newErrors.utilityBill = validateDocument(
-      formData.utilityBill,
-      "Utility Bill"
-    );
-    newErrors.appraisalReport = validateDocument(
-      formData.appraisalReport,
-      "Appraisal Report"
-    );
-    newErrors.authorizationToSell = validateDocument(
-      formData.authorizationToSell,
-      "Authorization to Sell"
-    );
-
-    // Validate conditional documents
-    newErrors.mortgageStatement = validateConditionalDocument(
-      formData.mortgageStatement,
-      "Mortgage Statement",
-      formData.hasMortgage
-    );
-    newErrors.hoaDocuments = validateConditionalDocument(
-      formData.hoaDocuments,
-      "HOA Documents",
-      formData.hasHOA
-    );
-
-    // Check if all required fields are filled and no validation errors
-    const mandatoryDocumentsComplete = MANDATORY_DOCUMENTS.every(
-      (doc) => formData[doc] !== null
-    );
-
-    const conditionalDocumentsComplete =
-      (!formData.hasMortgage || formData.mortgageStatement !== null) &&
-      (!formData.hasHOA || formData.hoaDocuments !== null);
-
-    return (
-      mandatoryDocumentsComplete &&
-      conditionalDocumentsComplete &&
-      Object.values(newErrors).every((error) => !error)
-    );
+  const uploadDocumentToServer = async (
+    document: DocumentFile,
+    documentField: string
+  ) => {
+    try {
+      setUploadingFields((prev) => new Set([...prev, documentField]));
+      // 1. Upload to Pinata (IPFS)
+      const ipfsUrl = await uploadToPinata({
+        uri: document.uri,
+        name: document.name,
+        type: document.type,
+      });
+      // 2. Update formData with IPFS url
+      const updatedDocument: DocumentFile = {
+        ...document,
+        uploadedUrl: ipfsUrl,
+        uploadedKey: document.name,
+      };
+      updateFormData(documentField, updatedDocument);
+      setUploadingFields((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(documentField);
+        return newSet;
+      });
+      // 3. (Optional) If you still want to upload to your backend, do it here
+      // await uploadFilesMutation.mutateAsync({ ... })
+    } catch (error: any) {
+      setUploadingFields((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(documentField);
+        return newSet;
+      });
+      console.error("Error uploading document to IPFS:", error);
+      Alert.alert(
+        "Upload Failed",
+        "Failed to upload document to IPFS. Please try again."
+      );
+    }
   };
 
-  // Document upload functions
-  const pickDocument = async (documentField: keyof DocumentsUploadData) => {
+  const pickDocument = async (
+    fieldName: string,
+    displayName: string
+  ) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: "application/pdf",
         copyToCacheDirectory: true,
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
-        const newDocument: DocumentData = {
+
+        if (asset.size && asset.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+          Alert.alert(
+            "Error",
+            `${displayName} file size (${(asset.size / (1024 * 1024)).toFixed(
+              1
+            )}MB) exceeds ${MAX_FILE_SIZE_MB}MB limit.`
+          );
+          return;
+        }
+
+        const documentFile: DocumentFile = {
           uri: asset.uri,
           name: asset.name,
           size: asset.size || 0,
           type: asset.mimeType || "application/pdf",
         };
 
-        updateFormData(documentField, newDocument);
+        updateFormData(fieldName, documentFile);
 
         // Upload document immediately
-        await uploadDocumentToServer(newDocument, documentField);
+        await uploadDocumentToServer(documentFile, fieldName);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to pick document. Please try again.");
+      Alert.alert(
+        "Error",
+        `Failed to upload ${displayName}. Please try again.`
+      );
     }
   };
 
-  const removeDocument = (documentField: keyof DocumentsUploadData) => {
-    updateFormData(documentField, null);
+  const removeDocument = (fieldName: string) => {
+    updateFormData(fieldName, null);
   };
 
-  const retryUpload = async (documentField: keyof DocumentsUploadData) => {
-    const document = formData[documentField] as ExtendedDocumentData | null;
+  const retryUpload = async (documentField: string) => {
+    const document = formData[documentField];
     if (document && !document.uploadedUrl) {
       console.log(
         `Retrying upload for document ${documentField}:`,
@@ -355,81 +290,9 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   };
 
-  const previewDocument = (document: DocumentData) => {
+  const previewDocument = (document: DocumentFile) => {
     setPreviewDocumentData(document);
     setShowDocumentPreview(true);
-  };
-
-  const transformDocumentsToFiles = (): any[] => {
-    const allDocuments = [
-      formData.propertyDeed,
-      formData.governmentId,
-      formData.propertyTaxBill,
-      formData.proofOfInsurance,
-      formData.utilityBill,
-      formData.appraisalReport,
-      formData.authorizationToSell,
-      formData.hasMortgage ? formData.mortgageStatement : null,
-      formData.hasHOA ? formData.hoaDocuments : null,
-    ].filter(Boolean) as DocumentData[];
-
-    return allDocuments.map((doc) => {
-      // Create a file object compatible with React Native and FormData
-      const file = {
-        uri: doc.uri,
-        name: doc.name,
-        type: doc.type || "application/pdf",
-        size: doc.size,
-      };
-
-      return file;
-    });
-  };
-
-  const uploadDocumentToServer = async (
-    document: DocumentData,
-    documentField: keyof DocumentsUploadData
-  ) => {
-    try {
-      // Set this specific field as uploading
-      setUploadingFields((prev) => new Set(prev).add(documentField));
-
-      // 1. Upload to Pinata (IPFS)
-      const ipfsUrl = await uploadToPinata({
-        uri: document.uri,
-        name: document.name,
-        type: document.type,
-      });
-
-      // 2. Update formData with IPFS url
-      const updatedDocument: ExtendedDocumentData = {
-        ...document,
-        uploadedUrl: ipfsUrl,
-        uploadedKey: document.name,
-      };
-      updateFormData(documentField, updatedDocument);
-
-      console.log(
-        `✅ Document ${documentField} uploaded successfully to IPFS:`,
-        ipfsUrl
-      );
-    } catch (error: any) {
-      console.error(
-        `❌ Error uploading document ${documentField} to IPFS:`,
-        error
-      );
-      Alert.alert(
-        "Upload Failed",
-        `Failed to upload ${documentField} to IPFS. Please try again.`
-      );
-    } finally {
-      // Remove this field from uploading state
-      setUploadingFields((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(documentField);
-        return newSet;
-      });
-    }
   };
 
   const transformFormDataToApiFormat = () => {
@@ -448,12 +311,13 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
     // Helper function to create document object with new structure
     const createDocumentObject = (
-      document: ExtendedDocumentData,
+      document: DocumentFile,
       defaultKey: string
     ) => {
       const ipfsUrl = document.uploadedUrl || "";
       const cid = extractCidFromUrl(ipfsUrl);
       const baseIpfsUrl = "https://gateway.pinata.cloud/ipfs/";
+
       return {
         url: ipfsUrl,
         cid: cid,
@@ -464,88 +328,28 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     // Transform documents to match new schema format
     const documents: any = {};
 
-    // Mandatory documents
-    if (formData.propertyDeed) {
-      documents.propertyDeed = [
-        createDocumentObject(
-          formData.propertyDeed as ExtendedDocumentData,
-          "propertyDeed"
-        ),
-      ];
-    }
-
-    if (formData.governmentId) {
-      documents.governmentIssuedId = [
-        createDocumentObject(
-          formData.governmentId as ExtendedDocumentData,
-          "governmentId"
-        ),
-      ];
-    }
-
-    if (formData.propertyTaxBill) {
-      documents.propertyTaxBill = [
-        createDocumentObject(
-          formData.propertyTaxBill as ExtendedDocumentData,
-          "propertyTaxBill"
-        ),
-      ];
-    }
-
-    if (formData.proofOfInsurance) {
-      documents.proofOfInsurance = [
-        createDocumentObject(
-          formData.proofOfInsurance as ExtendedDocumentData,
-          "proofOfInsurance"
-        ),
-      ];
-    }
-
-    if (formData.utilityBill) {
-      documents.utilityBill = [
-        createDocumentObject(
-          formData.utilityBill as ExtendedDocumentData,
-          "utilityBill"
-        ),
-      ];
-    }
-
-    if (formData.appraisalReport) {
-      documents.appraisalReport = [
-        createDocumentObject(
-          formData.appraisalReport as ExtendedDocumentData,
-          "appraisalReport"
-        ),
-      ];
-    }
-
-    if (formData.authorizationToSell) {
-      documents.authorizationToTokenize = [
-        createDocumentObject(
-          formData.authorizationToSell as ExtendedDocumentData,
-          "authorizationToSell"
-        ),
-      ];
-    }
-
-    // Conditional documents
-    if (formData.hasMortgage && formData.mortgageStatement) {
-      documents.mortgageStatement = [
-        createDocumentObject(
-          formData.mortgageStatement as ExtendedDocumentData,
-          "mortgageStatement"
-        ),
-      ];
-    }
-
-    if (formData.hasHOA && formData.hoaDocuments) {
-      documents.hoaDocument = [
-        createDocumentObject(
-          formData.hoaDocuments as ExtendedDocumentData,
-          "hoaDocuments"
-        ),
-      ];
-    }
+    // Process all documents from form data
+    Object.entries(formData).forEach(([key, document]) => {
+      if (document && document.uploadedUrl) {
+        // Find the corresponding API document to get the proper field name
+        const apiDoc = apiDocuments?.data?.documents.find(doc => 
+          doc.fileName.toLowerCase().replace(/\s+/g, '') === key
+        );
+        
+        if (apiDoc) {
+          // Use the API document's fileName as the key
+          const fieldKey = apiDoc.fileName.toLowerCase().replace(/\s+/g, '');
+          documents[fieldKey] = [
+            createDocumentObject(document, fieldKey),
+          ];
+        } else {
+          // Custom document
+          documents[key] = [
+            createDocumentObject(document, key),
+          ];
+        }
+      }
+    });
 
     if (Object.keys(documents).length > 0) {
       apiData.documents = documents;
@@ -557,18 +361,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   const handleNext = async () => {
     if (validateForm()) {
       // Check if there are unuploaded documents
-      const allDocuments = [
-        formData.propertyDeed,
-        formData.governmentId,
-        formData.propertyTaxBill,
-        formData.proofOfInsurance,
-        formData.utilityBill,
-        formData.appraisalReport,
-        formData.authorizationToSell,
-        formData.hasMortgage ? formData.mortgageStatement : null,
-        formData.hasHOA ? formData.hoaDocuments : null,
-      ].filter(Boolean) as ExtendedDocumentData[];
-
+      const allDocuments = Object.values(formData).filter(Boolean) as DocumentFile[];
       const unuploadedDocuments = allDocuments.filter(
         (doc) => !doc.uploadedUrl
       );
@@ -590,7 +383,10 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
 
   const proceedWithDraft = async () => {
     try {
-      updateDocumentsUpload(formData);
+      // Update store with current form data
+      const storeData = { ...data.documentsUpload, ...formData };
+      updateDocumentsUpload(storeData);
+      
       const apiData = transformFormDataToApiFormat();
       const propertyId = data.propertyId;
       console.log(
@@ -614,6 +410,24 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     }
   };
 
+  const isFormValid = () => {
+    // Re-validate the form to check if it's actually valid
+    const newErrors: DocumentsValidationErrors = {};
+
+    // Validate all required documents from API
+    if (apiDocuments?.data?.documents) {
+      apiDocuments.data.documents.forEach((doc) => {
+        if (doc.isRequired) {
+          const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+          newErrors[key] = validateDocument(formData[key], doc.fileName);
+        }
+      });
+    }
+
+    // Check if all required documents are uploaded and no validation errors
+    return Object.values(newErrors).every((error) => !error);
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const k = 1024;
@@ -623,25 +437,22 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
   };
 
   const renderDocumentField = (
-    field: keyof DocumentsUploadData,
-    label: string,
+    fieldName: string,
+    displayName: string,
     description: string,
-    isRequired: boolean = true
+    isMandatory: boolean = true
   ) => {
-    const document = formData[field] as DocumentData | null;
-    const error =
-      field in errors
-        ? errors[field as keyof DocumentsUploadErrors]
-        : undefined;
-    const isFieldUploading = uploadingFields.has(field);
+    const document = formData[fieldName];
+    const error = errors[fieldName];
+    const isUploadingField = uploadingFields.has(fieldName);
 
     return (
       <View style={styles.fieldContainer}>
         <View style={styles.fieldHeader}>
           <Typography variant="body" style={styles.label}>
-            {label} {isRequired ? "*" : ""}
+            {displayName} {isMandatory && "*"}
           </Typography>
-          {!isRequired && (
+          {!isMandatory && (
             <Typography variant="caption" style={styles.optionalText}>
               (Optional)
             </Typography>
@@ -670,16 +481,16 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                 <Typography variant="caption" style={styles.documentSize}>
                   {formatFileSize(document.size)}
                 </Typography>
-                {(document as ExtendedDocumentData).uploadedUrl ? (
+                {document.uploadedUrl ? (
                   <Typography variant="caption" style={styles.uploadedText}>
                     ✓ Uploaded
                   </Typography>
-                ) : isFieldUploading ? (
+                ) : isUploadingField ? (
                   <Typography variant="caption" style={styles.uploadingText}>
                     ⏳ Uploading...
                   </Typography>
                 ) : (
-                  <TouchableOpacity onPress={() => retryUpload(field)}>
+                  <TouchableOpacity onPress={() => retryUpload(fieldName)}>
                     <Typography variant="caption" style={styles.retryText}>
                       ↻ Retry
                     </Typography>
@@ -687,15 +498,15 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
                 )}
               </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => removeDocument(field)}>
+            <TouchableOpacity onPress={() => removeDocument(fieldName)}>
               <Ionicons name="close" size={20} color={colors.text.secondary} />
             </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity
             style={styles.uploadButton}
-            onPress={() => pickDocument(field)}
-            disabled={isFieldUploading}
+            onPress={() => pickDocument(fieldName, displayName)}
+            disabled={isUploadingField}
           >
             <Ionicons
               name="cloud-upload"
@@ -703,7 +514,7 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
               color={colors.primary.gold}
             />
             <Typography variant="body" style={styles.uploadButtonText}>
-              {isFieldUploading ? "Uploading..." : `Upload ${label}`}
+              {isUploadingField ? "Uploading..." : `Upload ${displayName}`}
             </Typography>
           </TouchableOpacity>
         )}
@@ -717,93 +528,16 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
     );
   };
 
-  const renderConditionalToggle = (
-    field: "hasMortgage" | "hasHOA",
-    label: string,
-    description: string
-  ) => {
-    // Use store data directly to ensure we get the latest value
-    const currentValue = data.documentsUpload?.[field] ?? formData[field];
-
-    console.log(`Toggle Debug - ${field}:`, {
-      currentValue,
-      formData: formData,
-      storeData: data.documentsUpload,
-    });
-
+  if (isLoadingDocuments) {
     return (
-      <View style={styles.fieldContainer}>
-        <Typography variant="body" style={styles.label}>
-          {label}
-        </Typography>
-        <Typography variant="caption" style={styles.helperText}>
-          {description}
-        </Typography>
-
-        <View style={styles.toggleContainer}>
-          <TouchableOpacity
-            style={{
-              ...styles.toggleButton,
-              ...(currentValue ? styles.toggleButtonActive : {}),
-            }}
-            onPress={() => {
-              console.log(`Setting ${field} to true`);
-              updateFormData(field, true);
-            }}
-          >
-            <Typography
-              variant="body"
-              style={{
-                ...styles.toggleButtonText,
-                ...(currentValue ? styles.toggleButtonTextActive : {}),
-              }}
-            >
-              Yes
-            </Typography>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={{
-              ...styles.toggleButton,
-              ...(!currentValue ? styles.toggleButtonActive : {}),
-            }}
-            onPress={() => {
-              console.log(`Setting ${field} to false`);
-              // Force immediate state update
-              const newValue = false;
-              const newFormData = { ...formData, [field]: newValue };
-              setFormData(newFormData);
-              updateDocumentsUpload(newFormData);
-
-              // Clear the document if toggling to No
-              if (field === "hasMortgage") {
-                const updatedFormData = {
-                  ...newFormData,
-                  mortgageStatement: null,
-                };
-                setFormData(updatedFormData);
-                updateDocumentsUpload(updatedFormData);
-              } else if (field === "hasHOA") {
-                const updatedFormData = { ...newFormData, hoaDocuments: null };
-                setFormData(updatedFormData);
-                updateDocumentsUpload(updatedFormData);
-              }
-            }}
-          >
-            <Typography
-              variant="body"
-              style={{
-                ...styles.toggleButtonText,
-                ...(!currentValue ? styles.toggleButtonTextActive : {}),
-              }}
-            >
-              No
-            </Typography>
-          </TouchableOpacity>
+      <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
+        <Header title="Required Documents" />
+        <View style={styles.loadingContainer}>
+          <Typography variant="h4">Loading documents...</Typography>
         </View>
       </View>
     );
-  };
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background.primary }}>
@@ -819,93 +553,46 @@ export default function ResidentialPropertyDocumentsUploadScreen() {
           </Typography>
 
           <Typography variant="body" style={styles.sectionDescription}>
-            Please upload all mandatory documents and any applicable conditional
-            documents. All documents must be in PDF format and under 10MB.
+            Please upload all mandatory documents to complete your residential
+            property listing. Additional documents can be uploaded if needed.
           </Typography>
 
-          {/* Mandatory Documents Section */}
-          <View style={styles.sectionContainer}>
-            <Typography variant="h4" style={styles.sectionSubtitle}>
-              Mandatory Documents
-            </Typography>
+          {/* API Documents Section */}
+          {apiDocuments?.data?.documents && (
+            <View style={styles.sectionContainer}>
+              <Typography variant="h4" style={styles.sectionSubtitle}>
+                Required Documents *
+              </Typography>
 
-            {renderDocumentField(
-              "propertyDeed",
-              "Property Deed",
-              "Official property deed showing ownership"
-            )}
+              {apiDocuments.data.documents
+                .filter(doc => doc.isRequired)
+                .map((doc) => {
+                  const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+                  return renderDocumentField(
+                    key,
+                    doc.fileName,
+                    doc.description,
+                    true
+                  );
+                })}
 
-            {renderDocumentField(
-              "governmentId",
-              "Government-issued ID",
-              "Valid USA-based government identification (Driver's License, Passport, etc.)"
-            )}
+              <Typography variant="h4" style={styles.sectionSubtitle}>
+                Optional Documents
+              </Typography>
 
-            {renderDocumentField(
-              "propertyTaxBill",
-              "Property Tax Bill",
-              "Current property tax bill or statement"
-            )}
-
-            {renderDocumentField(
-              "proofOfInsurance",
-              "Proof of Insurance",
-              "Current property insurance policy or certificate"
-            )}
-
-            {renderDocumentField(
-              "utilityBill",
-              "Utility Bill or Statement",
-              "Recent utility bill (electricity, water, gas, etc.)"
-            )}
-
-            {renderDocumentField(
-              "appraisalReport",
-              "Appraisal Report",
-              "Recent property appraisal report"
-            )}
-
-            {renderDocumentField(
-              "authorizationToSell",
-              "Authorization to Sell or Tokenize",
-              "Digitally signed authorization document"
-            )}
-          </View>
-
-          {/* Conditional Documents Section */}
-          <View style={styles.sectionContainer}>
-            <Typography variant="h4" style={styles.sectionSubtitle}>
-              Conditional Documents
-            </Typography>
-
-            {renderConditionalToggle(
-              "hasMortgage",
-              "Do you have a mortgage on this property?",
-              "If yes, please upload your current mortgage statement"
-            )}
-
-            {(data.documentsUpload?.hasMortgage ?? formData.hasMortgage) &&
-              renderDocumentField(
-                "mortgageStatement",
-                "Mortgage Statement",
-                "Current mortgage statement or loan document",
-                false
-              )}
-
-            {renderConditionalToggle(
-              "hasHOA",
-              "Is this property part of a Homeowner Association (HOA)?",
-              "If yes, please upload relevant HOA documents"
-            )}
-
-            {(data.documentsUpload?.hasHOA ?? formData.hasHOA) &&
-              renderDocumentField(
-                "hoaDocuments",
-                "HOA Documents",
-                "HOA bylaws, rules, or relevant documents",
-                false
-              )}
-          </View>
+              {apiDocuments.data.documents
+                .filter(doc => !doc.isRequired)
+                .map((doc) => {
+                  const key = doc.fileName.toLowerCase().replace(/\s+/g, '');
+                  return renderDocumentField(
+                    key,
+                    doc.fileName,
+                    doc.description,
+                    false
+                  );
+                })}
+            </View>
+          )}
 
           <Button
             title={saveDraftPropertyMutation.isPending ? "Saving..." : "Next"}
@@ -1140,5 +827,11 @@ const styles = StyleSheet.create({
     color: colors.primary.gold,
     fontSize: 9,
     fontWeight: "600",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.lg,
   },
 });

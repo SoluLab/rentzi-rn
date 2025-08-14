@@ -80,6 +80,9 @@ export const ENDPOINTS = {
     // Property dropdowns
     AMENITIES_DROPDOWN: "/property/dropdowns/amenities",
     RULES_DROPDOWN: "/property/dropdowns/rules",
+    DOCUMENTS_LIST: "/property/dropdowns/documents",
+    TYPES_DROPDOWN: "/property/dropdowns/types",
+    FEATURES_DROPDOWN: "/property/dropdowns/features",
   },
 
   HOMEOWNER_DASHBOARD: {

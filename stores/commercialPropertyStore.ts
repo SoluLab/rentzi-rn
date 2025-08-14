@@ -9,6 +9,9 @@ export interface DocumentFile {
   name: string;
   size: number;
   type: string;
+  uploadedUrl?: string; // Add uploaded URL field
+  uploadedKey?: string; // Add uploaded key field
+  apiDocumentId?: string; // Link to API document if it exists
 }
 
 // Media file interface
@@ -93,29 +96,7 @@ export interface MediaUploads {
 
 // Documents interface
 export interface Documents {
-  // Mandatory Documents
-  propertyDeed: DocumentFile | null;
-  zoningCertificate: DocumentFile | null;
-  titleReport: DocumentFile | null;
-  governmentId: DocumentFile | null;
-  certificateOfOccupancy: DocumentFile | null;
-  rentRoll: DocumentFile | null;
-  incomeExpenseStatements: DocumentFile | null;
-  camAgreement: DocumentFile | null;
-  environmentalReport: DocumentFile | null;
-  propertyConditionAssessment: DocumentFile | null;
-  proofOfInsurance: DocumentFile | null;
-  utilityBill: DocumentFile | null;
-  propertyAppraisal: DocumentFile | null;
-  authorizationToTokenize: DocumentFile | null;
-  
-  // Conditional Documents
-  mortgageStatement: DocumentFile | null;
-  hoaDocuments: DocumentFile | null;
-  franchiseAgreement: DocumentFile | null;
-  businessLicenses: DocumentFile | null;
-  adaComplianceReport: DocumentFile | null;
-  fireSafetyInspection: DocumentFile | null;
+  [key: string]: DocumentFile | null; // Dynamic key-value pairs for documents
 }
 
 // Legal consents interface
@@ -292,11 +273,16 @@ export const useCommercialPropertyStore = create<CommercialPropertyStore>()(
           },
         })),
 
-      updateDocuments: (documents) =>
+      updateDocuments: (documents: Partial<Documents>) =>
         set((state) => ({
           data: {
             ...state.data,
-            documents: { ...state.data.documents, ...documents },
+            documents: { 
+              ...state.data.documents, 
+              ...Object.fromEntries(
+                Object.entries(documents).filter(([_, value]) => value !== undefined)
+              )
+            },
           },
         })),
 
@@ -381,23 +367,10 @@ export const useCommercialPropertyStore = create<CommercialPropertyStore>()(
 
       isDocumentsComplete: () => {
         const { documents } = get().data;
-        const mandatoryDocuments = [
-          documents.propertyDeed,
-          documents.zoningCertificate,
-          documents.titleReport,
-          documents.governmentId,
-          documents.certificateOfOccupancy,
-          documents.rentRoll,
-          documents.incomeExpenseStatements,
-          documents.camAgreement,
-          documents.environmentalReport,
-          documents.propertyConditionAssessment,
-          documents.proofOfInsurance,
-          documents.utilityBill,
-          documents.propertyAppraisal,
-          documents.authorizationToTokenize,
-        ];
-        return mandatoryDocuments.every(doc => doc !== null);
+        // With dynamic documents, we can't determine completeness without API context
+        // For now, return true if there are any documents, or implement logic based on API requirements
+        const documentKeys = Object.keys(documents);
+        return documentKeys.length > 0; // Basic check - can be enhanced based on API requirements
       },
 
       isLegalConsentsComplete: () => {

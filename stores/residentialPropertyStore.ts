@@ -91,25 +91,13 @@ export interface DocumentData {
   name: string;
   size: number;
   type: string;
+  uploadedUrl?: string; // Add uploaded URL field
+  uploadedKey?: string; // Add uploaded key field
+  apiDocumentId?: string; // Link to API document if it exists
 }
 
 export interface DocumentsUploadData {
-  // Mandatory documents
-  propertyDeed: DocumentData | null;
-  governmentId: DocumentData | null;
-  propertyTaxBill: DocumentData | null;
-  proofOfInsurance: DocumentData | null;
-  utilityBill: DocumentData | null;
-  appraisalReport: DocumentData | null;
-  authorizationToSell: DocumentData | null;
-  
-  // Conditional documents
-  mortgageStatement: DocumentData | null;
-  hoaDocuments: DocumentData | null;
-  
-  // Conditional flags
-  hasMortgage: boolean;
-  hasHOA: boolean;
+  [key: string]: DocumentData | null; // Dynamic key-value pairs for documents
 }
 
 // Legal consents interface
@@ -224,19 +212,7 @@ const initialData: ResidentialPropertyData = {
     virtualTour: '',
     video360: null,
   },
-  documentsUpload: {
-    propertyDeed: null,
-    governmentId: null,
-    propertyTaxBill: null,
-    proofOfInsurance: null,
-    utilityBill: null,
-    appraisalReport: null,
-    authorizationToSell: null,
-    mortgageStatement: null,
-    hoaDocuments: null,
-    hasMortgage: false,
-    hasHOA: false,
-  },
+  documentsUpload: {}, // Empty object for dynamic documents
   legalConsents: {
     investmentRisks: false,
     platformTerms: false,
@@ -311,7 +287,9 @@ export const useResidentialPropertyStore = create<ResidentialPropertyStore>()(
             ...state.data,
             documentsUpload: {
               ...state.data.documentsUpload,
-              ...documentsUpload,
+              ...Object.fromEntries(
+                Object.entries(documentsUpload).filter(([_, value]) => value !== undefined)
+              )
             },
           },
         }));
